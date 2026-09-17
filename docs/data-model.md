@@ -198,7 +198,7 @@ Transforms (MVP, closed set — no arbitrary expressions):
 | id | uuid pk | |
 | migration_id | fk | |
 | dataset_type | text | |
-| natural_key | text | e.g. `je:JE-2026-0297` or `gl_line:JE-2026-0297:2` |
+| natural_key | text | e.g. `je:JE-AP-20455` or `gl_line:JE-AP-20455:2` |
 | target | text | `canonical_field` or `quarantined_row_repair` |
 | field | text nullable | canonical field |
 | expected_current_value | jsonb | value the override was written against; mismatch at run time → `OVERRIDE.STALE` exception, override not applied |

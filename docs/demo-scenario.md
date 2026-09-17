@@ -1,6 +1,6 @@
 # Relay — Demo Scenario: Brightwater Provisions, Inc.
 
-Status: **Planned.** The generator, fixtures and golden manifest do not exist yet. Amounts marked **fixed** must be reproduced exactly by the generator; all other data is generated deterministically from seed `20260630`.
+Status: **Planned.** The generator, fixtures and golden manifest do not exist yet. Corrected before implementation: see [decisions/0002-brightwater-spec-corrections.md](decisions/0002-brightwater-spec-corrections.md) (SC-01 – SC-03). Amounts marked **fixed** must be reproduced exactly by the generator; all other data is generated deterministically from seed `20260630`.
 
 All companies, people, addresses and systems below are fictional.
 
@@ -51,15 +51,17 @@ Related: [validation-and-reconciliation.md](validation-and-reconciliation.md) ·
 |---|---|---|---|
 | LedgerPro Desktop | `legacy_coa` | 140 | `ledgerpro_chart_of_accounts.csv` |
 | LedgerPro Desktop | `trial_balance` (Dec-25 opening + Jan–Jun 26 by posting period) | ~980 | `ledgerpro_trial_balance_by_period.csv` |
-| LedgerPro Desktop | `gl_detail` | ~21,000 | `ledgerpro_gl_detail_2026H1.csv` |
+| LedgerPro Desktop | `gl_detail` | ~13,000 (corrected, SC-03) | `ledgerpro_gl_detail_2026H1.csv` |
 | LedgerPro Desktop | `customers` | ~178 | `ledgerpro_customers.csv` |
 | LedgerPro Desktop | `vendors` | ~96 | `ledgerpro_vendors.csv` |
-| LedgerPro Desktop | `invoices` | ~2,600 | `ledgerpro_invoices.csv` |
-| LedgerPro Desktop | `bills` | ~1,400 | `ledgerpro_bills.csv` |
-| LedgerPro Desktop | `payments` (with applications) | ~3,900 | `ledgerpro_payments.csv` |
-| LedgerPro Desktop | `ar_aging` at 2026-06-30 | ~310 | `ledgerpro_ar_aging_20260630.csv` |
+| LedgerPro Desktop | `invoices` (history + carried-forward open items, SC-04) | ~900 (corrected, SC-03) | `ledgerpro_invoices.csv` |
+| LedgerPro Desktop | `bills` (history + carried-forward open items, SC-04) | ~1,400 | `ledgerpro_bills.csv` |
+| LedgerPro Desktop | `payments` (with applications) | ~2,300 (corrected, SC-03) | `ledgerpro_payments.csv` |
+| LedgerPro Desktop | `ar_aging` at 2025-12-31 (opening control, SC-04) | ~150 | `ledgerpro_ar_aging_20251231.csv` |
+| LedgerPro Desktop | `ar_aging` at 2026-06-30 | ~180 (corrected, SC-03) | `ledgerpro_ar_aging_20260630.csv` |
+| LedgerPro Desktop | `ap_aging` at 2025-12-31 (opening control, SC-04) | ~120 | `ledgerpro_ap_aging_20251231.csv` |
 | LedgerPro Desktop | `ap_aging` at 2026-06-30 | ~140 | `ledgerpro_ap_aging_20260630.csv` |
-| First Cascade Bank | `bank_transactions` 2026-01-01 → 2026-07-15 | ~3,100 | `firstcascade_4471_statement.csv` |
+| First Cascade Bank | `bank_transactions` 2026-01-01 → 2026-07-15 | ~2,400 (corrected, SC-03) | `firstcascade_4471_statement.csv` |
 | First Cascade Bank | `fx_rates` (EUR→USD daily) | ~200 | `firstcascade_fx_eurusd.csv` |
 | Implementation team | `target_coa` | ~90 | `target_chart_of_accounts.csv` |
 
@@ -68,6 +70,12 @@ Related: [validation-and-reconciliation.md](validation-and-reconciliation.md) ·
 - LedgerPro GL export: Windows-1252 encoding, `MM/DD/YYYY` dates, amounts with thousands separators, separate Debit/Credit columns, memo field sometimes containing unquoted newlines.
 - Bank export: UTF-8 with BOM, ISO dates, single signed amount column, description strings with processor codes.
 - Aging reports: include a trailing "Total" row that column mapping must exclude via value filter (profiling flags it).
+
+### Identifier assignment (corrected, SC-03)
+
+- Identifiers establish identity; business dates establish chronology (SC-05 – SC-07). Invoice numbers are reserved at sales-order entry, manual journal numbers can have gaps from abandoned drafts, vendor codes are clerk-assigned, and customer code gaps include historical inactive customers.
+- LedgerPro bill reference numbers (`B-#####`) are assigned independently of bill date. They are **not** a creation-time sequence, so a higher bill number can carry an earlier date (for example `B-20931`, dated 2026-02-24, and `B-20455`, dated 2026-03-14).
+- Row counts are approximate and follow from a coherent volume of about 900 invoices over the history window. A separate deterministic scaling mechanism is used for performance testing; the default demo is not inflated.
 
 ---
 
@@ -127,7 +135,7 @@ Each defect lists the planted data, detection signals, expected issues, and the 
 | | |
 |---|---|
 | Planted | `JE-2026-0412` (2026-04-30, "Accrued freight — April"): Dr 6400 Freight-In 12,500.00; Cr 2100 Accrued Liabilities 12,050.00; Cr 6410 Freight Rebates **450.00 fixed**, memo `Rebate per` + newline + `March agreement` written unquoted. |
-| Detection (four signals, one root cause) | `NORM.MALFORMED_ROW` on physical lines ~14,322–14,323 (critical) · `GL.JE_BALANCED` on JE-2026-0412, imbalance **450.00** (critical) · R1 account 6410: TB vs detail difference **(450.00)** for 2026-04 and each later period · R6 April Σ credits short by 450.00 and row count short by 1 |
+| Detection (one root cause) | `NORM.MALFORMED_ROW` on two consecutive physical lines of the GL export (critical) · `GL.JE_BALANCED` on JE-2026-0412, imbalance **450.00** (critical) · R1 account 6410: TB vs detail difference **(450.00)** for 2026-04 and each later period · R2 (derived, SC-02): the target account mapped from legacy 6410, **(450.00)** for 2026-04, 2026-05 and 2026-06 · R6 April Σ credits short by 450.00 and row count short by 1 |
 | Expected issue linking | System links the JE issue and R1 issues via shared entry key; quarantine issue linked by AI finding (raw text contains `JE-2026-0412`) |
 | Resolution | `record_override` (quarantined row repair) reconstructing the line from raw text. It restores an amount-bearing line, so policy requires lead **and** controller approval even though 450.00 < 10,000.00 → rerun → all four signals clear |
 
@@ -164,7 +172,7 @@ Each defect lists the planted data, detection signals, expected issues, and the 
 | | |
 |---|---|
 | Planted | `JE-2026-0388` "March inventory count adjustment" dated **2026-04-02**, posted to period **2026-03**: Dr 5000 COGS **21,730.00 fixed**; Cr 1300 Inventory 21,730.00 |
-| Detection | `GL.PERIOD_MATCHES_DATE` (medium) · R1 at the 2026-03 period end: TB (by posting period) includes the entry, detail (by derived period) does not → 5000 differs by 21,730.00 and 1300 by (21,730.00). Closing balances tie again from 2026-04 onward because detail catches up. |
+| Detection | `GL.PERIOD_MATCHES_DATE` (medium) · R1 at the 2026-03 period end: TB (by posting period) includes the entry, detail (by derived period) does not → 5000 differs by 21,730.00 and 1300 by (21,730.00). Closing balances tie again from 2026-04 onward because detail catches up. · R2 (derived, SC-02): at the 2026-03 period end, the target mapped from legacy 5000 differs by 21,730.00 and the target mapped from legacy 1300 by (21,730.00). |
 | Why it matters | The target ERP derives period from date, so March comparatives in the new system would differ from Brightwater's closed March. |
 | Correct resolution | `record_override` entry_date → 2026-03-31, reason "adjustment belongs to March close; original date 2026-04-02 preserved in lineage". Amount ≥ 10,000 and date field → lead **and** controller approval. |
 
@@ -188,8 +196,8 @@ Each defect lists the planted data, detection signals, expected issues, and the 
 
 | | |
 |---|---|
-| Planted | `JE-2026-0297` dated **2062-03-14**, posting period 2026-03, Dr 6200 Utilities **1,184.62 fixed**, Cr 2000 AP (bill `B-20455`, Portland General Utilities, dated 2026-03-14) |
-| Detection | `GL.DATE_IN_WINDOW` (critical). R1: the derived period 2062-03 is outside the window, so 6200 and 2000 differ by ±1,184.62 at every period end from 2026-03 through 2026-06. |
+| Planted | `JE-AP-20455` (corrected from `JE-2026-0297`, SC-01) — the AP module posting of bill `B-20455` (Portland General Utilities, dated 2026-03-14) — entry date keyed as **2062-03-14**, posting period 2026-03, Dr 6200 Utilities **1,184.62 fixed**, Cr 2000 AP |
+| Detection | `GL.DATE_IN_WINDOW` (critical). R1: the derived period 2062-03 is outside the window, so 6200 differs by 1,184.62 and 2000 by (1,184.62) at every period end from 2026-03 through 2026-06. R2 (derived, SC-02): the targets mapped from legacy 6200 and 2000 differ by 1,184.62 and (1,184.62) for 2026-03 through 2026-06. R4 (derived, SC-01): at cutover the GL AP balance for Portland General Utilities excludes the 2062-dated credit, so GL differs from open AP items by **1,184.62** for that vendor. |
 | Resolution | `record_override` entry_date → 2026-03-14 with evidence (posting period, bill date, neighbouring entries). Date field → lead + controller. |
 
 ### DS-12 — Inactive suspense account missing from CoA export
@@ -234,15 +242,15 @@ Each defect lists the planted data, detection signals, expected issues, and the 
 | G3 Account mapping complete | **fail** | DS-12 unmapped 6999 |
 | G4 Results current | pass | |
 | G5 No blocking exceptions | **fail** | DS-01, 03, 05, 07, 09, 11, 12 |
-| G6 Ledger ties | **fail** | R1 (DS-05, DS-08, DS-11), R2 (DS-12) |
-| G7 Subledgers tie | **fail** | R3 (DS-03, DS-04), R3b (DS-04) |
+| G6 Ledger ties | **fail** | R1 (DS-05, DS-08, DS-11), R2 (DS-05, DS-08, DS-11, DS-12) — corrected, SC-02 |
+| G7 Subledgers tie | **fail** | R3 (DS-03, DS-04), R3b (DS-04), R4 (DS-11) — corrected, SC-01 |
 | G8 Cash reconciled | **fail** | DS-10 unrecorded bank activity |
 | G9 Exposure ≤ 1,000.00 | **fail** | |
 | G10 Entities decided | **fail** | DS-01, DS-06 |
 | G11 No pending changes | pass | |
 | G12 Signed off | **fail** | |
 
-**9 of 12 failing.** (DS-02 is not yet visible — by design.)
+**9 of 12 failing.** (DS-02 is not yet visible — by design.) Corrections SC-01 and SC-02 add discrepancy lines to gates that already fail; no gate outcome changes.
 
 ### 6.2 Final state
 

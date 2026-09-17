@@ -222,6 +222,12 @@ All arithmetic is exact `Decimal`. Tolerance compares exact unexplained differen
 | **R3.AR_SUBLEDGER** | fidelity + completeness | Staged GL balance of target accounts with subtype `accounts_receivable` | Staged open AR items (open invoices − unapplied credits) | party (+ `unassigned`) and total | cutover | 0.00 | `single_account_contribution` |
 | **R3b.AR_AGING_VS_ITEMS** | completeness | Control AR aging | Staged open AR items | document (+ total) | cutover | 0.00 | — |
 | **R4.AP_SUBLEDGER** / **R4b.AP_AGING_VS_ITEMS** | as R3 for AP | | | | | | |
+
+**Sign convention (all reconciliations).** Both measures are in the canonical signed convention: debit positive, credit negative. `difference = left − right`. For AP (R4, R4b), the GL balance of `accounts_payable` accounts and the open AP items are both credit-negative. A GL AP balance missing a 1,184.62 credit, against open items that net to zero, therefore gives a difference of `+1184.62`.
+
+**R3/R4 party grain with opening balances (SC-04).** For party *p*: `left(p)` = opening aging balance of *p* + H1 GL activity on mapped AR (R3) or AP (R4) accounts carrying party *p*, dated on or before cutover. `left(unassigned)` = opening TB balance of the mapped accounts − Σ opening aging + H1 activity with no party. The left total equals the GL balance at cutover. `right(p)` = open items at cutover (open documents − unapplied credits). Companion completeness checks **R3o/R4o** compare the opening aging total with the opening TB balance of legacy AR/AP-subtype accounts.
+
+**R2 inherits R1 differences.** R2's right side is built from staged GL detail bucketed by derived period, the same basis as R1's right side, and both left sides come from the control TB. So every R1 discrepancy on a mapped legacy account also appears in R2 on its target account, for the same periods and with the same sign. R2 additionally detects mapping-level problems such as the `unmapped` bucket. This follows from the definitions; nothing is special-cased (SC-02).
 | **R5.CASH_VS_BANK** | completeness | Staged GL cash account balance | Bank statement ending balance at cutover | bank account | cutover | 0.00 unexplained | `outstanding_checks`, `deposits_in_transit`, `bank_only_activity` |
 | **R6.ACTIVITY_TOTALS** | completeness | Source GL rows (incl. quarantined count) | Staged journal lines | period: count, Σ debits, Σ credits | each period | exact counts, 0.00 | — |
 
