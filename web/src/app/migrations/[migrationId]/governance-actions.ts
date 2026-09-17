@@ -7,54 +7,9 @@
  */
 import { redirect } from "next/navigation";
 
-import { ApiError, apiSend, type Schemas } from "@/lib/api/client";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value : "";
-}
-
-function id(formData: FormData, name: string): string {
-  const value = text(formData, name);
-  if (!UUID.test(value)) {
-    throw new Error(`invalid ${name}`);
-  }
-  return value;
-}
-
-function samePath(value: string, fallback: string): string {
-  return value.startsWith("/") && !value.startsWith("//") ? value : fallback;
-}
-
-function withMessage(path: string, key: "error" | "notice", message: string): string {
-  const [base, query = ""] = path.split("?", 2);
-  const params = new URLSearchParams(query);
-  params.set(key, message.slice(0, 300));
-  return `${base}?${params.toString()}`;
-}
-
-function messageOf(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-  throw error;
-}
-
-async function draftAndSubmit(
-  migrationId: string,
-  body: Record<string, unknown>,
-  justification: string,
-): Promise<string> {
-  const change = await apiSend<Schemas["ChangeRequestOut"]>(
-    "POST",
-    `/api/v1/migrations/${migrationId}/change-requests`,
-    body,
-  );
-  await apiSend("POST", `/api/v1/change-requests/${change.id}/submit`, { justification });
-  return change.id;
-}
+import { apiSend, type Schemas } from "@/lib/api/client";
+import { draftAndSubmit, issueRefs } from "@/lib/change-requests";
+import { id, messageOf, samePath, text, withMessage } from "@/lib/form-data";
 
 export async function proposeAccountMapping(formData: FormData): Promise<void> {
   const migrationId = id(formData, "migrationId");
@@ -143,7 +98,10 @@ export async function proposeFieldOverride(formData: FormData): Promise<void> {
           field,
           new_value: text(formData, "newValue"),
         },
-        evidence_refs: [{ kind: "record", run_id: runId, natural_key: naturalKey }],
+        evidence_refs: [
+          { kind: "record", run_id: runId, natural_key: naturalKey },
+          ...issueRefs(formData),
+        ],
       },
       text(formData, "justification"),
     );
@@ -168,7 +126,7 @@ export async function proposeQuarantineRepair(formData: FormData): Promise<void>
           exception_id: exceptionId,
           replacement_text: text(formData, "replacementText"),
         },
-        evidence_refs: [{ kind: "finding", exception_id: exceptionId }],
+        evidence_refs: [{ kind: "finding", exception_id: exceptionId }, ...issueRefs(formData)],
       },
       text(formData, "justification"),
     );
@@ -180,7 +138,7 @@ export async function proposeQuarantineRepair(formData: FormData): Promise<void>
 
 export async function proposeRevert(formData: FormData): Promise<void> {
   const migrationId = id(formData, "migrationId");
-  const overrideId = id(formData, "overrideId");
+  const overrideId = id(formData, "targetId");
   const back = `/migrations/${migrationId}/overrides`;
   let changeId: string;
   try {
@@ -188,8 +146,8 @@ export async function proposeRevert(formData: FormData): Promise<void> {
       migrationId,
       {
         kind: "revert",
-        title: `Revert override on ${text(formData, "naturalKey")}`,
-        payload: { record_override_id: overrideId },
+        title: `Revert ${text(formData, "label")}`,
+        payload: { target: text(formData, "target"), target_id: overrideId },
       },
       text(formData, "justification"),
     );

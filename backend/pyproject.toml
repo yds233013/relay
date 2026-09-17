@@ -108,13 +108,14 @@ root_packages = ["relay", "relay_scenarios", "relay_evaluation"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Runtime layers: api > worker > pipeline > governance > imports > workspace > audit > engine > readers > canonical > core"
+name = "Runtime layers: api > worker > pipeline > changes > issues > mapping sets > imports > workspace > audit > engine > readers > canonical > core"
 type = "layers"
 layers = [
     "relay.api",
     "relay.worker",
     "relay.pipeline",
-    "relay.changes | relay.issues",
+    "relay.changes",
+    "relay.issues",
     "relay.mapping_sets",
     "relay.imports",
     "relay.workspace | relay.identity | relay.jobs",

@@ -13,11 +13,18 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from relay.canonical.enums import PartyType
 from relay.changes import kinds as change_kinds
 from relay.changes.models import OverrideTarget
 from relay.core.hashing import fingerprint as content_fingerprint
 from relay.engine.inputs import BankAccountLink, ConversionPlan, DatasetSpec, MigrationInputs
-from relay.engine.overlays import Overlays, QuarantineRepair, RecordOverride
+from relay.engine.overlays import (
+    Disposition,
+    EntityDecision,
+    Overlays,
+    QuarantineRepair,
+    RecordOverride,
+)
 from relay.engine.pipeline import engine_versions, input_fingerprint
 from relay.engine.policy import Policy
 from relay.engine.readiness import gate_set_version
@@ -95,7 +102,7 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
         )
     policy_row = workspace.current_policy(session, migration.id)
     policy = workspace.policy_from_document(policy_row.policy)
-    # Entity decisions, dispositions, waivers and sign-offs arrive with their kinds in M6-M7.
+    # Gate waivers and sign-offs arrive with their kinds in M7.
     overlays = _overlays(session, migration.id)
     approved_accounts = account_sets.approved_set(session, migration.id)
     governed = (
@@ -149,7 +156,7 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
 
 
 def _overlays(session: Session, migration_id: uuid.UUID) -> Overlays:
-    """Active record overrides and quarantined row repairs, in approval order."""
+    """Active overrides, repairs, entity decisions and dispositions, in approval order."""
     overrides = []
     repairs = []
     for row in change_kinds.active_overrides(session, migration_id):
@@ -174,7 +181,27 @@ def _overlays(session: Session, migration_id: uuid.UUID) -> Overlays:
                     reason=row.reason,
                 )
             )
-    return Overlays(record_overrides=tuple(overrides), quarantine_repairs=tuple(repairs))
+    decisions = tuple(
+        EntityDecision(
+            id=str(row.id),
+            party_type=PartyType(row.party_type),
+            decision=row.decision,
+            members=tuple(row.members),
+            survivor=row.survivor,
+            reason=row.reason,
+        )
+        for row in change_kinds.active_entity_decisions(session, migration_id)
+    )
+    dispositions = tuple(
+        Disposition(id=str(row.id), fingerprint=row.fingerprint, kind=row.kind, reason=row.reason)
+        for row in change_kinds.active_dispositions(session, migration_id)
+    )
+    return Overlays(
+        record_overrides=tuple(overrides),
+        quarantine_repairs=tuple(repairs),
+        entity_decisions=decisions,
+        dispositions=dispositions,
+    )
 
 
 def _plan(migration: Migration) -> ConversionPlan:

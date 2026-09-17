@@ -70,7 +70,12 @@ class RunRequest:
     created: bool
 
 
-def _lock_migration(session: Session, migration_id: uuid.UUID) -> None:
+def lock_migration(session: Session, migration_id: uuid.UUID) -> None:
+    """Serialize run requests and executions per migration.
+
+    Lock order: take this lock before any audit write in the same transaction (the worker takes
+    it first and then writes audit events), or the two can deadlock.
+    """
     session.execute(
         text("SELECT pg_advisory_xact_lock(:key)"),
         {"key": audit.advisory_lock_key("pipeline", migration_id)},
@@ -86,7 +91,7 @@ def request_run(
     change_request_id: uuid.UUID | None = None,
     clock: Clock | None = None,
 ) -> RunRequest:
-    _lock_migration(session, migration_id)
+    lock_migration(session, migration_id)
     configuration = load_configuration(session, migration_id)
     existing = session.scalars(
         select(PipelineRun)
@@ -154,7 +159,7 @@ def execute_run(
     run = session.get(PipelineRun, run_id)
     if run is None:
         raise PipelineRunNotFoundError(f"pipeline run {run_id} does not exist")
-    _lock_migration(session, run.migration_id)
+    lock_migration(session, run.migration_id)
     session.refresh(run, with_for_update=True)
     if run.status != RunStatus.QUEUED.value:
         return run

@@ -587,6 +587,41 @@
         "title": "BlockerOut",
         "type": "object"
       },
+      "CandidateDetailOut": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateOut"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/EntityDecisionOut"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "parties": {
+            "items": {
+              "$ref": "#/components/schemas/PartyOut"
+            },
+            "title": "Parties",
+            "type": "array"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate",
+          "run_id",
+          "parties",
+          "decisions"
+        ],
+        "title": "CandidateDetailOut",
+        "type": "object"
+      },
       "CandidateOut": {
         "additionalProperties": false,
         "properties": {
@@ -1338,6 +1373,101 @@
         "title": "ColumnProfile",
         "type": "object"
       },
+      "CommentIn": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "CommentIn",
+        "type": "object"
+      },
+      "CommentOut": {
+        "additionalProperties": false,
+        "properties": {
+          "author_name": {
+            "title": "Author Name",
+            "type": "string"
+          },
+          "author_user_id": {
+            "format": "uuid",
+            "title": "Author User Id",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "author_user_id",
+          "author_name",
+          "body",
+          "created_at"
+        ],
+        "title": "CommentOut",
+        "type": "object"
+      },
+      "CompanyIn": {
+        "additionalProperties": false,
+        "properties": {
+          "country": {
+            "pattern": "^[A-Z]{2}$",
+            "title": "Country",
+            "type": "string"
+          },
+          "fiscal_year_start_month": {
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Fiscal Year Start Month",
+            "type": "integer"
+          },
+          "functional_currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Functional Currency",
+            "type": "string"
+          },
+          "legal_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Legal Name",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "legal_name",
+          "country",
+          "functional_currency",
+          "fiscal_year_start_month"
+        ],
+        "title": "CompanyIn",
+        "type": "object"
+      },
       "DatabaseStatus": {
         "additionalProperties": false,
         "properties": {
@@ -1384,6 +1514,77 @@
           "head_revision"
         ],
         "title": "DatabaseStatus",
+        "type": "object"
+      },
+      "DatasetIn": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Date"
+          },
+          "bank_account": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Account"
+          },
+          "dataset_type": {
+            "maxLength": 32,
+            "title": "Dataset Type",
+            "type": "string"
+          },
+          "gl_account": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gl Account"
+          },
+          "is_required": {
+            "default": true,
+            "title": "Is Required",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "source_system_id": {
+            "format": "uuid",
+            "title": "Source System Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_system_id",
+          "dataset_type",
+          "name"
+        ],
+        "title": "DatasetIn",
         "type": "object"
       },
       "DatasetOut": {
@@ -1477,6 +1678,114 @@
           "columns"
         ],
         "title": "DatasetProfile",
+        "type": "object"
+      },
+      "DispositionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "change_request_id": {
+            "format": "uuid",
+            "title": "Change Request Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "follow_up": {
+            "title": "Follow Up",
+            "type": "string"
+          },
+          "follow_up_owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow Up Owner Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue_id": {
+            "format": "uuid",
+            "title": "Issue Id",
+            "type": "string"
+          },
+          "issue_key": {
+            "title": "Issue Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reverted_by_cr_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted By Cr Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issue_id",
+          "issue_key",
+          "kind",
+          "amount",
+          "currency",
+          "follow_up",
+          "follow_up_owner_id",
+          "reason",
+          "status",
+          "change_request_id",
+          "reverted_by_cr_id",
+          "created_at"
+        ],
+        "title": "DispositionOut",
         "type": "object"
       },
       "DocumentComparisonOut": {
@@ -1753,6 +2062,86 @@
           "basis"
         ],
         "title": "DrilldownOut",
+        "type": "object"
+      },
+      "EntityDecisionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "change_request_id": {
+            "format": "uuid",
+            "title": "Change Request Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "party_type": {
+            "title": "Party Type",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reverted_by_cr_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted By Cr Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "survivor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Survivor"
+          }
+        },
+        "required": [
+          "id",
+          "party_type",
+          "decision",
+          "members",
+          "survivor",
+          "reason",
+          "status",
+          "change_request_id",
+          "reverted_by_cr_id",
+          "created_at"
+        ],
+        "title": "EntityDecisionOut",
         "type": "object"
       },
       "EvidenceLinkOut": {
@@ -2448,6 +2837,57 @@
         "title": "IssueDetailOut",
         "type": "object"
       },
+      "IssueLinkOut": {
+        "additionalProperties": false,
+        "properties": {
+          "created_by_actor_type": {
+            "title": "Created By Actor Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "link_type": {
+            "title": "Link Type",
+            "type": "string"
+          },
+          "other_issue_id": {
+            "format": "uuid",
+            "title": "Other Issue Id",
+            "type": "string"
+          },
+          "other_issue_key": {
+            "title": "Other Issue Key",
+            "type": "string"
+          },
+          "other_issue_status": {
+            "title": "Other Issue Status",
+            "type": "string"
+          },
+          "other_issue_title": {
+            "title": "Other Issue Title",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "link_type",
+          "other_issue_id",
+          "other_issue_key",
+          "other_issue_title",
+          "other_issue_status",
+          "created_by_actor_type",
+          "reason"
+        ],
+        "title": "IssueLinkOut",
+        "type": "object"
+      },
       "IssueOut": {
         "additionalProperties": false,
         "properties": {
@@ -2604,6 +3044,55 @@
         "title": "IssueOut",
         "type": "object"
       },
+      "IssueUpdateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "clear_owner": {
+            "default": false,
+            "title": "Clear Owner",
+            "type": "boolean"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Note",
+            "type": "string"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "IssueUpdateIn",
+        "type": "object"
+      },
       "JustificationIn": {
         "additionalProperties": false,
         "properties": {
@@ -2648,6 +3137,65 @@
         "title": "LineageOut",
         "type": "object"
       },
+      "ManualIssueIn": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "completeness",
+              "mapping",
+              "ledger_integrity",
+              "subledger",
+              "cash",
+              "master_data",
+              "currency",
+              "dates",
+              "ai_safety",
+              "other"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 10000,
+            "title": "Description",
+            "type": "string"
+          },
+          "nature": {
+            "enum": [
+              "migration_defect",
+              "source_anomaly"
+            ],
+            "title": "Nature",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "severity",
+          "category",
+          "nature"
+        ],
+        "title": "ManualIssueIn",
+        "type": "object"
+      },
       "MappingConfigIn": {
         "additionalProperties": false,
         "properties": {
@@ -2672,6 +3220,63 @@
           "fields"
         ],
         "title": "MappingConfigIn",
+        "type": "object"
+      },
+      "MigrationIn": {
+        "additionalProperties": false,
+        "properties": {
+          "bank_clearing_window_days": {
+            "default": 15,
+            "maximum": 90.0,
+            "minimum": 0.0,
+            "title": "Bank Clearing Window Days",
+            "type": "integer"
+          },
+          "company": {
+            "$ref": "#/components/schemas/CompanyIn"
+          },
+          "cutover_date": {
+            "format": "date",
+            "title": "Cutover Date",
+            "type": "string"
+          },
+          "go_live_date": {
+            "format": "date",
+            "title": "Go Live Date",
+            "type": "string"
+          },
+          "history_start_date": {
+            "format": "date",
+            "title": "History Start Date",
+            "type": "string"
+          },
+          "issue_key_prefix": {
+            "pattern": "^[A-Z]{2,6}$",
+            "title": "Issue Key Prefix",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "opening_balance_date": {
+            "format": "date",
+            "title": "Opening Balance Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "name",
+          "issue_key_prefix",
+          "opening_balance_date",
+          "history_start_date",
+          "cutover_date",
+          "go_live_date"
+        ],
+        "title": "MigrationIn",
         "type": "object"
       },
       "MigrationOut": {
@@ -3151,6 +3756,36 @@
           "next_cursor"
         ],
         "title": "Page[SourceRowOut]",
+        "type": "object"
+      },
+      "PartyOut": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "natural_key": {
+            "title": "Natural Key",
+            "type": "string"
+          },
+          "open_documents": {
+            "title": "Open Documents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "natural_key",
+          "code",
+          "data",
+          "open_documents"
+        ],
+        "title": "PartyOut",
         "type": "object"
       },
       "PreviewRowOut": {
@@ -4140,6 +4775,71 @@
           "values"
         ],
         "title": "SourceRowOut",
+        "type": "object"
+      },
+      "SourceSystemIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "legacy_erp",
+              "spreadsheet",
+              "bank",
+              "billing",
+              "crm",
+              "other"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind"
+        ],
+        "title": "SourceSystemIn",
+        "type": "object"
+      },
+      "SourceSystemOut": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "description"
+        ],
+        "title": "SourceSystemOut",
         "type": "object"
       },
       "StageOut": {
@@ -5426,6 +6126,66 @@
         ]
       }
     },
+    "/api/v1/entity-candidates/{candidate_id}": {
+      "get": {
+        "operationId": "get_candidate_api_v1_entity_candidates__candidate_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "candidate_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Candidate Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Candidate",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
     "/api/v1/imports/{import_id}": {
       "get": {
         "operationId": "get_import_api_v1_imports__import_id__get",
@@ -5751,6 +6511,335 @@
         "tags": [
           "workspace"
         ]
+      },
+      "patch": {
+        "description": "Owner and workflow status. ``resolved`` is refused: only a current run resolves issues.",
+        "operationId": "update_issue_api_v1_issues__issue_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Issue",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/api/v1/issues/{issue_id}/comments": {
+      "get": {
+        "operationId": "list_comments_api_v1_issues__issue_id__comments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CommentOut"
+                  },
+                  "title": "Response List Comments Api V1 Issues  Issue Id  Comments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Comments",
+        "tags": [
+          "issues"
+        ]
+      },
+      "post": {
+        "operationId": "add_comment_api_v1_issues__issue_id__comments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Comment",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/api/v1/issues/{issue_id}/history": {
+      "get": {
+        "operationId": "issue_history_api_v1_issues__issue_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventOut"
+                  },
+                  "title": "Response Issue History Api V1 Issues  Issue Id  History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue History",
+        "tags": [
+          "issues"
+        ]
+      }
+    },
+    "/api/v1/issues/{issue_id}/links": {
+      "get": {
+        "operationId": "list_links_api_v1_issues__issue_id__links_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IssueLinkOut"
+                  },
+                  "title": "Response List Links Api V1 Issues  Issue Id  Links Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Links",
+        "tags": [
+          "issues"
+        ]
       }
     },
     "/api/v1/me": {
@@ -5855,6 +6944,64 @@
         "summary": "List Migrations",
         "tags": [
           "workspace"
+        ]
+      },
+      "post": {
+        "operationId": "create_migration_api_v1_migrations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Migration",
+        "tags": [
+          "setup"
         ]
       }
     },
@@ -6495,6 +7642,138 @@
         "tags": [
           "workspace"
         ]
+      },
+      "post": {
+        "operationId": "create_dataset_api_v1_migrations__migration_id__datasets_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Dataset",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/dispositions": {
+      "get": {
+        "operationId": "list_dispositions_api_v1_migrations__migration_id__dispositions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DispositionOut"
+                  },
+                  "title": "Response List Dispositions Api V1 Migrations  Migration Id  Dispositions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Dispositions",
+        "tags": [
+          "issues"
+        ]
       }
     },
     "/api/v1/migrations/{migration_id}/entity-candidates": {
@@ -6558,6 +7837,70 @@
         "summary": "List Candidates",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/entity-decisions": {
+      "get": {
+        "operationId": "list_entity_decisions_api_v1_migrations__migration_id__entity_decisions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EntityDecisionOut"
+                  },
+                  "title": "Response List Entity Decisions Api V1 Migrations  Migration Id  Entity Decisions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Entity Decisions",
+        "tags": [
+          "issues"
         ]
       }
     },
@@ -6705,6 +8048,40 @@
           },
           {
             "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Owner"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rule",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rule"
+            }
+          },
+          {
+            "in": "query",
             "name": "order",
             "required": false,
             "schema": {
@@ -6783,6 +8160,74 @@
         "summary": "List Issues",
         "tags": [
           "workspace"
+        ]
+      },
+      "post": {
+        "operationId": "create_manual_issue_api_v1_migrations__migration_id__issues_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualIssueIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Manual Issue",
+        "tags": [
+          "issues"
         ]
       }
     },
@@ -7104,6 +8549,138 @@
         "summary": "List Record Overrides",
         "tags": [
           "governance"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/source-systems": {
+      "get": {
+        "operationId": "list_source_systems_api_v1_migrations__migration_id__source_systems_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceSystemOut"
+                  },
+                  "title": "Response List Source Systems Api V1 Migrations  Migration Id  Source Systems Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Source Systems",
+        "tags": [
+          "setup"
+        ]
+      },
+      "post": {
+        "operationId": "create_source_system_api_v1_migrations__migration_id__source_systems_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceSystemIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceSystemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Source System",
+        "tags": [
+          "setup"
         ]
       }
     },

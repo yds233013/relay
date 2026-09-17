@@ -9,59 +9,51 @@ other, like the demo story.
 
 from __future__ import annotations
 
-import uuid
+import threading
+import time
 from collections import Counter
 from collections.abc import Iterator
 from decimal import Decimal
-from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import Engine, select, text
 
 from relay.api.app import create_app
 from relay.audit.models import AuditEvent
+from relay.audit.service import advisory_lock_key
 from relay.changes.models import ChangeRequest
 from relay.core.config import Settings
-from relay.core.db import create_session_factory, session_scope
+from relay.core.db import session_scope
 from relay.engine.overlays import AccountMappingChange, Overlays
 from relay.engine.pipeline import EngineResult, run_engine
-from relay.imports.blob_store import LocalBlobStore
-from relay.imports.service import ImportLimits
-from relay.issues.models import Issue
-from relay.pipeline.models import PipelineRun, RuleExceptionRow
-from relay.worker import drain
 from relay_evaluation.brightwater import persisted, resolution
 from relay_evaluation.cli import _read_fixtures
 from relay_evaluation.paths import BRIGHTWATER_FIXTURES
-from relay_scenarios.brightwater.seed import SeedResult, seed
-from relay_scenarios.cli import DEFAULT_MAPPING_SET
-from tests.integration.support import ensure_head, worker_context
-
-MAYA = "maya.chen@relay.example"
-DANIEL = "daniel.okafor@relay.example"
-PRIYA = "priya.raman@brightwater.example"
-SAM = "sam.ortiz@brightwater.example"
-
-Story = tuple[SeedResult, sessionmaker[Session], Path]
-
-
-def headers(email: str) -> dict[str, str]:
-    return {"X-Relay-User": email}
+from tests.integration.api_story import (
+    DANIEL,
+    MAYA,
+    PRIYA,
+    SAM,
+    Story,
+    approve_all,
+    draft_account_mapping,
+    draft_and_submit,
+    findings,
+    headers,
+    issue_status,
+    latest_run,
+    ok,
+    ok_object,
+    process_run,
+    seed_story,
+)
 
 
 @pytest.fixture(scope="module")
 def story(migrated: str, engine: Engine, tmp_path_factory: pytest.TempPathFactory) -> Story:
-    ensure_head(migrated)
-    factory = create_session_factory(engine)
-    root = tmp_path_factory.mktemp("governance-blobs")
-    result = seed(
-        factory, LocalBlobStore(root), ImportLimits(52_428_800, 500_000), BRIGHTWATER_FIXTURES,
-        DEFAULT_MAPPING_SET,
-    )  # fmt: skip
-    return result, factory, root
+    return seed_story(migrated, engine, tmp_path_factory.mktemp("governance-blobs"))
 
 
 @pytest.fixture(scope="module")
@@ -74,93 +66,6 @@ def client(settings: Settings, story: Story) -> Iterator[TestClient]:
 @pytest.fixture(scope="module")
 def engine_run1() -> EngineResult:
     return run_engine(resolution.inputs_for(_read_fixtures(BRIGHTWATER_FIXTURES)))
-
-
-def ok(response: Any, code: int = 200) -> Any:
-    assert response.status_code == code, response.text
-    return response.json()
-
-
-def ok_object(response: Any, code: int = 200) -> dict[str, Any]:
-    body = ok(response, code)
-    assert isinstance(body, dict)
-    return body
-
-
-def process_run(story: Story, run_id: str) -> uuid.UUID:
-    _, factory, root = story
-    drain(worker_context(factory, root))
-    with session_scope(factory) as session:
-        run = session.get_one(PipelineRun, uuid.UUID(run_id))
-        assert run.status == "succeeded", run.error
-        return run.id
-
-
-def findings(story: Story, run_id: uuid.UUID, rule_id: str) -> list[RuleExceptionRow]:
-    with session_scope(story[1]) as session:
-        rows = session.scalars(
-            select(RuleExceptionRow).where(
-                RuleExceptionRow.run_id == run_id, RuleExceptionRow.rule_id == rule_id
-            )
-        ).all()
-        session.expunge_all()
-        return list(rows)
-
-
-def issue_status(story: Story, rule_id: str, subject: str) -> str:
-    with session_scope(story[1]) as session:
-        issue = session.scalars(
-            select(Issue).where(
-                Issue.migration_id == story[0].migration_id,
-                Issue.rule_or_recon_id == rule_id,
-                Issue.subjects.contains([subject]),
-            )
-        ).one()
-        return issue.status
-
-
-def approve_all(client: TestClient, change_id: str, reviewers: list[str]) -> dict[str, Any]:
-    outcome: dict[str, Any] = {}
-    for reviewer in reviewers:
-        outcome = ok(
-            client.post(
-                f"/api/v1/change-requests/{change_id}/approve",
-                json={"comment": "Checked against the evidence."},
-                headers=headers(reviewer),
-            )
-        )
-    return outcome
-
-
-def draft_and_submit(
-    client: TestClient, migration_id: uuid.UUID, body: dict[str, Any], justification: str
-) -> dict[str, Any]:
-    change = ok(
-        client.post(
-            f"/api/v1/migrations/{migration_id}/change-requests", json=body, headers=headers(MAYA)
-        ),
-        201,
-    )
-    return ok_object(
-        client.post(
-            f"/api/v1/change-requests/{change['id']}/submit",
-            json={"justification": justification},
-            headers=headers(MAYA),
-        )
-    )
-
-
-def draft_account_mapping(
-    client: TestClient, migration_id: uuid.UUID, changes: list[dict[str, str | None]]
-) -> dict[str, Any]:
-    return ok_object(
-        client.post(
-            f"/api/v1/migrations/{migration_id}/account-mapping-sets",
-            json={"base": "approved", "changes": changes},
-            headers=headers(MAYA),
-        ),
-        201,
-    )
 
 
 # ------------------------------------------------------------------------------------ mappings
@@ -355,20 +260,21 @@ def test_approving_one_change_makes_a_competing_change_stale(
     )
     statuses = {s["version"]: s["status"] for s in sets["sets"]}
     assert statuses == {1: "superseded", 2: "superseded", 3: "approved", 4: "abandoned"}
+    # governance.md G11: a stale request is still pending until its requester withdraws it.
+    readiness = ok(client.get(f"/api/v1/migrations/{migration_id}/readiness", headers=headers(SAM)))
+    g11 = next(g for g in readiness["gates"] if g["gate_id"] == "G11")
+    assert (g11["status"], g11["observed"]) == ("fail", "1")
+    withdrawn = ok(
+        client.post(
+            f"/api/v1/change-requests/{loser['id']}/withdraw",
+            json={"reason": "superseded by the approved mapping"},
+            headers=headers(MAYA),
+        )
+    )
+    assert withdrawn["status"] == "withdrawn"
 
 
 # ----------------------------------------------------------------------- DS-08 and DS-11 overrides
-def _latest_run(story: Story) -> uuid.UUID:
-    with session_scope(story[1]) as session:
-        return session.scalars(
-            select(PipelineRun.id)
-            .where(
-                PipelineRun.migration_id == story[0].migration_id, PipelineRun.status == "succeeded"
-            )
-            .order_by(PipelineRun.sequence.desc())
-        ).first()  # type: ignore[return-value]
-
-
 def _override(
     client: TestClient, story: Story, natural_key: str, value: str, justification: str
 ) -> dict[str, Any]:
@@ -379,7 +285,7 @@ def _override(
             "kind": "record_override",
             "title": f"Correct entry date of {natural_key}",
             "field_override": {
-                "run_id": str(_latest_run(story)),
+                "run_id": str(latest_run(story)),
                 "natural_key": natural_key,
                 "field": "entry_date",
                 "new_value": value,
@@ -430,7 +336,7 @@ def test_ds08_and_ds11_entry_date_overrides(client: TestClient, story: Story) ->
 def test_ds05_quarantined_row_repair(
     client: TestClient, story: Story, engine_run1: EngineResult
 ) -> None:
-    run_id = _latest_run(story)
+    run_id = latest_run(story)
     (malformed,) = findings(story, run_id, "NORM.MALFORMED_ROW")
     # The operator rewrites the broken record with its memo quoted; the evaluation helper does
     # exactly what a person would type from the raw text shown in the UI.
@@ -506,7 +412,7 @@ def test_persisted_run_matches_the_engine_with_the_documented_corrections(
         ),
     )  # fmt: skip
     with session_scope(story[1]) as session:
-        actual = persisted.load(session, _latest_run(story))
+        actual = persisted.load(session, latest_run(story))
     assert _signature(actual) == _signature(expected)
 
 
@@ -609,3 +515,43 @@ def test_every_change_request_transition_is_audited_with_before_and_after(story:
             assert actions.count("change_request.approval_recorded") == len(
                 change.required_approvals
             )
+
+
+# -------------------------------------------------------------------------------- lock ordering
+def test_an_approval_that_applies_a_change_never_deadlocks_with_a_running_pipeline(
+    client: TestClient, story: Story, engine: Engine
+) -> None:
+    """Regression: the approval took the audit lock and then the pipeline lock; the worker takes
+    them in the opposite order. A connection playing the worker holds the pipeline lock, lets the
+    approval start, then takes the audit lock: that must succeed, and the approval must finish."""
+    migration_id = story[0].migration_id
+    change = draft_and_submit(
+        client,
+        migration_id,
+        {"kind": "policy_change", "title": "Lock ordering",
+         "payload": {"changes": {"fx_rate_lookback_days": 6}}},
+        "Regression test for lock ordering.",
+    )  # fmt: skip
+    approve_all(client, change["id"], [DANIEL])
+    outcome: dict[str, Any] = {}
+
+    def approve() -> None:
+        outcome["response"] = client.post(
+            f"/api/v1/change-requests/{change['id']}/approve", json={}, headers=headers(PRIYA)
+        )
+
+    pipeline_key = advisory_lock_key("pipeline", migration_id)
+    audit_key = advisory_lock_key("audit", migration_id)
+    with engine.connect() as worker:
+        worker.execute(text("SET lock_timeout = '10s'"))
+        worker.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": pipeline_key})
+        thread = threading.Thread(target=approve)
+        thread.start()
+        time.sleep(1.0)  # the approval is now waiting (fixed) or holding the audit lock (bug)
+        worker.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": audit_key})
+        worker.commit()
+    thread.join(timeout=30)
+    assert not thread.is_alive()
+    assert outcome["response"].status_code == 200, outcome["response"].text
+    assert outcome["response"].json()["change_request"]["status"] == "applied"
+    process_run(story, outcome["response"].json()["run_id"])

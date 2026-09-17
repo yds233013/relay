@@ -335,7 +335,7 @@ Status: **Complete** (commit `feat: govern mappings and record corrections with 
 ### Changed from the plan, and why
 
 - The account mapping file remains a dataset; version 1 of the governed set is drafted from it (G-01).
-- G11 no longer counts stale change requests (G-06).
+- G11 no longer counts stale change requests (G-06). *Reverted in M6 (0007 I-12): it contradicted governance.md.*
 - Approval policy is fixed in code rather than stored in the policy document (G-04).
 - The column mapping editor is a JSON text area, not a field-by-field form (G-12).
 
@@ -349,3 +349,37 @@ Status: **Complete** (commit `feat: govern mappings and record corrections with 
 ### Next
 
 M6: issue workflow, entity decisions, dispositions, re-imports and the new-migration flow.
+
+---
+
+## M6 — Issues workflow, entity resolution, dispositions, re-imports
+
+Status: **Complete** (commit `feat: add issue workflow, entity decisions and dispositions`). Decisions: [decisions/0007-issue-workflow-and-decisions.md](decisions/0007-issue-workflow-and-decisions.md).
+
+### Built
+
+- **Schema** (Alembic `0004_issue_workflow`): `entity_decisions`, `dispositions`, `issue_links`, `issue_comments` (append-only trigger).
+- **Issues**: owner and status workflow with version checks, manual issues, comments, history, system `same_root_cause` links, `awaiting_verification` and `verification_failed`.
+- **Change request kinds** `entity_decision` and `disposition` (one or more issues); `revert` for every overlay; active entity decisions and dispositions feed runs.
+- **API**: `PATCH /issues/{id}`, `POST /migrations/{id}/issues`, issue comments, links and history, `rule` and `owner` issue filters, entity decisions, entity candidate detail with staged parties, dispositions, `POST /migrations`, source systems, datasets.
+- **Web**: issue workflow, comments, links and history on the issue page; disposition proposal for one or several issues; Entities list and side-by-side candidate decision page; Overrides page with entity decisions and dispositions and revert for each; dataset page with import history and upload; run request buttons; New migration and Setup pages; manual issues.
+- **Fixtures**: `fixtures/demo/brightwater_reexport/` (unfiltered exports for DS-04, DS-09, DS-12).
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Playwright on a freshly seeded stack | E2E-1, E2E-2, DS-05/08/11, **E2E-3** (identical upload changes nothing; three corrected exports become active imports; the rerun has no R3b discrepancy and the orphan payment issue is resolved), **E2E-4** (merge V-1042/V-1187 through the Entities page → rerun → `AP.DUPLICATE_BILL` open → carry-forward disposition by the controller only → dispositioned, exposure lower), **DS-06 and DS-10** (distinct store decision; one disposition for six bank fees), **E2E-8** (new migration, upload, suggested mapping, lead approval, run, `NORM.DUPLICATE_NATURAL_KEY` issue) |
+| API story (`test_issue_workflow.py`, 10 tests) | workflow rules and version conflicts; comments immutable in the database; manual issues; system links; re-imports; DS-01 merge reveals DS-02; DS-06; mapping, overrides, repair and dispositions for DS-03, DS-05, DS-07, DS-08, DS-10, DS-11, DS-12, DS-13; **the final persisted run equals the pure engine with the documented resolutions** (rule counts, finding subjects, reconciliation differences) and only G12 (sign-off) fails, with exposure 0.00; reverting a disposition reopens its issue |
+| API E2E-8 (`test_new_migration.py`) | passes, including 422 for an invalid issue key prefix |
+| Staleness and G11 | a stale request keeps G11 failing until withdrawn (governance.md) |
+| Concurrency | an approval racing a running pipeline no longer deadlocks (regression test reproduced the deadlock before the fix); database sessions commit before the response is sent |
+| `make check` | 652 unit and scenario tests, 84 integration tests, 37 web tests, 115/115 manifest checks, 22 fixture files match generation |
+
+### Known limitations and debt
+
+See 0007. Readiness is not re-evaluated between runs; no survivorship per field; transitive entity contradictions are not detected; owner selection uses the development user directory.
+
+### Next
+
+M7: readiness gates, waivers and sign-off.

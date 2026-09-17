@@ -41,7 +41,13 @@ async function problem(response: Response): Promise<ApiError> {
   return new ApiError(response.status, code, detail);
 }
 
-async function request(method: string, path: string, query: Query, body?: unknown) {
+async function request(
+  method: string,
+  path: string,
+  query: Query,
+  body?: unknown,
+  extraHeaders: Record<string, string> = {},
+) {
   const config = parseServerConfig(process.env);
   const user = await currentUserEmail();
   if (user === null && path !== "/api/v1/dev/users") {
@@ -52,13 +58,20 @@ async function request(method: string, path: string, query: Query, body?: unknow
   if (user) {
     headers["X-Relay-User"] = user;
   }
-  if (body !== undefined) {
+  const raw = body instanceof Uint8Array;
+  if (body !== undefined && !raw) {
     headers["Content-Type"] = "application/json";
   }
+  Object.assign(headers, extraHeaders);
   const response = await fetch(url, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body:
+      body === undefined
+        ? undefined
+        : raw
+          ? (body as Uint8Array<ArrayBuffer>)
+          : JSON.stringify(body),
     cache: "no-store",
   });
   if (response.status === 401) {
@@ -79,6 +92,20 @@ export async function apiGet<T>(path: string, query: Query = {}): Promise<T> {
  * Send a mutation as the signed-in development user. Only Server Functions call this; the API
  * decides authorization, so a hidden button is never the only protection.
  */
-export async function apiSend<T>(method: "POST" | "PUT", path: string, body: unknown): Promise<T> {
+export async function apiSend<T>(
+  method: "POST" | "PUT" | "PATCH",
+  path: string,
+  body: unknown,
+): Promise<T> {
   return (await (await request(method, path, {}, body)).json()) as T;
+}
+
+/** Upload a CSV file's bytes to a dataset as the signed-in user (the API parses it in a job). */
+export async function apiUpload<T>(path: string, filename: string, bytes: Uint8Array): Promise<T> {
+  return (await (
+    await request("POST", path, {}, bytes, {
+      "Content-Type": "text/csv",
+      "X-Relay-Filename": filename,
+    })
+  ).json()) as T;
 }

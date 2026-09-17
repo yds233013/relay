@@ -39,8 +39,9 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 
 - **M4**: web evidence workspace (Next.js Server Components over the API): portfolio, overview with evidence links, data, runs with diff, validation, reconciliation with drill-down, record inspector, issues, readiness, audit log; Playwright E2E-1 with axe. Decisions: `docs/decisions/0005-web-evidence-workspace.md`.
 - **M5**: governed changes: account mapping sets (replace the mapping file's pairs in runs), column mapping suggestions and preview, change request kinds `column_mapping_set`, `account_mapping_set`, `record_override`, `policy_change`, `revert` with SoD, staleness and atomic apply plus run request; Mappings, Approvals, change request, Overrides pages; E2E-2. Decisions: `docs/decisions/0006-governed-changes.md`. E2E tests change demo state: `make demo-reset` before rerunning.
+- **M6**: issue workflow (owner, status, comments, links, history, manual issues), `entity_decision` and multi-issue `disposition` kinds, `revert` for every overlay, re-imports with committed unfiltered re-exports (`fixtures/demo/brightwater_reexport/`), new migration and setup pages; E2E-3, E2E-4, E2E-8. Decisions: `docs/decisions/0007-issue-workflow-and-decisions.md`.
 
-Governed overlays (overrides, entity decisions, dispositions, waivers, sign-offs), the remaining change request kinds, their UI and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
+Gate waivers, readiness sign-off and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
 - `backend/src/relay/`: **runtime** package. Pure: `core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`. Database: `audit`, `identity`, `workspace`, `jobs`, `imports`, `mapping_sets`, `changes`, `issues`, `pipeline`. Entry points: `api`, `worker.py`, `cli.py`. Layers are enforced by import-linter (see `backend/pyproject.toml`).

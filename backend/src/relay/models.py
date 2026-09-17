@@ -7,11 +7,17 @@ Application code imports models from their owning module; this aggregator exists
 from __future__ import annotations
 
 from relay.audit.models import AuditEvent
-from relay.changes.models import Approval, ChangeRequest, RecordOverride
+from relay.changes.models import (
+    Approval,
+    ChangeRequest,
+    Disposition,
+    EntityDecision,
+    RecordOverride,
+)
 from relay.core.db import Base
 from relay.identity.models import User
 from relay.imports.models import DatasetProfile, Import, QuarantinedRow, SourceRow, StoredFile
-from relay.issues.models import Issue, IssueOccurrence
+from relay.issues.models import Issue, IssueComment, IssueLink, IssueOccurrence
 from relay.jobs.models import Job
 from relay.mapping_sets.models import (
     AccountMapping,
@@ -46,10 +52,14 @@ __all__ = [
     "Company",
     "Dataset",
     "DatasetProfile",
+    "Disposition",
     "EntityCandidateRow",
+    "EntityDecision",
     "GateResultRow",
     "Import",
     "Issue",
+    "IssueComment",
+    "IssueLink",
     "IssueOccurrence",
     "Job",
     "Migration",

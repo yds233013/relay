@@ -15,7 +15,11 @@ export default async function PortfolioPage() {
       <PageHeader
         title="Portfolio"
         description="Every migration's readiness on its latest run. Stale means inputs changed since."
-      />
+      >
+        <Link href="/migrations/new" className="text-sm underline">
+          New migration
+        </Link>
+      </PageHeader>
       <table className="w-full border-collapse text-left text-sm">
         <caption className="sr-only">Migrations</caption>
         <thead>

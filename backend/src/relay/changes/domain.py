@@ -56,6 +56,22 @@ def record_override_approvals(
     return [{"role": role} for role in roles]
 
 
+CONTROLLER_DISPOSITIONS: Final = frozenset({"accepted_risk", "carry_forward_adjustment"})
+BLOCKING_SEVERITIES: Final = frozenset({"critical", "high"})
+
+
+def disposition_approvals(*, kind: str, severity: str) -> list[dict[str, str]]:
+    """Controller for accepted risk and carry-forward adjustments, and for any disposition of a
+    critical or high finding; the lead for low and medium false positives and not-applicable.
+
+    governance.md §2.3 lists ``not_applicable`` under the lead without a severity; applying the
+    controller requirement to critical and high findings is the conservative reading (0007).
+    """
+    if kind in CONTROLLER_DISPOSITIONS or severity in BLOCKING_SEVERITIES:
+        return [{"role": CONTROLLER}]
+    return [{"role": LEAD}]
+
+
 @dataclass(frozen=True, slots=True)
 class RecordedApproval:
     reviewer_user_id: uuid.UUID

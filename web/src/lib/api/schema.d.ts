@@ -229,6 +229,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entity-candidates/{candidate_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Candidate */
+        get: operations["get_candidate_api_v1_entity_candidates__candidate_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/imports/{import_id}": {
         parameters: {
             query?: never;
@@ -311,6 +328,62 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Update Issue
+         * @description Owner and workflow status. ``resolved`` is refused: only a current run resolves issues.
+         */
+        patch: operations["update_issue_api_v1_issues__issue_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/issues/{issue_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Comments */
+        get: operations["list_comments_api_v1_issues__issue_id__comments_get"];
+        put?: never;
+        /** Add Comment */
+        post: operations["add_comment_api_v1_issues__issue_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/issues/{issue_id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Issue History */
+        get: operations["issue_history_api_v1_issues__issue_id__history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/issues/{issue_id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Links */
+        get: operations["list_links_api_v1_issues__issue_id__links_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -344,7 +417,8 @@ export interface paths {
          */
         get: operations["list_migrations_api_v1_migrations_get"];
         put?: never;
-        post?: never;
+        /** Create Migration */
+        post: operations["create_migration_api_v1_migrations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -470,6 +544,24 @@ export interface paths {
         /** List Datasets */
         get: operations["list_datasets_api_v1_migrations__migration_id__datasets_get"];
         put?: never;
+        /** Create Dataset */
+        post: operations["create_dataset_api_v1_migrations__migration_id__datasets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migrations/{migration_id}/dispositions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Dispositions */
+        get: operations["list_dispositions_api_v1_migrations__migration_id__dispositions_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -486,6 +578,23 @@ export interface paths {
         };
         /** List Candidates */
         get: operations["list_candidates_api_v1_migrations__migration_id__entity_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migrations/{migration_id}/entity-decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Entity Decisions */
+        get: operations["list_entity_decisions_api_v1_migrations__migration_id__entity_decisions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -521,7 +630,8 @@ export interface paths {
         /** List Issues */
         get: operations["list_issues_api_v1_migrations__migration_id__issues_get"];
         put?: never;
-        post?: never;
+        /** Create Manual Issue */
+        post: operations["create_manual_issue_api_v1_migrations__migration_id__issues_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -600,6 +710,24 @@ export interface paths {
         get: operations["list_record_overrides_api_v1_migrations__migration_id__record_overrides_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migrations/{migration_id}/source-systems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Source Systems */
+        get: operations["list_source_systems_api_v1_migrations__migration_id__source_systems_get"];
+        put?: never;
+        /** Create Source System */
+        post: operations["create_source_system_api_v1_migrations__migration_id__source_systems_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -975,6 +1103,19 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** CandidateDetailOut */
+        CandidateDetailOut: {
+            candidate: components["schemas"]["CandidateOut"];
+            /** Decisions */
+            decisions: components["schemas"]["EntityDecisionOut"][];
+            /** Parties */
+            parties: components["schemas"]["PartyOut"][];
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+        };
         /** CandidateOut */
         CandidateOut: {
             /** Features */
@@ -1250,6 +1391,46 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** CommentIn */
+        CommentIn: {
+            /** Body */
+            body: string;
+        };
+        /** CommentOut */
+        CommentOut: {
+            /** Author Name */
+            author_name: string;
+            /**
+             * Author User Id
+             * Format: uuid
+             */
+            author_user_id: string;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /** CompanyIn */
+        CompanyIn: {
+            /** Country */
+            country: string;
+            /** Fiscal Year Start Month */
+            fiscal_year_start_month: number;
+            /** Functional Currency */
+            functional_currency: string;
+            /** Legal Name */
+            legal_name: string;
+            /** Name */
+            name: string;
+        };
         /** DatabaseStatus */
         DatabaseStatus: {
             /** Current Revision */
@@ -1263,6 +1444,29 @@ export interface components {
             migrations: "at_head" | "not_at_head" | "unknown";
             /** Reachable */
             reachable: boolean;
+        };
+        /** DatasetIn */
+        DatasetIn: {
+            /** As Of Date */
+            as_of_date?: string | null;
+            /** Bank Account */
+            bank_account?: string | null;
+            /** Dataset Type */
+            dataset_type: string;
+            /** Gl Account */
+            gl_account?: string | null;
+            /**
+             * Is Required
+             * @default true
+             */
+            is_required: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Source System Id
+             * Format: uuid
+             */
+            source_system_id: string;
         };
         /** DatasetOut */
         DatasetOut: {
@@ -1294,6 +1498,47 @@ export interface components {
             quarantined_count: number;
             /** Row Count */
             row_count: number;
+        };
+        /** DispositionOut */
+        DispositionOut: {
+            /** Amount */
+            amount: string | null;
+            /**
+             * Change Request Id
+             * Format: uuid
+             */
+            change_request_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string | null;
+            /** Follow Up */
+            follow_up: string;
+            /** Follow Up Owner Id */
+            follow_up_owner_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Issue Id
+             * Format: uuid
+             */
+            issue_id: string;
+            /** Issue Key */
+            issue_key: string;
+            /** Kind */
+            kind: string;
+            /** Reason */
+            reason: string;
+            /** Reverted By Cr Id */
+            reverted_by_cr_id: string | null;
+            /** Status */
+            status: string;
         };
         /** DocumentComparisonOut */
         DocumentComparisonOut: {
@@ -1403,6 +1648,38 @@ export interface components {
             status: string;
             /** Unexplained Amount */
             unexplained_amount: string;
+        };
+        /** EntityDecisionOut */
+        EntityDecisionOut: {
+            /**
+             * Change Request Id
+             * Format: uuid
+             */
+            change_request_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decision */
+            decision: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Members */
+            members: string[];
+            /** Party Type */
+            party_type: string;
+            /** Reason */
+            reason: string;
+            /** Reverted By Cr Id */
+            reverted_by_cr_id: string | null;
+            /** Status */
+            status: string;
+            /** Survivor */
+            survivor: string | null;
         };
         /** EvidenceLinkOut */
         EvidenceLinkOut: {
@@ -1630,6 +1907,31 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** IssueLinkOut */
+        IssueLinkOut: {
+            /** Created By Actor Type */
+            created_by_actor_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Link Type */
+            link_type: string;
+            /**
+             * Other Issue Id
+             * Format: uuid
+             */
+            other_issue_id: string;
+            /** Other Issue Key */
+            other_issue_key: string;
+            /** Other Issue Status */
+            other_issue_status: string;
+            /** Other Issue Title */
+            other_issue_title: string;
+            /** Reason */
+            reason: string;
+        };
         /** IssueOut */
         IssueOut: {
             /** Amount At Risk */
@@ -1672,6 +1974,25 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** IssueUpdateIn */
+        IssueUpdateIn: {
+            /**
+             * Clear Owner
+             * @default false
+             */
+            clear_owner: boolean;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Version */
+            version: number;
+        };
         /** JustificationIn */
         JustificationIn: {
             /** Justification */
@@ -1691,6 +2012,31 @@ export interface components {
             /** Row Number */
             row_number: number;
         };
+        /** ManualIssueIn */
+        ManualIssueIn: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "completeness" | "mapping" | "ledger_integrity" | "subledger" | "cash" | "master_data" | "currency" | "dates" | "ai_safety" | "other";
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Nature
+             * @enum {string}
+             */
+            nature: "migration_defect" | "source_anomaly";
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "critical" | "high" | "medium" | "low";
+            /** Title */
+            title: string;
+        };
         /** MappingConfigIn */
         MappingConfigIn: {
             /**
@@ -1704,6 +2050,39 @@ export interface components {
                     [key: string]: unknown;
                 };
             };
+        };
+        /** MigrationIn */
+        MigrationIn: {
+            /**
+             * Bank Clearing Window Days
+             * @default 15
+             */
+            bank_clearing_window_days: number;
+            company: components["schemas"]["CompanyIn"];
+            /**
+             * Cutover Date
+             * Format: date
+             */
+            cutover_date: string;
+            /**
+             * Go Live Date
+             * Format: date
+             */
+            go_live_date: string;
+            /**
+             * History Start Date
+             * Format: date
+             */
+            history_start_date: string;
+            /** Issue Key Prefix */
+            issue_key_prefix: string;
+            /** Name */
+            name: string;
+            /**
+             * Opening Balance Date
+             * Format: date
+             */
+            opening_balance_date: string;
         };
         /** MigrationOut */
         MigrationOut: {
@@ -1870,6 +2249,19 @@ export interface components {
             items: components["schemas"]["SourceRowOut"][];
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /** PartyOut */
+        PartyOut: {
+            /** Code */
+            code: string;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /** Natural Key */
+            natural_key: string;
+            /** Open Documents */
+            open_documents: number;
         };
         /** PreviewRowOut */
         PreviewRowOut: {
@@ -2241,6 +2633,35 @@ export interface components {
             values: {
                 [key: string]: string;
             };
+        };
+        /** SourceSystemIn */
+        SourceSystemIn: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "legacy_erp" | "spreadsheet" | "bank" | "billing" | "crm" | "other";
+            /** Name */
+            name: string;
+        };
+        /** SourceSystemOut */
+        SourceSystemOut: {
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
         };
         /** StageOut */
         StageOut: {
@@ -2858,6 +3279,39 @@ export interface operations {
             };
         };
     };
+    get_candidate_api_v1_entity_candidates__candidate_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_import_api_v1_imports__import_id__get: {
         parameters: {
             query?: never;
@@ -3026,6 +3480,179 @@ export interface operations {
             };
         };
     };
+    update_issue_api_v1_issues__issue_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_comments_api_v1_issues__issue_id__comments_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_comment_api_v1_issues__issue_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_history_api_v1_issues__issue_id__history_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_links_api_v1_issues__issue_id__links_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueLinkOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     me_api_v1_me_get: {
         parameters: {
             query?: never;
@@ -3075,6 +3702,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MigrationSummaryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_migration_api_v1_migrations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MigrationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MigrationOut"];
                 };
             };
             /** @description Validation Error */
@@ -3371,6 +4033,76 @@ export interface operations {
             };
         };
     };
+    create_dataset_api_v1_migrations__migration_id__datasets_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_dispositions_api_v1_migrations__migration_id__dispositions_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispositionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_candidates_api_v1_migrations__migration_id__entity_candidates_get: {
         parameters: {
             query?: never;
@@ -3391,6 +4123,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CandidateOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_entity_decisions_api_v1_migrations__migration_id__entity_decisions_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityDecisionOut"][];
                 };
             };
             /** @description Validation Error */
@@ -3444,6 +4209,8 @@ export interface operations {
                 severity?: string | null;
                 nature?: string | null;
                 fingerprint?: string | null;
+                owner?: string | null;
+                rule?: string | null;
                 order?: "key" | "amount";
                 cursor?: number;
                 limit?: number;
@@ -3465,6 +4232,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_IssueOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_manual_issue_api_v1_migrations__migration_id__issues_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualIssueIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueOut"];
                 };
             };
             /** @description Validation Error */
@@ -3632,6 +4436,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecordOverrideOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_source_systems_api_v1_migrations__migration_id__source_systems_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceSystemOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_source_system_api_v1_migrations__migration_id__source_systems_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceSystemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceSystemOut"];
                 };
             };
             /** @description Validation Error */

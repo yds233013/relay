@@ -19,6 +19,8 @@ def issues_for(
     severity: str | None,
     nature: str | None = None,
     fingerprint: str | None = None,
+    owner: uuid.UUID | None = None,
+    rule: str | None = None,
     order: str = "key",
     offset: int = 0,
     limit: int,
@@ -33,6 +35,10 @@ def issues_for(
         query = query.where(Issue.nature == nature)
     if fingerprint:
         query = query.where(Issue.fingerprint == fingerprint)
+    if owner:
+        query = query.where(Issue.owner_user_id == owner)
+    if rule:
+        query = query.where(Issue.rule_or_recon_id == rule)
     if order == "amount":
         query = query.order_by(Issue.amount_at_risk.desc().nulls_last(), Issue.id)
     else:

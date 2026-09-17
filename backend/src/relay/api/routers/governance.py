@@ -396,6 +396,10 @@ def create_change_request(
         if body.payload is None or body.field_override or body.quarantine_repair:
             raise InvalidInputError(f"{kind.value} change requests take a payload")
         payload = body.payload
+        if kind is ChangeRequestKind.ENTITY_DECISION:
+            override_resolver.check_decision_parties(
+                session, migration_id=migration_id, payload=payload
+            )
     change = changes.create_draft(
         session,
         actor=actor,
@@ -536,6 +540,9 @@ def _review(
     clock: Any,
 ) -> ReviewOutcomeOut:
     change = changes.get_change_request(session, change_id)
+    # An approval may apply the change and request a run: take the pipeline lock before the audit
+    # writes of the review, in the same order as the worker.
+    pipeline.lock_migration(session, change.migration_id)
     changes.review(
         session, actor=actor, change=change, decision=decision, comment=comment, clock=clock
     )

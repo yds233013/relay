@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
   turbopack: { root: projectRoot },
   poweredByHeader: false,
   reactStrictMode: true,
+  // Uploads from the web pass through a Server Function; larger files go to the API directly.
+  experimental: { serverActions: { bodySizeLimit: "10mb" } },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

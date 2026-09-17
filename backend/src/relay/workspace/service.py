@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import fields
 from datetime import date
@@ -124,6 +125,8 @@ def create_migration(
     issue_key_prefix: str,
     lead_user_id: uuid.UUID | None,
 ) -> Migration:
+    if not re.fullmatch(r"[A-Z]{2,6}", issue_key_prefix):
+        raise InvalidInputError("the issue key prefix is 2 to 6 capital letters")
     if not (
         plan.opening_balance_date < plan.history_start_date <= plan.cutover_date < plan.go_live_date
     ):
@@ -284,3 +287,13 @@ def current_policy(session: Session, migration_id: uuid.UUID) -> PolicyVersion:
     if policy is None:
         raise NotFoundError("migration has no policy version")
     return policy
+
+
+def source_systems_for(session: Session, migration_id: uuid.UUID) -> list[SourceSystem]:
+    return list(
+        session.scalars(
+            select(SourceSystem)
+            .where(SourceSystem.migration_id == migration_id)
+            .order_by(SourceSystem.created_at, SourceSystem.id)
+        )
+    )

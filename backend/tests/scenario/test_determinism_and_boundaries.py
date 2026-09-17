@@ -10,11 +10,17 @@ import subprocess
 
 import pytest
 
-from relay_evaluation.paths import BRIGHTWATER_FIXTURES, REPO_ROOT
+from relay_evaluation.brightwater import resolution
+from relay_evaluation.paths import BRIGHTWATER_FIXTURES, BRIGHTWATER_REEXPORT, REPO_ROOT
 from relay_scenarios.brightwater.clean import build_clean_universe
 from relay_scenarios.brightwater.exports import export_all
 from relay_scenarios.brightwater.injectors import ALL_DEFECTS, apply_defects
-from relay_scenarios.brightwater.scenario import CHECKSUM_FILE, Scenario, checksum_manifest
+from relay_scenarios.brightwater.scenario import (
+    CHECKSUM_FILE,
+    Scenario,
+    checksum_manifest,
+    reexport_files,
+)
 
 BACKEND = REPO_ROOT / "backend"
 RUNTIME_SRC = BACKEND / "src" / "relay"
@@ -80,7 +86,8 @@ LEAK_PATTERNS = [
     r"\bdefect",
     r"\binject",
     r"\btrap\b",
-    r"\bgolden\b",
+    # Evaluation vocabulary, not the adjective: an inactive customer is named "Golden Hollow Foods".
+    r"\bgolden[ _-]*(manifest|truth|file|answer|result)",
     r"\bmanifest\b",
     r"\bexpected\b",
     r"\banswer",
@@ -98,8 +105,22 @@ LEAK_PATTERNS = [
 ]
 
 
+def test_committed_reexports_match_generation(run1_scenario: Scenario) -> None:
+    files = reexport_files(run1_scenario)
+    expected = {**files, CHECKSUM_FILE: checksum_manifest(files)}
+    actual = {
+        p.relative_to(BRIGHTWATER_REEXPORT).as_posix(): p.read_bytes()
+        for p in sorted(BRIGHTWATER_REEXPORT.rglob("*"))
+        if p.is_file()
+    }
+    assert actual == expected, "run `make demo-data`"
+    # The same unfiltered exports the documented resolution uses (evaluation).
+    documented = resolution.reexported_files(run1_scenario)
+    assert all(documented[path] == content for path, content in files.items())
+
+
 def test_source_fixtures_do_not_leak_answers(run1_scenario: Scenario) -> None:
-    for path, content in run1_scenario.files.items():
+    for path, content in {**run1_scenario.files, **reexport_files(run1_scenario)}.items():
         encoding = "cp1252" if path.startswith("ledgerpro/") else "utf-8-sig"
         text = content.decode(encoding)
         for pattern in LEAK_PATTERNS:
@@ -111,7 +132,11 @@ def test_source_fixtures_do_not_leak_answers(run1_scenario: Scenario) -> None:
 
 
 def test_fixture_directory_contains_no_evaluation_truth() -> None:
-    names = [p.name.lower() for p in BRIGHTWATER_FIXTURES.rglob("*")]
+    names = [
+        p.name.lower()
+        for root in (BRIGHTWATER_FIXTURES, BRIGHTWATER_REEXPORT)
+        for p in root.rglob("*")
+    ]
     assert not [n for n in names if "manifest" in n or "expected" in n or n.endswith(".toml")]
 
 

@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import ForeignKey, Index, Integer, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
+from relay.core.currency import Currency
 from relay.core.db import Base
-from relay.core.db_types import UtcTimestampType
+from relay.core.db_types import AmountType, CurrencyCodeType, UtcTimestampType
 from relay.core.schema import check_in, created_at, uuid_pk
 
 
@@ -104,6 +106,11 @@ class Approval(Base):
     decided_at: Mapped[datetime] = created_at()
 
 
+class PartyTypeValue(StrEnum):
+    CUSTOMER = "customer"
+    VENDOR = "vendor"
+
+
 class OverrideTarget(StrEnum):
     CANONICAL_FIELD = "canonical_field"
     QUARANTINED_ROW_REPAIR = "quarantined_row_repair"
@@ -138,6 +145,75 @@ class RecordOverride(Base):
     import_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("imports.id"))
     expected_current_value: Mapped[Any] = mapped_column(JSONB, nullable=True)
     new_value: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    change_request_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("change_requests.id"), nullable=False
+    )
+    reverted_by_cr_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("change_requests.id"))
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = created_at()
+
+
+class EntityDecisionKind(StrEnum):
+    SAME_ENTITY = "same_entity"
+    DISTINCT = "distinct"
+
+
+class EntityDecision(Base):
+    """Parties declared the same entity or distinct (validation-and-reconciliation.md §C.2)."""
+
+    __tablename__ = "entity_decisions"
+    __table_args__ = (
+        check_in("decision", "decision", EntityDecisionKind),
+        check_in("status", "status", OverlayStatus),
+        check_in("party_type", "party_type", PartyTypeValue),
+        Index("ix_entity_decisions_migration_status", "migration_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    migration_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("migrations.id"), nullable=False)
+    party_type: Mapped[str] = mapped_column(Text, nullable=False)
+    decision: Mapped[str] = mapped_column(Text, nullable=False)
+    # Party codes, sorted.
+    members: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
+    survivor: Mapped[str | None] = mapped_column(Text)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    change_request_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("change_requests.id"), nullable=False
+    )
+    reverted_by_cr_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("change_requests.id"))
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = created_at()
+
+
+class DispositionKind(StrEnum):
+    CARRY_FORWARD_ADJUSTMENT = "carry_forward_adjustment"
+    ACCEPTED_RISK = "accepted_risk"
+    FALSE_POSITIVE = "false_positive"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class Disposition(Base):
+    """A documented decision to accept a finding instead of fixing migration data."""
+
+    __tablename__ = "dispositions"
+    __table_args__ = (
+        check_in("kind", "kind", DispositionKind),
+        check_in("status", "status", OverlayStatus),
+        Index("ix_dispositions_migration_status", "migration_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    migration_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("migrations.id"), nullable=False)
+    issue_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("issues.id"), nullable=False)
+    fingerprint: Mapped[str] = mapped_column(Text, nullable=False)
+    kind: Mapped[str] = mapped_column(Text, nullable=False)
+    amount: Mapped[Decimal | None] = mapped_column(AmountType())
+    currency: Mapped[Currency | None] = mapped_column(CurrencyCodeType())
+    follow_up: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    follow_up_owner_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     change_request_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("change_requests.id"), nullable=False

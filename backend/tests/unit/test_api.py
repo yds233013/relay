@@ -59,7 +59,7 @@ def test_ready_reports_unreachable_database_without_leaking_details(client: Test
     body = response.json()
     assert body["status"] == "unavailable"
     assert body["database"]["reachable"] is False
-    assert body["database"]["head_revision"] == "0003_governance"
+    assert body["database"]["head_revision"] == "0004_issue_workflow"
     assert "unused" not in response.text
     assert "127.0.0.1" not in response.text
 
@@ -152,3 +152,13 @@ def test_request_log_is_json_without_query_string(
     assert entry["level"] == "info"
     assert entry["timestamp"].endswith("Z")
     assert "Rose" not in json.dumps(entry)
+
+
+def test_database_sessions_commit_before_the_response_is_sent() -> None:
+    """With the default scope a yield dependency ends after the response; the commit must not."""
+    from typing import get_args  # noqa: PLC0415 - test-local
+
+    from relay.api.deps import SessionDep  # noqa: PLC0415
+
+    dependency = get_args(SessionDep)[1]
+    assert dependency.scope == "function"

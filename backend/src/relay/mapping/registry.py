@@ -57,7 +57,21 @@ def _f(
 _K = FieldKind
 _SUBTYPES = tuple(s.value for s in AccountSubtype)
 _PARTY_COMMON = (
-    _f("party_code", _K.CODE, synonyms=("customer id", "vendor id", "id", "code", "number")),
+    _f(
+        "party_code",
+        _K.CODE,
+        synonyms=(
+            "customer id",
+            "vendor id",
+            "customer code",
+            "vendor code",
+            "customer number",
+            "vendor number",
+            "id",
+            "code",
+            "number",
+        ),
+    ),
     _f("name", _K.TEXT, synonyms=("customer name", "vendor name", "company", "name")),
     _f("address_line1", _K.TEXT, False, ("address", "street", "address 1")),
     _f("city", _K.TEXT, False),

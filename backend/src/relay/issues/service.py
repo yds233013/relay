@@ -14,8 +14,16 @@ from relay.audit import service as audit
 from relay.core.actor import Actor
 from relay.core.clock import Clock, SystemClock
 from relay.core.ids import uuid7
-from relay.issues.domain import ExistingIssue, Finding, SyncAction, synchronize
-from relay.issues.models import Issue, IssueOccurrence, IssueSource, IssueStatus
+from relay.issues.domain import ExistingIssue, Finding, SyncAction, root_cause_pairs, synchronize
+from relay.issues.models import (
+    Issue,
+    IssueLink,
+    IssueLinkType,
+    IssueOccurrence,
+    IssueSource,
+    IssueStatus,
+    LinkAuthor,
+)
 from relay.workspace.models import Migration
 
 
@@ -36,6 +44,8 @@ class IssueSeed:
 
 @dataclass(frozen=True, slots=True)
 class SyncSummary:
+    links_created: int
+    verification_failed: int
     created: int
     updated: int
     reopened: int
@@ -159,7 +169,23 @@ def synchronize_issues(
                 issue_id=issue.id, rule_exception_id=seed.rule_exception_id, run_id=run_id
             )
         )
-        if decision.action is SyncAction.REOPEN:
+        if decision.action is SyncAction.VERIFICATION_FAILED:
+            issue.status = IssueStatus.OPEN.value
+            issue.version += 1
+            issue.updated_at = now
+            audit.record(
+                session,
+                actor=system,
+                action="issue.verification_failed",
+                entity_type="issue",
+                entity_id=issue.id,
+                migration_id=migration.id,
+                before=before_state,
+                after={"status": issue.status, "run_id": run_id},
+                reason=f"still reported by run {run_id} after the applied change",
+                clock=clock,
+            )
+        elif decision.action is SyncAction.REOPEN:
             issue.status = IssueStatus.OPEN.value
             issue.verified_absent_run_id = None
             issue.version += 1
@@ -195,9 +221,67 @@ def synchronize_issues(
                 clock=clock,
             )
     session.flush()
+    links = _link_same_root_cause(session, migration, run_id, seeds, clock)
     return SyncSummary(
+        links_created=links,
+        verification_failed=counts[SyncAction.VERIFICATION_FAILED],
         created=counts[SyncAction.CREATE],
         updated=counts[SyncAction.UPDATE],
         reopened=counts[SyncAction.REOPEN],
         verified_resolved=counts[SyncAction.VERIFY_RESOLVED],
     )
+
+
+def _link_same_root_cause(
+    session: Session,
+    migration: Migration,
+    run_id: uuid.UUID,
+    seeds: Mapping[str, IssueSeed],
+    clock: Clock | None,
+) -> int:
+    """System links between this run's issues that share a subject or journal entry."""
+    current = session.scalars(
+        select(Issue).where(Issue.migration_id == migration.id, Issue.fingerprint.in_(list(seeds)))
+    ).all()
+    pairs = root_cause_pairs((issue.id, issue.subjects) for issue in current)
+    if not pairs:
+        return 0
+    existing = {
+        (link.from_issue_id, link.to_issue_id)
+        for link in session.scalars(
+            select(IssueLink).where(
+                IssueLink.migration_id == migration.id,
+                IssueLink.link_type == IssueLinkType.SAME_ROOT_CAUSE.value,
+            )
+        )
+    }
+    created = 0
+    for (left, right), key in sorted(pairs.items()):
+        if (left, right) in existing:
+            continue
+        session.add(
+            IssueLink(
+                id=uuid7(clock),
+                migration_id=migration.id,
+                from_issue_id=left,
+                to_issue_id=right,
+                link_type=IssueLinkType.SAME_ROOT_CAUSE.value,
+                created_by_actor_type=LinkAuthor.SYSTEM.value,
+                reason=f"both name {key} (run {run_id})",
+            )
+        )
+        created += 1
+    if created:
+        session.flush()
+        audit.record(
+            session,
+            actor=Actor.system(),
+            action="issue.links_created",
+            entity_type="migration",
+            entity_id=migration.id,
+            migration_id=migration.id,
+            before={"links": len(existing)},
+            after={"links": len(existing) + created, "run_id": run_id},
+            clock=clock,
+        )
+    return created

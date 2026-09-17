@@ -41,7 +41,10 @@ def get_clock(request: Request) -> Clock:
     return clock
 
 
-SessionDep = Annotated[Session, Depends(get_session)]
+# scope="function": commit (or roll back) before the response is sent. With FastAPI's default for
+# yield dependencies the commit ran after the response, so a client could see 201 for data it
+# could not yet read, or for a transaction that then failed to commit.
+SessionDep = Annotated[Session, Depends(get_session, scope="function")]
 ClockDep = Annotated[Clock, Depends(get_clock)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 BlobStoreDep = Annotated[BlobStore, Depends(get_blob_store)]

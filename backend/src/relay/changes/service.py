@@ -29,6 +29,7 @@ from relay.core.actor import Actor
 from relay.core.clock import Clock, SystemClock
 from relay.core.errors import InvalidInputError, NotFoundError, RelayError
 from relay.core.ids import uuid7
+from relay.issues import workflow as issue_workflow
 from relay.workspace.models import Migration
 
 MAX_TITLE_LENGTH: Final = 200
@@ -36,6 +37,7 @@ MAX_TEXT_LENGTH: Final = 4000
 OPEN_STATUSES: Final = frozenset(
     {ChangeRequestStatus.DRAFT.value, ChangeRequestStatus.SUBMITTED.value}
 )
+WITHDRAWABLE_STATUSES: Final = frozenset({*OPEN_STATUSES, ChangeRequestStatus.STALE.value})
 
 __all__ = [
     "ChangeRequestPreconditionError",
@@ -420,8 +422,28 @@ def review(
         action="change_request.applied",
         clock=clock,
     )
+    if kind is not ChangeRequestKind.DISPOSITION:
+        issue_workflow.await_verification(
+            session,
+            actor=actor,
+            issue_ids=evidence_issue_ids(change.evidence_refs),
+            change_request_id=change.id,
+            clock=clock,
+        )
     sweep_stale(session, actor=actor, migration_id=change.migration_id, clock=clock)
     return change
+
+
+def evidence_issue_ids(evidence_refs: list[Any]) -> list[uuid.UUID]:
+    """Issues a change request names as its evidence (``{"kind": "issue", "issue_id": ...}``)."""
+    ids = []
+    for ref in evidence_refs:
+        if isinstance(ref, dict) and ref.get("kind") == "issue":
+            try:
+                ids.append(uuid.UUID(str(ref.get("issue_id"))))
+            except ValueError:
+                continue
+    return ids
 
 
 def withdraw(
@@ -432,8 +454,10 @@ def withdraw(
     reason: str,
     clock: Clock | None = None,
 ) -> ChangeRequest:
-    if change.status not in OPEN_STATUSES:
-        raise ChangeRequestStateError("only drafts and submitted change requests can be withdrawn")
+    if change.status not in WITHDRAWABLE_STATUSES:
+        raise ChangeRequestStateError(
+            "only draft, submitted or stale change requests can be withdrawn"
+        )
     if actor.user_id != change.requested_by:
         raise ChangeRequestStateError("only the requester can withdraw a change request")
     _transition(
@@ -457,7 +481,10 @@ def pending_count(session: Session, migration_id: uuid.UUID) -> int:
             .select_from(ChangeRequest)
             .where(
                 ChangeRequest.migration_id == migration_id,
-                ChangeRequest.status == ChangeRequestStatus.SUBMITTED.value,
+                # governance.md G11: stale requests stay pending until withdrawn.
+                ChangeRequest.status.in_(
+                    [ChangeRequestStatus.SUBMITTED.value, ChangeRequestStatus.STALE.value]
+                ),
             )
         )
         or 0

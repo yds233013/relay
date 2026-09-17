@@ -30,6 +30,8 @@ from relay_scenarios.brightwater.scenario import (
     Scenario,
     build_scenario,
     checksum_manifest,
+    reexport_files,
+    write_files,
     write_fixtures,
 )
 from relay_scenarios.brightwater.seed import seed
@@ -37,6 +39,7 @@ from relay_scenarios.volume import build_volume_migration, export_volume_migrati
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUT = REPO_ROOT / "fixtures" / "demo" / "brightwater"
+DEFAULT_REEXPORT_OUT = REPO_ROOT / "fixtures" / "demo" / "brightwater_reexport"
 DEFAULT_MAPPING_SET = (
     REPO_ROOT / "fixtures" / "demo" / "brightwater_config" / "column_mapping_set_v1.json"
 )
@@ -144,10 +147,17 @@ def main(argv: list[str] | None = None) -> int:
     generate.add_argument("--seed", type=int, default=DEFAULT_SEED)
     generate.add_argument("--out", type=Path, default=DEFAULT_OUT)
     generate.add_argument("--clean", action="store_true", help="clean books without seeded issues")
+    generate.add_argument(
+        "--reexport-out",
+        type=Path,
+        default=DEFAULT_REEXPORT_OUT,
+        help="where the unfiltered re-exports are written (not with --clean)",
+    )
     check = sub.add_parser(
         "check", help="verify committed fixtures match a fresh generation byte for byte"
     )
     check.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    check.add_argument("--reexport-out", type=Path, default=DEFAULT_REEXPORT_OUT)
     perf = sub.add_parser(
         "perf-engine", help="measure the engine on a synthetic clean migration of a given size"
     )
@@ -173,11 +183,29 @@ def main(argv: list[str] | None = None) -> int:
         )
         write_fixtures(scenario, args.out)
         sys.stdout.write(summary(scenario, args.out))
+        if not args.clean:
+            reexports = reexport_files(scenario)
+            write_files(reexports, args.reexport_out)
+            sys.stdout.write(
+                f"  unfiltered re-exports {len(reexports)} files in {args.reexport_out}\n"
+            )
         return 0
 
     scenario = build_scenario(DEFAULT_SEED)
-    expected = {**scenario.files, CHECKSUM_FILE: checksum_manifest(scenario.files)}
-    root: Path = args.out
+    drift = _drift(scenario.files, args.out) + _drift(reexport_files(scenario), args.reexport_out)
+    if drift:
+        sys.stdout.write(
+            "Fixtures differ from a fresh generation:\n" + "".join(f"  {path}\n" for path in drift)
+        )
+        sys.stdout.write("Run `make demo-data` to regenerate, and review the diff.\n")
+        return 1
+    count = len(scenario.files) + len(reexport_files(scenario)) + 2
+    sys.stdout.write(f"{count} fixture files match a fresh generation (seed {DEFAULT_SEED}).\n")
+    return 0
+
+
+def _drift(files: dict[str, bytes], root: Path) -> list[str]:
+    expected = {**files, CHECKSUM_FILE: checksum_manifest(files)}
     actual = (
         {
             p.relative_to(root).as_posix(): p.read_bytes()
@@ -187,19 +215,11 @@ def main(argv: list[str] | None = None) -> int:
         if root.exists()
         else {}
     )
-    drift = sorted(
-        path for path in set(expected) | set(actual) if expected.get(path) != actual.get(path)
+    return sorted(
+        f"{root.name}/{path}"
+        for path in set(expected) | set(actual)
+        if expected.get(path) != actual.get(path)
     )
-    if drift:
-        sys.stdout.write(
-            "Fixtures differ from a fresh generation:\n" + "".join(f"  {path}\n" for path in drift)
-        )
-        sys.stdout.write("Run `make demo-data` to regenerate, and review the diff.\n")
-        return 1
-    sys.stdout.write(
-        f"{len(expected)} fixture files match a fresh generation (seed {DEFAULT_SEED}).\n"
-    )
-    return 0
 
 
 if __name__ == "__main__":

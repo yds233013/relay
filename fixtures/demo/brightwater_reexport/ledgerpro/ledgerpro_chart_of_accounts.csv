@@ -1,0 +1,133 @@
+Account,Description,Type,Detail Type,Active
+1000,Petty Cash,Bank,Cash on Hand,Yes
+1010,Operating Account - First Cascade 4471,Bank,Checking,Yes
+1015,Payroll Account - First Cascade 4488,Bank,Checking,Yes
+1020,Money Market - First Cascade 4490,Bank,Money Market,Yes
+1030,Savings - Umpqua (closed),Bank,Savings,No
+1100,Undeposited Funds,Other Current Asset,Undeposited Funds,Yes
+1110,Returned Checks,Other Current Asset,Other Current Assets,Yes
+1200,Accounts Receivable,Accounts Receivable,Accounts Receivable (A/R),Yes
+1205,Allowance for Doubtful Accounts,Other Current Asset,Allowance for Bad Debts,Yes
+1215,Employee Advances,Other Current Asset,Employee Cash Advances,Yes
+1250,Other Receivables,Other Current Asset,Other Current Assets,Yes
+1260,Notes Receivable,Other Current Asset,Loans to Others,Yes
+1300,Inventory - Finished Goods,Other Current Asset,Inventory,Yes
+1310,Inventory in Transit,Other Current Asset,Inventory,Yes
+1320,Inventory - Samples,Other Current Asset,Inventory,Yes
+1400,Prepaid Insurance,Other Current Asset,Prepaid Expenses,Yes
+1410,Prepaid Expenses - Other,Other Current Asset,Prepaid Expenses,Yes
+1420,Security Deposits,Other Current Asset,Other Current Assets,Yes
+1500,Warehouse Equipment,Fixed Asset,Machinery & Equipment,Yes
+1510,Vehicles,Fixed Asset,Vehicles,Yes
+1520,Leasehold Improvements,Fixed Asset,Leasehold Improvements,Yes
+1530,Office Furniture & Equipment,Fixed Asset,Furniture & Fixtures,Yes
+1540,Computer Equipment,Fixed Asset,Machinery & Equipment,Yes
+1590,Accumulated Depreciation,Fixed Asset,Accumulated Depreciation,Yes
+1600,Utility Deposits,Other Asset,Security Deposits,Yes
+1700,Customer Lists,Other Asset,Intangible Assets,Yes
+1790,Accumulated Amortization,Other Asset,Accumulated Amortization,Yes
+2000,Accounts Payable,Accounts Payable,Accounts Payable (A/P),Yes
+2050,Cascade Visa Business,Credit Card,Credit Card,Yes
+2060,Amex Corporate (closed),Credit Card,Credit Card,No
+2100,Accrued Liabilities,Other Current Liability,Accrued Liabilities,Yes
+2150,Payroll Liabilities,Other Current Liability,Payroll Tax Payable,Yes
+2160,Accrued Commissions,Other Current Liability,Accrued Liabilities,Yes
+2170,Accrued Vacation,Other Current Liability,Accrued Liabilities,Yes
+2200,Sales Tax Payable,Other Current Liability,Sales Tax Payable,Yes
+2210,Use Tax Payable,Other Current Liability,Sales Tax Payable,Yes
+2220,Oregon CAT Payable,Other Current Liability,Federal Income Tax Payable,Yes
+2300,Customer Deposits,Other Current Liability,Other Current Liabilities,Yes
+2400,Deferred Revenue,Other Current Liability,Deferred Revenue,Yes
+2500,Line of Credit - First Cascade,Other Current Liability,Line of Credit,Yes
+2700,Equipment Loan - First Cascade,Long Term Liability,Notes Payable,Yes
+2710,Vehicle Loans,Long Term Liability,Notes Payable,Yes
+2800,Due to Shareholder,Long Term Liability,Shareholder Notes Payable,Yes
+3000,Common Stock,Equity,Common Stock,Yes
+3100,Additional Paid-In Capital,Equity,Paid-In Capital or Surplus,Yes
+3900,Retained Earnings,Equity,Retained Earnings,Yes
+3950,Shareholder Distributions,Equity,Partner Distributions,Yes
+4000,Sales - Wholesale Grocery,Income,Sales of Product Income,Yes
+4010,Sales - Foodservice,Income,Sales of Product Income,Yes
+4100,Sales - Export,Income,Sales of Product Income,Yes
+4200,Freight Income,Income,Service/Fee Income,Yes
+4300,Rebate Income,Other Income,Other Miscellaneous Income,Yes
+4400,Miscellaneous Income,Other Income,Other Miscellaneous Income,Yes
+4900,Sales Discounts,Income,Discounts/Refunds Given,Yes
+4950,Returns & Allowances,Income,Discounts/Refunds Given,Yes
+5000,Cost of Goods Sold,Cost of Goods Sold,Supplies & Materials - COGS,Yes
+5010,Inventory Adjustments,Cost of Goods Sold,Supplies & Materials - COGS,Yes
+5020,Purchase Price Variance,Cost of Goods Sold,Other Costs of Services - COS,Yes
+5030,Samples & Demos,Cost of Goods Sold,Other Costs of Services - COS,Yes
+5100,Inbound Freight - COGS,Cost of Goods Sold,"Shipping, Freight & Delivery - COS",Yes
+5150,Packaging Materials,Cost of Goods Sold,Supplies & Materials - COGS,Yes
+5200,Spoilage & Shrink,Cost of Goods Sold,Other Costs of Services - COS,Yes
+5300,Co-Packing Fees,Cost of Goods Sold,Other Costs of Services - COS,Yes
+6000,Advertising & Marketing,Expense,Advertising/Promotional,Yes
+6010,Trade Shows,Expense,Advertising/Promotional,Yes
+6020,Website,Expense,Advertising/Promotional,Yes
+6030,Meals & Entertainment,Expense,Entertainment Meals,Yes
+6040,Travel,Expense,Travel,Yes
+6050,Donations,Expense,Charitable Contributions,Yes
+6060,Licenses & Permits,Expense,Taxes Paid,Yes
+6070,Property Taxes,Expense,Taxes Paid,Yes
+6080,Business Taxes,Expense,Taxes Paid,Yes
+6090,Recruiting,Expense,Other Business Expenses,Yes
+6100,Wages - Warehouse,Expense,Payroll Expenses,Yes
+6105,Wages - Drivers,Expense,Payroll Expenses,Yes
+6110,Wages - Office,Expense,Payroll Expenses,Yes
+6120,Payroll Taxes,Expense,Payroll Expenses,Yes
+6130,Employee Benefits,Expense,Payroll Expenses,Yes
+6140,Workers Compensation,Expense,Insurance,Yes
+6150,Sales Commissions,Expense,Payroll Expenses,Yes
+6160,Temporary Labor,Expense,Payroll Expenses,Yes
+6170,Training,Expense,Other Business Expenses,Yes
+6180,Employee Relations,Expense,Other Business Expenses,Yes
+6190,Payroll Processing Fees,Expense,Other Business Expenses,Yes
+6200,Utilities - Electric,Expense,Utilities,Yes
+6210,Utilities - Water & Sewer,Expense,Utilities,Yes
+6220,Telephone & Internet,Expense,Utilities,Yes
+6230,Utilities - Gas,Expense,Utilities,Yes
+6240,Waste Removal,Expense,Utilities,Yes
+6300,Rent - Portland Warehouse,Expense,Rent or Lease of Buildings,Yes
+6310,Rent - Seattle Warehouse,Expense,Rent or Lease of Buildings,Yes
+6320,Rent - Boise Warehouse,Expense,Rent or Lease of Buildings,Yes
+6330,Third-Party Storage,Expense,Rent or Lease of Buildings,Yes
+6400,Freight-In,Expense,"Shipping, Freight & Delivery",Yes
+6410,Freight Rebates,Expense,"Shipping, Freight & Delivery",Yes
+6420,Delivery Fuel,Expense,Auto,Yes
+6430,Vehicle Repairs & Maintenance,Expense,Auto,Yes
+6440,Tolls & Parking,Expense,Auto,Yes
+6450,Vehicle Registration,Expense,Auto,Yes
+6460,Vehicle Leases,Expense,Auto,Yes
+6500,Insurance - General,Expense,Insurance,Yes
+6510,Insurance - Vehicles,Expense,Insurance,Yes
+6520,Insurance - Product Liability,Expense,Insurance,Yes
+6600,Repairs - Refrigeration & Equipment,Expense,Repair & Maintenance,Yes
+6610,Forklift Lease,Expense,Equipment Rental,Yes
+6620,Building Repairs,Expense,Repair & Maintenance,Yes
+6630,Small Tools & Equipment,Expense,Supplies,Yes
+6700,Depreciation Expense,Expense,Depreciation,Yes
+6710,Amortization Expense,Expense,Amortization,Yes
+6800,Bad Debt Expense,Expense,Bad Debts,Yes
+6810,Collection Fees,Expense,Bad Debts,Yes
+6900,Office Supplies,Expense,Office/General Administrative Expenses,Yes
+6910,Postage & Delivery,Expense,Office/General Administrative Expenses,Yes
+6920,Bank Service Charges,Expense,Bank Charges,Yes
+6925,Merchant Fees,Expense,Bank Charges,Yes
+6930,Dues & Subscriptions,Expense,Dues & subscriptions,Yes
+6935,Software Subscriptions,Expense,Dues & subscriptions,Yes
+6940,Accounting Fees,Expense,Legal & Professional Fees,Yes
+6945,Consulting Fees,Expense,Legal & Professional Fees,Yes
+6950,Legal Fees,Expense,Legal & Professional Fees,Yes
+6960,IT Services,Expense,Other Business Expenses,Yes
+6970,Janitorial,Expense,Other Business Expenses,Yes
+6980,Pest Control,Expense,Other Business Expenses,Yes
+6990,Uniforms & Laundry,Expense,Other Business Expenses,Yes
+6995,Miscellaneous Expense (old),Expense,Other Miscellaneous Service Cost,No
+6999,Suspense – Clearing,Other Current Asset,Other Current Assets,No
+7100,Foreign Exchange Gain/Loss,Other Expense,Exchange Gain or Loss,Yes
+7200,Interest Expense,Other Expense,Interest Paid,Yes
+7300,Interest Income,Other Income,Interest Earned,Yes
+7400,Gain/Loss on Asset Disposal,Other Expense,Other Miscellaneous Expense,Yes
+7900,Other Expense,Other Expense,Other Miscellaneous Expense,Yes
+8000,Owner Draw (old),Equity,Owner's Equity,No

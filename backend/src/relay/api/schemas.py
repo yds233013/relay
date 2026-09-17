@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -693,3 +693,132 @@ class RecordOverrideOut(Schema):
     change_request_id: uuid.UUID
     reverted_by_cr_id: uuid.UUID | None
     created_at: datetime
+
+
+# -------------------------------------------------------------------------- issues workflow
+class IssueUpdateIn(Schema):
+    version: int
+    owner_user_id: uuid.UUID | None = None
+    clear_owner: bool = False
+    status: str | None = Field(default=None, max_length=32)
+    note: str = Field(default="", max_length=2000)
+
+
+class ManualIssueIn(Schema):
+    title: str = Field(min_length=1, max_length=300)
+    severity: Literal["critical", "high", "medium", "low"]
+    category: Literal[
+        "completeness", "mapping", "ledger_integrity", "subledger", "cash", "master_data",
+        "currency", "dates", "ai_safety", "other",
+    ]  # fmt: skip
+    nature: Literal["migration_defect", "source_anomaly"]
+    description: str = Field(default="", max_length=10_000)
+
+
+class CommentIn(Schema):
+    body: str = Field(min_length=1, max_length=10_000)
+
+
+class CommentOut(Schema):
+    id: uuid.UUID
+    author_user_id: uuid.UUID
+    author_name: str
+    body: str
+    created_at: datetime
+
+
+class IssueLinkOut(Schema):
+    id: uuid.UUID
+    link_type: str
+    other_issue_id: uuid.UUID
+    other_issue_key: str
+    other_issue_title: str
+    other_issue_status: str
+    created_by_actor_type: str
+    reason: str
+
+
+class EntityDecisionOut(Schema):
+    id: uuid.UUID
+    party_type: str
+    decision: str
+    members: list[str]
+    survivor: str | None
+    reason: str
+    status: str
+    change_request_id: uuid.UUID
+    reverted_by_cr_id: uuid.UUID | None
+    created_at: datetime
+
+
+class DispositionOut(Schema):
+    id: uuid.UUID
+    issue_id: uuid.UUID
+    issue_key: str
+    kind: str
+    amount: str | None
+    currency: str | None
+    follow_up: str
+    follow_up_owner_id: uuid.UUID | None
+    reason: str
+    status: str
+    change_request_id: uuid.UUID
+    reverted_by_cr_id: uuid.UUID | None
+    created_at: datetime
+
+
+class PartyOut(Schema):
+    natural_key: str
+    code: str
+    data: dict[str, Any]
+    open_documents: int
+
+
+class CandidateDetailOut(Schema):
+    candidate: CandidateOut
+    run_id: uuid.UUID
+    parties: list[PartyOut]
+    decisions: list[EntityDecisionOut]
+
+
+# ---------------------------------------------------------------------------- migration setup
+class CompanyIn(Schema):
+    name: str = Field(min_length=1, max_length=200)
+    legal_name: str = Field(min_length=1, max_length=200)
+    country: str = Field(pattern=r"^[A-Z]{2}$")
+    functional_currency: str = Field(pattern=r"^[A-Z]{3}$")
+    fiscal_year_start_month: int = Field(ge=1, le=12)
+
+
+class MigrationIn(Schema):
+    company: CompanyIn
+    name: str = Field(min_length=1, max_length=200)
+    issue_key_prefix: str = Field(pattern=r"^[A-Z]{2,6}$")
+    opening_balance_date: date
+    history_start_date: date
+    cutover_date: date
+    go_live_date: date
+    bank_clearing_window_days: int = Field(default=15, ge=0, le=90)
+
+
+class SourceSystemIn(Schema):
+    name: str = Field(min_length=1, max_length=200)
+    kind: Literal["legacy_erp", "spreadsheet", "bank", "billing", "crm", "other"]
+    description: str = Field(default="", max_length=2000)
+
+
+class SourceSystemOut(Schema):
+    id: uuid.UUID
+    name: str
+    kind: str
+    description: str
+
+
+class DatasetIn(Schema):
+    source_system_id: uuid.UUID
+    dataset_type: str = Field(max_length=32)
+    name: str = Field(min_length=1, max_length=200)
+    as_of_date: date | None = None
+    is_required: bool = True
+    bank_account: str | None = Field(default=None, min_length=1, max_length=64)
+    gl_account: str | None = Field(default=None, min_length=1, max_length=64)

@@ -33,6 +33,11 @@ OPEN_STATUSES = frozenset(
 )
 
 
+class LinkAuthor(StrEnum):
+    SYSTEM = "system"
+    USER = "user"
+
+
 class IssueSource(StrEnum):
     RULE = "rule"
     RECONCILIATION = "reconciliation"
@@ -80,3 +85,42 @@ class IssueOccurrence(Base):
         ForeignKey("rule_exceptions.id"), primary_key=True
     )
     run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_runs.id"), nullable=False)
+
+
+class IssueLinkType(StrEnum):
+    SAME_ROOT_CAUSE = "same_root_cause"
+    CAUSED_BY = "caused_by"
+    BLOCKS = "blocks"
+    DUPLICATES = "duplicates"
+
+
+class IssueLink(Base):
+    __tablename__ = "issue_links"
+    __table_args__ = (
+        check_in("link_type", "link_type", IssueLinkType),
+        check_in("created_by_actor_type", "created_by_actor_type", LinkAuthor),
+        UniqueConstraint("from_issue_id", "to_issue_id", "link_type"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    migration_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("migrations.id"), nullable=False)
+    from_issue_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("issues.id"), nullable=False)
+    to_issue_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("issues.id"), nullable=False)
+    link_type: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by_actor_type: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = created_at()
+
+
+class IssueComment(Base):
+    """Immutable: edits are new comments (append-only trigger)."""
+
+    __tablename__ = "issue_comments"
+    __table_args__ = (Index("ix_issue_comments_issue", "issue_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    issue_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("issues.id"), nullable=False)
+    author_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = created_at()

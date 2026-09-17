@@ -193,7 +193,7 @@ export default async function ChangeRequestPage(
   const query = await props.searchParams;
   const detail = await apiGet<Detail>(`/api/v1/change-requests/${changeId}`);
   const change = detail.change_request;
-  const open = change.status === "draft" || change.status === "submitted";
+  const open = ["draft", "submitted", "stale"].includes(change.status);
   return (
     <div className="max-w-6xl">
       <PageHeader

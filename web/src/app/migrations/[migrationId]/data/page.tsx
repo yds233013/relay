@@ -53,7 +53,14 @@ export default async function DataPage(props: PageProps<"/migrations/[migrationI
             const active = history.find((i) => i.id === dataset.active_import_id);
             return (
               <tr key={dataset.id} className="border-b border-gray-100">
-                <td className="px-2 py-1.5 font-medium">{dataset.name}</td>
+                <td className="px-2 py-1.5 font-medium">
+                  <Link
+                    href={`/migrations/${migrationId}/data/datasets/${dataset.id}`}
+                    className="underline"
+                  >
+                    {dataset.name}
+                  </Link>
+                </td>
                 <td className="px-2 py-1.5">{humanize(dataset.dataset_type)}</td>
                 <td className="px-2 py-1.5">
                   <BusinessDate value={dataset.as_of_date} />

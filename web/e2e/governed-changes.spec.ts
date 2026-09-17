@@ -95,7 +95,10 @@ async function approve(page: Page, changeUrl: string, expectedNotice: RegExp): P
   await page.goto(changeUrl);
   await page.getByLabel("Comment (required to reject)").fill("Checked against the evidence.");
   await page.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByRole("status").filter({ hasText: expectedNotice })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: expectedNotice })).toBeVisible({
+    // Applying a change requests a run, which waits while a previous run holds the pipeline lock.
+    timeout: 30_000,
+  });
 }
 
 test("E2E-2: account mapping change needs lead and controller, never the requester", async ({
@@ -122,6 +125,7 @@ test("E2E-2: account mapping change needs lead and controller, never the request
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Map allowance to allowance for credit losses",
   );
+  await page.waitForURL(/\/change-requests\/[0-9a-f-]+/);
   const changeUrl = page.url();
   const changeId = changeUrl.split("/").pop()!;
   await expect(page.locator("[data-status='submitted']").first()).toBeVisible();
@@ -181,6 +185,7 @@ test("DS-08, DS-11 and DS-05 are corrected through overrides approved in the UI"
     await page.getByRole("button", { name: "Propose correction" }).click();
     await expect(page.getByTestId("before-after")).toContainText(value);
     await expect(page.getByTestId("requirements")).toContainText("Customer controller");
+    await page.waitForURL(/\/change-requests\/[0-9a-f-]+/);
     changeUrls.push(page.url());
   }
 
@@ -200,6 +205,7 @@ test("DS-08, DS-11 and DS-05 are corrected through overrides approved in the UI"
   await page.getByRole("button", { name: "Propose repair" }).click();
   await expect(page.getByTestId("before-after")).toContainText("JE-2026-0412");
   await expectAccessible(page);
+  await page.waitForURL(/\/change-requests\/[0-9a-f-]+/);
   changeUrls.push(page.url());
 
   await actAs(page, DANIEL);

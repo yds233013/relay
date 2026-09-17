@@ -23,17 +23,23 @@ from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Any, ClassVar, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from relay.audit import service as audit
 from relay.canonical.records import validate_period
-from relay.changes.domain import record_override_approvals, required_approvals
+from relay.changes.domain import (
+    disposition_approvals,
+    record_override_approvals,
+    required_approvals,
+)
 from relay.changes.models import (
     ChangeRequest,
     ChangeRequestKind,
     ChangeRequestStatus,
+    Disposition,
+    EntityDecision,
     OverlayStatus,
     OverrideTarget,
     RecordOverride,
@@ -43,8 +49,12 @@ from relay.core.clock import Clock
 from relay.core.dates import parse_iso_business_date
 from relay.core.errors import InvalidInputError, RelayError
 from relay.core.ids import uuid7
+from relay.core.money import Money, validate_amount
 from relay.engine.exceptions import Severity
 from relay.engine.rules import REGISTRY
+from relay.identity import service as identity
+from relay.issues import workflow as issue_workflow
+from relay.issues.models import OPEN_STATUSES, Issue, IssueStatus
 from relay.mapping_sets import accounts
 from relay.mapping_sets import service as column_sets
 from relay.mapping_sets.models import AccountMappingSet, ColumnMappingSet, MappingSetStatus
@@ -121,10 +131,6 @@ class RecordOverridePayload(BaseModel):
 
 class PolicyChangePayload(_Payload):
     changes: dict[str, Any] = Field(min_length=1)
-
-
-class RevertPayload(_Payload):
-    record_override_id: uuid.UUID
 
 
 @dataclass(frozen=True, slots=True)
@@ -618,46 +624,415 @@ def _policy_apply(
     )
 
 
+# --------------------------------------------------------------------------- entity decisions
+MAX_DECISION_MEMBERS: Final = 50
+
+
+class EntityDecisionPayload(_Payload):
+    party_type: Literal["customer", "vendor"]
+    decision: Literal["same_entity", "distinct"]
+    members: list[str] = Field(min_length=2, max_length=MAX_DECISION_MEMBERS)
+    survivor: str | None = None
+    run_id: uuid.UUID
+    """The succeeded run whose staged parties the members were checked against."""
+
+    @field_validator("members")
+    @classmethod
+    def _codes(cls, members: list[str]) -> list[str]:
+        cleaned = sorted({m.strip() for m in members})
+        if len(cleaned) != len(members) or any(not m or len(m) > 64 for m in cleaned):
+            raise ValueError("members must be distinct, non-blank party codes")
+        return cleaned
+
+
+def _pairs(members: list[str]) -> set[frozenset[str]]:
+    return {frozenset((a, b)) for i, a in enumerate(members) for b in members[i + 1 :]}
+
+
+def active_entity_decisions(session: Session, migration_id: uuid.UUID) -> list[EntityDecision]:
+    return list(
+        session.scalars(
+            select(EntityDecision)
+            .where(
+                EntityDecision.migration_id == migration_id,
+                EntityDecision.status == OverlayStatus.ACTIVE.value,
+            )
+            .order_by(EntityDecision.created_at, EntityDecision.id)
+        )
+    )
+
+
+def _overlapping(
+    session: Session, migration_id: uuid.UUID, payload: EntityDecisionPayload
+) -> list[EntityDecision]:
+    proposed = _pairs(payload.members)
+    return [
+        d
+        for d in active_entity_decisions(session, migration_id)
+        if d.party_type == payload.party_type and _pairs(sorted(d.members)) & proposed
+    ]
+
+
+def _decision_check(
+    session: Session, migration_id: uuid.UUID, payload: EntityDecisionPayload
+) -> None:
+    if payload.decision == "same_entity" and payload.survivor not in payload.members:
+        raise InvalidInputError("a same-entity decision needs a survivor among the members")
+    if payload.decision == "distinct" and payload.survivor is not None:
+        raise InvalidInputError("a distinct decision has no survivor")
+    if _overlapping(session, migration_id, payload):
+        raise ChangeRequestPreconditionError(
+            "an active decision already covers some of these parties; revert it first"
+        )
+
+
+def _decision_prepare(
+    session: Session, change: ChangeRequest, payload: EntityDecisionPayload
+) -> Prepared:
+    _decision_check(session, change.migration_id, payload)
+    return Prepared(
+        before={"decisions": [], "members": payload.members},
+        after={
+            "party_type": payload.party_type,
+            "decision": payload.decision,
+            "members": payload.members,
+            "survivor": payload.survivor,
+        },
+        impact={"run_id": str(payload.run_id), "pairs": len(_pairs(payload.members))},
+        required_approvals=required_approvals(ChangeRequestKind.ENTITY_DECISION),
+    )
+
+
+def _decision_versions(
+    session: Session, change: ChangeRequest, payload: EntityDecisionPayload
+) -> Versions:
+    overlapping = sorted(str(d.id) for d in _overlapping(session, change.migration_id, payload))
+    return {f"entity_decisions:{payload.party_type}": ",".join(overlapping) or None}
+
+
+def _decision_apply(
+    session: Session,
+    actor: Actor,
+    change: ChangeRequest,
+    payload: EntityDecisionPayload,
+    clock: Clock | None,
+) -> None:
+    row = EntityDecision(
+        id=uuid7(clock),
+        migration_id=change.migration_id,
+        party_type=payload.party_type,
+        decision=payload.decision,
+        members=payload.members,
+        survivor=payload.survivor,
+        reason=change.justification,
+        change_request_id=change.id,
+        status=OverlayStatus.ACTIVE.value,
+        version=1,
+    )
+    session.add(row)
+    session.flush()
+    audit.record(
+        session,
+        actor=actor,
+        action="entity_decision.activated",
+        entity_type="entity_decision",
+        entity_id=row.id,
+        migration_id=change.migration_id,
+        change_request_id=change.id,
+        before={"status": None},
+        after={
+            "party_type": row.party_type,
+            "decision": row.decision,
+            "members": row.members,
+            "survivor": row.survivor,
+            "status": row.status,
+        },
+        reason=change.justification,
+        clock=clock,
+    )
+
+
+# ------------------------------------------------------------------------------- dispositions
+MAX_DISPOSITION_ISSUES: Final = 100
+
+
+class DispositionPayload(_Payload):
+    """One decision about one or more findings (for example six months of the same bank fee).
+
+    ``amount`` is the total the decision concerns. It is stored on the disposition row when the
+    decision covers a single issue, and on the change request otherwise.
+    """
+
+    issue_ids: list[uuid.UUID] = Field(min_length=1, max_length=MAX_DISPOSITION_ISSUES)
+    kind: Literal["carry_forward_adjustment", "accepted_risk", "false_positive", "not_applicable"]
+    amount: str | None = None
+    follow_up: str = Field(default="", max_length=2000)
+    follow_up_owner_id: uuid.UUID | None = None
+
+    @field_validator("issue_ids")
+    @classmethod
+    def _distinct(cls, ids: list[uuid.UUID]) -> list[uuid.UUID]:
+        if len(set(ids)) != len(ids):
+            raise ValueError("issues must be distinct")
+        return sorted(ids)
+
+
+def _disposition_issues(
+    session: Session, migration_id: uuid.UUID, payload: DispositionPayload
+) -> list[Issue]:
+    issues = []
+    for issue_id in payload.issue_ids:
+        issue = session.get(Issue, issue_id)
+        if issue is None or issue.migration_id != migration_id:
+            raise InvalidInputError("issue not found in this migration")
+        issues.append(issue)
+    return issues
+
+
+def active_dispositions(session: Session, migration_id: uuid.UUID) -> list[Disposition]:
+    return list(
+        session.scalars(
+            select(Disposition)
+            .where(
+                Disposition.migration_id == migration_id,
+                Disposition.status == OverlayStatus.ACTIVE.value,
+            )
+            .order_by(Disposition.created_at, Disposition.id)
+        )
+    )
+
+
+def _disposition_check(
+    session: Session, migration_id: uuid.UUID, payload: DispositionPayload
+) -> None:
+    issues = _disposition_issues(session, migration_id, payload)
+    dispositioned = {d.fingerprint for d in active_dispositions(session, migration_id)}
+    for issue in issues:
+        if issue.fingerprint is None:
+            raise InvalidInputError(
+                f"{issue.key}: only issues reported by rules or reconciliations are dispositioned"
+            )
+        if IssueStatus(issue.status) not in OPEN_STATUSES:
+            raise ChangeRequestPreconditionError(
+                f"{issue.key} is {issue.status} and cannot be dispositioned"
+            )
+        if payload.kind == "accepted_risk" and issue.severity == "critical":
+            raise InvalidInputError(f"{issue.key}: critical findings cannot be accepted as a risk")
+        if issue.fingerprint in dispositioned:
+            raise ChangeRequestPreconditionError(f"{issue.key} already has an active disposition")
+    if payload.kind == "carry_forward_adjustment" and payload.amount is None:
+        raise InvalidInputError("a carry-forward adjustment states its amount")
+    if payload.amount is not None:
+        try:
+            validate_amount(payload.amount)
+        except InvalidInputError as exc:
+            raise InvalidInputError("disposition amount is invalid") from exc
+    if payload.follow_up_owner_id is not None:
+        owner = identity.get_user(session, payload.follow_up_owner_id)
+        if owner is None or not owner.is_active:
+            raise InvalidInputError("the follow-up owner must be an active user")
+
+
+_SEVERITY_ORDER: Final = ("low", "medium", "high", "critical")
+
+
+def _disposition_prepare(
+    session: Session, change: ChangeRequest, payload: DispositionPayload
+) -> Prepared:
+    _disposition_check(session, change.migration_id, payload)
+    issues = _disposition_issues(session, change.migration_id, payload)
+    currency = workspace.get_migration(session, change.migration_id).functional_currency
+    severity = max((i.severity for i in issues), key=_SEVERITY_ORDER.index)
+    listed = [
+        {
+            "issue_id": str(i.id),
+            "key": i.key,
+            "title": i.title,
+            "severity": i.severity,
+            "nature": i.nature,
+            "amount_at_risk": (
+                Money(i.amount_at_risk, currency).amount_str
+                if i.amount_at_risk is not None
+                else None
+            ),
+        }
+        for i in issues
+    ]
+    return Prepared(
+        before={"issues": {i.key: i.status for i in issues}},
+        after={
+            "issues": {i.key: IssueStatus.DISPOSITIONED.value for i in issues},
+            "kind": payload.kind,
+            "amount": (
+                Money(validate_amount(payload.amount), currency).amount_str
+                if payload.amount is not None
+                else None
+            ),
+            "currency": currency.code,
+            "follow_up": payload.follow_up,
+        },
+        impact={
+            "issues": listed,
+            "highest_severity": severity,
+            "currency": currency.code,
+            "excluded_from_exposure": True,
+        },
+        required_approvals=disposition_approvals(kind=payload.kind, severity=severity),
+    )
+
+
+def _disposition_versions(
+    session: Session, change: ChangeRequest, payload: DispositionPayload
+) -> Versions:
+    dispositioned = {d.fingerprint for d in active_dispositions(session, change.migration_id)}
+    versions: Versions = {}
+    for issue in _disposition_issues(session, change.migration_id, payload):
+        state = "open" if IssueStatus(issue.status) in OPEN_STATUSES else issue.status
+        versions[f"issue:{issue.id}"] = f"{state}:{issue.severity}"
+        versions[f"disposition:{issue.fingerprint}"] = (
+            "active" if issue.fingerprint in dispositioned else None
+        )
+    return versions
+
+
+def _disposition_apply(
+    session: Session,
+    actor: Actor,
+    change: ChangeRequest,
+    payload: DispositionPayload,
+    clock: Clock | None,
+) -> None:
+    issues = _disposition_issues(session, change.migration_id, payload)
+    migration = workspace.get_migration(session, change.migration_id)
+    single = len(issues) == 1 and payload.amount is not None
+    for issue in issues:
+        row = Disposition(
+            id=uuid7(clock),
+            migration_id=change.migration_id,
+            issue_id=issue.id,
+            fingerprint=str(issue.fingerprint),
+            kind=payload.kind,
+            amount=validate_amount(payload.amount) if single and payload.amount else None,
+            currency=migration.functional_currency if single else None,
+            follow_up=payload.follow_up.strip(),
+            follow_up_owner_id=payload.follow_up_owner_id,
+            reason=change.justification,
+            change_request_id=change.id,
+            status=OverlayStatus.ACTIVE.value,
+            version=1,
+        )
+        session.add(row)
+        session.flush()
+        audit.record(
+            session,
+            actor=actor,
+            action="disposition.activated",
+            entity_type="disposition",
+            entity_id=row.id,
+            migration_id=change.migration_id,
+            change_request_id=change.id,
+            before={"status": None},
+            after={
+                "issue_id": issue.id,
+                "kind": row.kind,
+                "amount": payload.amount,
+                "follow_up": row.follow_up,
+                "status": row.status,
+            },
+            reason=change.justification,
+            clock=clock,
+        )
+        issue_workflow.mark_dispositioned(
+            session, actor=actor, issue_id=issue.id, change_request_id=change.id, clock=clock
+        )
+
+
 # ------------------------------------------------------------------------------------ reverts
-def _revert_target(session: Session, payload: RevertPayload) -> RecordOverride:
-    override = session.get(RecordOverride, payload.record_override_id)
-    if override is None:
-        raise InvalidInputError("override does not exist")
-    return override
+RevertTarget = Literal["record_override", "entity_decision", "disposition"]
+_REVERTABLE: Final[dict[str, type[RecordOverride] | type[EntityDecision] | type[Disposition]]] = {
+    "record_override": RecordOverride,
+    "entity_decision": EntityDecision,
+    "disposition": Disposition,
+}
+
+
+class RevertPayload(_Payload):
+    target: RevertTarget
+    target_id: uuid.UUID
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_override_form(cls, raw: Any) -> Any:
+        """M5 stored reverts as ``{"record_override_id": ...}``."""
+        if isinstance(raw, dict) and set(raw) == {"record_override_id"}:
+            return {"target": "record_override", "target_id": raw["record_override_id"]}
+        return raw
+
+
+def _revert_target(
+    session: Session, payload: RevertPayload, *, for_update: bool = False
+) -> RecordOverride | EntityDecision | Disposition:
+    target = session.get(_REVERTABLE[payload.target], payload.target_id, with_for_update=for_update)
+    if not isinstance(target, RecordOverride | EntityDecision | Disposition):
+        raise InvalidInputError(f"{payload.target.replace('_', ' ')} does not exist")
+    return target
 
 
 def _revert_check(session: Session, migration_id: uuid.UUID, payload: RevertPayload) -> None:
-    override = _revert_target(session, payload)
-    if override.migration_id != migration_id:
-        raise InvalidInputError("override belongs to another migration")
-    if override.status != OverlayStatus.ACTIVE.value:
-        raise ChangeRequestPreconditionError("only an active override can be reverted")
+    target = _revert_target(session, payload)
+    if target.migration_id != migration_id:
+        raise InvalidInputError("the target belongs to another migration")
+    if target.status != OverlayStatus.ACTIVE.value:
+        raise ChangeRequestPreconditionError("only an active overlay can be reverted")
+
+
+def _describe_target(target: RecordOverride | EntityDecision | Disposition) -> dict[str, Any]:
+    if isinstance(target, RecordOverride):
+        return {
+            "natural_key": target.natural_key,
+            "target": target.target,
+            "field": target.field,
+            "value": target.new_value,
+        }
+    if isinstance(target, EntityDecision):
+        return {
+            "party_type": target.party_type,
+            "decision": target.decision,
+            "members": target.members,
+            "survivor": target.survivor,
+        }
+    return {"issue_id": str(target.issue_id), "kind": target.kind, "amount": str(target.amount)}
 
 
 def _revert_prepare(session: Session, change: ChangeRequest, payload: RevertPayload) -> Prepared:
     _revert_check(session, change.migration_id, payload)
-    override = _revert_target(session, payload)
-    original = session.get_one(ChangeRequest, override.change_request_id)
+    target = _revert_target(session, payload)
+    original = session.get_one(ChangeRequest, target.change_request_id)
     described = {
-        "record_override_id": str(override.id),
-        "natural_key": override.natural_key,
-        "target": override.target,
-        "field": override.field,
-        "value": override.new_value,
+        "target": payload.target,
+        "target_id": str(target.id),
         "original_change_request": original.key,
+        **_describe_target(target),
     }
+    impact: dict[str, Any] = {"target": payload.target}
+    if isinstance(target, RecordOverride):
+        impact.update(natural_key=target.natural_key, restores=target.expected_current_value)
+    elif isinstance(target, Disposition):
+        impact.update(issue_id=str(target.issue_id), reopens_issue=True)
+    else:
+        impact.update(members=target.members)
     return Prepared(
         before={**described, "status": OverlayStatus.ACTIVE.value},
-        after={**described, "status": OverlayStatus.REVERTED.value, "value": None},
-        impact={"natural_key": override.natural_key, "restores": override.expected_current_value},
+        after={**described, "status": OverlayStatus.REVERTED.value},
+        impact=impact,
         # governance.md §2.3: a revert needs the same approvals as the change it reverts.
         required_approvals=list(original.required_approvals),
     )
 
 
 def _revert_versions(session: Session, _: ChangeRequest, payload: RevertPayload) -> Versions:
-    override = _revert_target(session, payload)
-    return {f"record_override:{override.id}": override.version}
+    target = _revert_target(session, payload)
+    return {f"{payload.target}:{target.id}": target.version}
 
 
 def _revert_apply(
@@ -667,26 +1042,30 @@ def _revert_apply(
     payload: RevertPayload,
     clock: Clock | None,
 ) -> None:
-    override = session.get(RecordOverride, payload.record_override_id, with_for_update=True)
-    if override is None or override.status != OverlayStatus.ACTIVE.value:
-        raise ChangeRequestPreconditionError("override is no longer active")
-    override.status = OverlayStatus.REVERTED.value
-    override.reverted_by_cr_id = change.id
-    override.version += 1
+    target = _revert_target(session, payload, for_update=True)
+    if target.status != OverlayStatus.ACTIVE.value:
+        raise ChangeRequestPreconditionError("the target is no longer active")
+    target.status = OverlayStatus.REVERTED.value
+    target.reverted_by_cr_id = change.id
+    target.version += 1
     session.flush()
     audit.record(
         session,
         actor=actor,
-        action="override.reverted",
-        entity_type="record_override",
-        entity_id=override.id,
+        action=f"{payload.target}.reverted",
+        entity_type=payload.target,
+        entity_id=target.id,
         migration_id=change.migration_id,
         change_request_id=change.id,
-        before={"status": OverlayStatus.ACTIVE.value, "value": override.new_value},
+        before={"status": OverlayStatus.ACTIVE.value, **_describe_target(target)},
         after={"status": OverlayStatus.REVERTED.value},
         reason=change.justification,
         clock=clock,
     )
+    if isinstance(target, Disposition):
+        issue_workflow.undo_disposition(
+            session, actor=actor, issue_id=target.issue_id, change_request_id=change.id, clock=clock
+        )
 
 
 KINDS: Final[dict[ChangeRequestKind, Kind]] = {
@@ -704,6 +1083,14 @@ KINDS: Final[dict[ChangeRequestKind, Kind]] = {
     ),
     ChangeRequestKind.POLICY_CHANGE: Kind(
         PolicyChangePayload, _policy_check, _policy_prepare, _policy_versions, _policy_apply
+    ),
+    ChangeRequestKind.ENTITY_DECISION: Kind(
+        EntityDecisionPayload, _decision_check, _decision_prepare, _decision_versions,
+        _decision_apply,
+    ),
+    ChangeRequestKind.DISPOSITION: Kind(
+        DispositionPayload, _disposition_check, _disposition_prepare, _disposition_versions,
+        _disposition_apply,
     ),
     ChangeRequestKind.REVERT: Kind(
         RevertPayload, _revert_check, _revert_prepare, _revert_versions, _revert_apply

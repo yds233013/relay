@@ -1,4 +1,4 @@
-"""Resolve record override requests against a run's evidence.
+"""Resolve change request inputs (record overrides, entity decision members) against a run.
 
 A client names a record, a field and a new value (or a quarantine finding and replacement text).
 The server reads the current value, the source import and the amount involved from the run, so a
@@ -134,3 +134,55 @@ def quarantine_repair_payload(
             "line_end": int(details.get("line_end", 0)),
         }
     }
+
+
+def check_decision_parties(
+    session: Session, *, migration_id: uuid.UUID, payload: dict[str, Any]
+) -> None:
+    """Entity decision members must be parties staged by the named succeeded run."""
+    try:
+        run_id = uuid.UUID(str(payload.get("run_id")))
+    except ValueError as exc:
+        raise InvalidInputError("an entity decision names the run its parties come from") from exc
+    run = _succeeded_run(session, migration_id, run_id)
+    party_type = str(payload.get("party_type"))
+    members = [str(m).strip() for m in payload.get("members") or []]
+    keys = [f"party:{party_type}:{code}" for code in members]
+    found = set(
+        session.scalars(
+            select(StagedRecord.natural_key).where(
+                StagedRecord.run_id == run.id, StagedRecord.natural_key.in_(keys)
+            )
+        )
+    )
+    missing = sorted(code for code, key in zip(members, keys, strict=True) if key not in found)
+    if missing:
+        raise InvalidInputError(f"parties not found in the run: {', '.join(missing)}")
+
+
+def parties(
+    session: Session, run_id: uuid.UUID, party_type: str, codes: list[str]
+) -> list[tuple[StagedRecord, int]]:
+    """Staged parties with the number of their invoices or bills in the run."""
+    document_type = "invoice" if party_type == "customer" else "bill"
+    rows = []
+    for code in codes:
+        record = session.scalars(
+            select(StagedRecord).where(
+                StagedRecord.run_id == run_id,
+                StagedRecord.natural_key == f"party:{party_type}:{code}",
+            )
+        ).first()
+        if record is None:
+            continue
+        documents = session.scalar(
+            select(func.count())
+            .select_from(StagedRecord)
+            .where(
+                StagedRecord.run_id == run_id,
+                StagedRecord.record_type == document_type,
+                StagedRecord.party_code == code,
+            )
+        )
+        rows.append((record, int(documents or 0)))
+    return rows
