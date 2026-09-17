@@ -1,6 +1,6 @@
 # Relay — Architecture
 
-Status: **Planned. No code exists yet.** This document is the target design; update it when implementation diverges, and record why.
+Status: **Target design. M0 (repository foundation) is implemented; everything else is planned.** See [progress.md](progress.md) for what exists. Update this document when implementation diverges, and record why.
 
 Related: [data-model.md](data-model.md) · [validation-and-reconciliation.md](validation-and-reconciliation.md) · [governance.md](governance.md) · [ai-safety.md](ai-safety.md) · [security-and-correctness.md](security-and-correctness.md)
 
@@ -46,7 +46,7 @@ Related: [data-model.md](data-model.md) · [validation-and-reconciliation.md](va
 └────────────────┘
 ```
 
-Docker Compose services (planned): `db` (postgres:16), `api`, `worker`, `web`. That is all.
+Docker Compose services: `db` (postgres:16), `migrate` (one-shot `alembic upgrade head`), `api`, `web` — implemented in M0. The `worker` service is added in M3 together with the jobs table; until then there is deliberately no worker process.
 
 ### 2.1 Why these choices
 
@@ -60,6 +60,7 @@ Docker Compose services (planned): `db` (postgres:16), `api`, `worker`, `web`. T
 | File storage | Local volume, content-addressed, behind a `BlobStore` interface | S3 | S3 adapter is post-MVP; interface exists from day one. |
 | Rules execution | In-memory Python over a loaded run snapshot | SQL pushdown | Pure functions with fixture tests; adequate for ≤ 250k lines. `RuleContext` abstracts data access so SQL-backed rules can be added. |
 | Frontend | Next.js + TanStack Query/Table + Radix-based components (shadcn/ui) | SPA with Vite | Routing/layouts for a many-page ops tool; server components not relied on for data (API is the source of truth). |
+| JS package manager | **npm** with `package-lock.json` (M0) | pnpm | Ships with Node.js, so the toolchain needs nothing extra; pnpm via corepack was unreliable on the development machine. Revisit only with a concrete need. |
 | API client | `openapi-typescript` + `openapi-fetch` | Hand-written types | Contract drift becomes a type error in CI. |
 | AI | Provider protocol, tool registry, structured outputs | Framework (LangChain etc.) | Small, auditable surface; tool permissions are ours, not a framework's. |
 | Identity (MVP) | Seeded users, dev identity header, role checks in a single dependency | Real auth | Real auth is post-MVP; all authorization flows through `current_actor()` so it can be swapped. |
@@ -77,11 +78,14 @@ backend/src/relay/
 │   ├── db.py           # engine, session factory, unit-of-work
 │   ├── errors.py       # RelayError hierarchy → problem+json
 │   ├── logging.py      # structlog JSON, request/job correlation ids
-│   ├── money.py        # Decimal parsing/quantization, currency minor units
-│   ├── dates.py        # business date parsing, fiscal calendar, periods
-│   ├── clock.py        # injectable Clock (frozen in tests)
-│   ├── hashing.py      # canonical JSON + sha256 fingerprints
-│   └── ids.py          # UUIDv7 generation
+│   ├── currency.py     # ISO 4217 registry and minor units                      (M0)
+│   ├── money.py        # Money, amount validation, FX conversion, parsing       (M0)
+│   ├── dates.py        # business dates, explicit formats, fiscal periods        (M0)
+│   ├── timestamps.py   # aware-UTC system timestamps, RFC 3339                   (M0)
+│   ├── db_types.py     # SQLAlchemy column types enforcing the above             (M0)
+│   ├── clock.py        # injectable Clock (frozen in tests)                      (M0)
+│   ├── hashing.py      # canonical JSON + sha256 fingerprints                    (M0)
+│   └── ids.py          # UUIDv7 generation                                       (M0)
 ├── identity/           # users, roles, current_actor dependency, dev identity
 ├── workspace/          # companies, migrations, conversion plans, source systems, datasets
 ├── ingestion/          # BlobStore, CSV reader, import service, connector protocol
@@ -107,9 +111,11 @@ backend/src/relay/
 ├── demo/               # Brightwater scenario generator, manifest, seed command
 ├── cli.py              # `relay` CLI (typer): seed, run-pipeline, verify-audit, generate-demo
 └── api/
-    ├── app.py          # app factory, middleware, exception handlers
+    ├── app.py          # app factory                                             (M0)
+    ├── middleware.py   # request id, request logging, security headers           (M0)
+    ├── problems.py     # RFC 9457 problem+json exception handlers                (M0)
     ├── deps.py         # session, current_actor, pagination
-    └── routers/        # one router per module
+    └── routers/        # one router per module; health.py                        (M0)
 ```
 
 Within a module:
@@ -123,7 +129,9 @@ module/
 └── read_model.py   # query-side functions used by API and AI tools
 ```
 
-### 3.1 Enforced dependency rules (import-linter, planned)
+### 3.1 Enforced dependency rules (import-linter)
+
+M0 enforces `core` as the bottom layer (`relay.api` → `relay.core`). The remaining contracts are added in the milestone that creates each module.
 
 - `core` imports nothing from `relay.*`.
 - `canonical` imports only `core`.
@@ -375,13 +383,13 @@ Frontend rules: no money arithmetic in TypeScript; server-state only via TanStac
 - **Never log** raw row values, file contents, LLM prompts or completions. Log counts, ids and hashes.
 - Pipeline stage timings recorded on the run row (`stage_timings jsonb`) and shown in Runs UI.
 - Investigation transcripts are stored in the DB (access-controlled), not logs.
-- `/healthz` (process) and `/readyz` (DB reachable, migrations at head).
+- `GET /health` (process liveness, no database) and `GET /health/ready` (database reachable and schema at the Alembic head; 503 otherwise). Implemented in M0. "Ready" is the HTTP sense, unrelated to launch readiness.
 
 ---
 
 ## 10. Configuration
 
-`pydantic-settings`, env-prefixed `RELAY_`. Planned variables:
+`pydantic-settings`, env-prefixed `RELAY_`. M0 implements `RELAY_ENV`, `RELAY_DATABASE_URL`, `RELAY_DB_POOL_SIZE`, `RELAY_DB_CONNECT_TIMEOUT_SECONDS`, `RELAY_LOG_LEVEL` and `RELAY_LOG_FORMAT`; the rest arrive with the code that reads them. Planned variables:
 
 | Variable | Default | Notes |
 |---|---|---|
@@ -415,3 +423,6 @@ Frontend rules: no money arithmetic in TypeScript; server-state only via TanStac
 | D-09 | Business dates as `DATE`; periods derived from dates by fiscal calendar; the target ERP is assumed to derive period from date | Accepted — assumption |
 | D-10 | Many-to-one account mapping only in MVP | Accepted |
 | D-11 | Signed amounts: debit positive, credit negative, functional currency stored alongside transaction currency | Accepted |
+| D-12 | Money representation details (canonical scale, sub-minor precision, FX rounding, equality across currencies): see [decisions/0001-money-representation.md](decisions/0001-money-representation.md) | Accepted (M0) |
+| D-13 | npm instead of pnpm for the web app | Accepted (M0) |
+| D-14 | Web reads the API server-side only (`RELAY_API_URL`, not exposed to the browser); no CORS configured until the browser needs to call the API | Accepted (M0) |

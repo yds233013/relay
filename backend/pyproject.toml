@@ -1,0 +1,100 @@
+[project]
+name = "relay"
+version = "0.1.0"
+description = "Relay: migration operations for ERP implementations"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.20,<2",
+    "fastapi>=0.141,<0.142",
+    "psycopg[binary]>=3.3,<4",
+    "pydantic>=2.13,<3",
+    "pydantic-settings>=2.15,<3",
+    "sqlalchemy>=2.0.54,<2.1",
+    "structlog>=26.1",
+    "uvicorn[standard]>=0.53,<0.54",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13,<3",
+    "hypothesis>=6.168",
+    "import-linter>=2.15",
+    "mypy>=2.3",
+    "pytest>=9.1",
+    "ruff>=0.16.8",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/relay"]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "B", "UP", "N", "S", "BLE", "A", "C4", "DTZ", "T20",
+    "SIM", "PT", "RET", "ARG", "PL", "RUF", "TRY", "PERF", "LOG", "G",
+]
+ignore = [
+    "TRY003",   # long messages in exception constructors are fine with RelayError codes
+    "PLR2004",  # magic values are clearer inline in tests and bounds checks
+    "PLR0913",
+    "ARG002",   # overridden framework methods (e.g. TypeDecorator) must keep their signatures
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004", "S105", "S106"]
+"migrations/**" = ["INP001"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+files = ["src", "tests", "migrations"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = [
+    "error",
+    # Third-party: starlette.testclient (1.6.0) references a deprecated anyio alias at import time.
+    # Not our code; remove when Starlette updates. Every other warning fails the test run.
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning:starlette.testclient",
+]
+markers = [
+    "integration: requires a PostgreSQL database (RELAY_TEST_DATABASE_URL)",
+]
+
+# ---------------------------------------------------------------- import-linter
+[tool.importlinter]
+root_package = "relay"
+
+[[tool.importlinter.contracts]]
+name = "core is the bottom layer: it imports nothing else from relay"
+type = "layers"
+layers = [
+    "relay.api",
+    "relay.core",
+]

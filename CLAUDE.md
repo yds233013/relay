@@ -30,34 +30,61 @@ Canonical documents (read the relevant one before working in an area):
 
 ## Current state
 
-**Planning phase. No application code, build tooling, Docker setup, or tests exist yet.** The only thing in this repository is documentation. Do not start a milestone without explicit user approval; the user approves milestones one at a time.
+**Milestone M0 (repository foundation) is implemented and awaiting review.** It includes:
+- backend and web foundations
+- financial, date and timestamp primitives in `backend/src/relay/core/`
+- Alembic with an empty baseline revision
+- Docker Compose, Makefile and CI
+
+**No Relay product features exist yet** (imports, mappings, rules, reconciliation, issues, approvals, readiness, audit, AI, demo data). Do not start a milestone without explicit user approval; the user approves milestones one at a time. `docs/progress.md` records what exists.
+
+Layout:
+- `backend/`: Python package `relay` (src layout), `migrations/` (Alembic), `tests/unit`, `tests/integration`
+- `web/`: Next.js app (`src/app`, `src/lib`)
+  - `web/AGENTS.md` and `web/CLAUDE.md` are generated and re-created by `next dev`. They only point to the Next.js 16 docs bundled in `node_modules/next/dist/docs/`. Read those docs before writing Next.js code; every rule in this file still applies inside `web/`.
+- `docs/`: planning documents, `decisions/`, `progress.md`
 
 ---
 
 ## Commands
 
-### Available now
+Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repository root. `make help` lists everything.
+
+### Available now (verified)
 
 | Command | Purpose |
 |---|---|
-| `git status` / `git log` | That's it. Nothing else is set up. |
+| `make setup` | Install backend (uv, `backend/uv.lock`) and web (npm, `web/package-lock.json`) dependencies |
+| `make fmt` | Format Python (ruff format + import sort) and web (prettier) |
+| `make fmt-check` | Check formatting without writing |
+| `make lint` | ruff check, import-linter contracts, eslint (`--max-warnings=0`) |
+| `make typecheck` | mypy `--strict` (src, tests, migrations), `next typegen && tsc --noEmit` |
+| `make test` | Backend unit + property tests (`-m "not integration"`) and web Vitest tests |
+| `make test-integration` | Starts Compose Postgres, runs `-m integration` against database `relay_test` (dropped/recreated) |
+| `make check` | **Canonical full verification**: fmt-check, lint, typecheck, test, test-integration, build-web, compose-config |
+| `make build-web` | Next.js production build |
+| `make build` | build-web + `docker compose build` |
+| `make compose-config` | Validate `docker-compose.yml` |
+| `make db-up` / `make db-stop` | Start (and wait for healthy) / stop Compose PostgreSQL |
+| `make db-migrate` | `alembic upgrade head` against the local database |
+| `make db-downgrade` | `alembic downgrade -1` |
+| `make db-current` | Show current revision |
+| `make db-revision m="message"` | New Alembic revision (post-write hook runs ruff on it) |
+| `make up` / `make down` | Build and start the full stack and wait for health / stop it (volume kept) |
+| `make smoke` | Against a running stack: API health, readiness, and web page showing both healthy with migrations at head |
+| `make dev` | API (uvicorn `--reload`) + web (`next dev`) on the host, Compose Postgres; `make dev-api`, `make dev-web` run one each |
+| `make logs` | Follow Compose logs |
+| `make clean` | Remove caches and build output |
 
-### Planned (do NOT claim these work until they exist — move each row to "Available now" when implemented)
+Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY_DB_HOST_PORT`, `RELAY_API_HOST_PORT` and `RELAY_WEB_HOST_PORT` in the environment or `.env`.
+
+### Planned (do NOT claim these work until they exist — move each row to "Available now" when implemented and verified)
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| `make setup` | Install backend (uv) and web (pnpm) dependencies | M0 |
-| `make fmt` | ruff format + prettier | M0 |
-| `make lint` | ruff check, eslint, import-linter | M0 |
-| `make typecheck` | mypy --strict, tsc --noEmit | M0 |
-| `make test` | Backend unit/property/pure-scenario + web unit | M0 |
-| `make check` | fmt check + lint + typecheck + test | M0 |
-| `make up` / `make down` | Docker Compose stack | M0 |
 | `uv run relay demo generate --seed 20260630 --out fixtures/demo/brightwater` | Generate demo CSVs | M1 |
 | `uv run relay engine run --fixtures … --config …` | Run pure engine from files | M2 |
-| `make db-migrate` | Alembic upgrade head | M3 |
-| `make test-integration` | Integration tests against Postgres | M3 |
-| `uv run relay worker` | Job worker | M3 |
+| `uv run relay worker` (+ `worker` Compose service) | Job worker | M3 |
 | `uv run relay demo seed` | Seed Brightwater "day 9" state | M3 |
 | `uv run relay verify-audit --migration <id>` | Verify audit hash chain | M3 |
 | `make openapi` | Regenerate OpenAPI + TS client | M3 |
@@ -117,6 +144,8 @@ Requirement IDs (FC-xx, GV-xx, SEC-xx) live in `docs/security-and-correctness.md
 ## Coding conventions
 
 ### Backend (Python 3.12)
+- Money: use `relay.core.money.Money` / `validate_amount`; never construct amounts from floats; never add `*` or `/` to `Money`. FX goes through `convert()` only. See `docs/decisions/0001-money-representation.md`.
+- Dates: `relay.core.dates` for business dates (`BusinessDate` in Pydantic models), `relay.core.timestamps` for system times (`UtcTimestamp`). Database columns use `relay.core.db_types` (`AmountType`, `FxRateType`, `CurrencyCodeType`, `BusinessDateType`, `UtcTimestampType`), never raw `Numeric`/`Date`/`DateTime`.
 - Type everything; `mypy --strict` clean. No `Any` in domain code without a comment explaining why.
 - Pydantic v2 models at API/AI/JSONB boundaries with `extra="forbid"`; frozen dataclasses in pure domain code.
 - SQLAlchemy 2.0 typed ORM, **sync** sessions, explicit unit-of-work; services own transactions; routers never commit.
@@ -172,10 +201,10 @@ Requirement IDs (FC-xx, GV-xx, SEC-xx) live in `docs/security-and-correctness.md
 
 Before saying a task is done:
 
-1. Run the relevant checks that exist (`make check` once M0 lands; before that, state that no checks exist).
+1. Run `make check` (it starts PostgreSQL itself). Do not pipe it through `tail`/`head` in a way that hides the exit code.
 2. Run the tests covering the change; for engine changes, run the scenario manifest tests.
 3. For API changes: regenerate OpenAPI and confirm the web typecheck passes.
-4. For UI changes: run the relevant Playwright flow or open the page and exercise the flow; say which.
+4. For UI changes: run the relevant Playwright flow (from M4) or open the page and exercise the flow; say which. For stack-level changes: `make up` then `make smoke`.
 5. For migrations: upgrade from empty DB and run integration tests.
 6. Update `docs/progress.md` and any doc whose described behavior changed.
 7. Report honestly: what was run, what passed, what failed, what was not verified.

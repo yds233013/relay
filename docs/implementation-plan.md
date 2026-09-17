@@ -1,6 +1,6 @@
 # Relay — Implementation Plan
 
-Status: **Awaiting approval. No milestone has started.**
+Status: **M0 implemented, awaiting review. M1 not started.** Progress log: [progress.md](progress.md).
 
 Related: all docs in this folder.
 
@@ -28,7 +28,7 @@ Each milestone ends in a demoable, tested state and a short entry in `docs/progr
 - Monorepo layout (`backend/`, `web/`, `fixtures/`, `evals/`, `docs/`).
 - Backend: `uv` project, Python 3.12, ruff (lint+format), mypy `--strict`, pytest, Hypothesis, import-linter (contracts from architecture §3.1 declared up front), structlog, pydantic-settings.
 - `core/`: `money`, `dates`, `clock`, `hashing`, `ids`, `errors`, `config`, `logging` with full unit tests.
-- Web: Next.js + TypeScript strict + Tailwind + ESLint + Prettier + Vitest skeleton (one placeholder page).
+- Web: Next.js + TypeScript strict + Tailwind + ESLint + Prettier + Vitest (one development status page).
 - Docker Compose: `db` (Postgres 16), `api` (health endpoint only), `web`.
 - Alembic initialized with an empty baseline.
 - `Makefile` with `setup`, `fmt`, `lint`, `typecheck`, `test`, `check`, `up`, `down`.
@@ -37,7 +37,7 @@ Each milestone ends in a demoable, tested state and a short entry in `docs/progr
 
 **Acceptance criteria**
 - `make check` passes on a clean clone; CI green.
-- `docker compose up` serves `/healthz` and a placeholder web page.
+- `docker compose up` serves `/health` and a placeholder web page.
 - `core.money` passes FC-01…FC-05 unit and property tests.
 - CLAUDE.md "Commands" section updated to list exactly the commands that now exist.
 

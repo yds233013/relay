@@ -1,7 +1,9 @@
-# Environment & secrets
+# Secrets and local environment
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
 # Python
 __pycache__/
@@ -11,20 +13,37 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 .hypothesis/
+.import_linter_cache/
 .coverage
+.coverage.*
 htmlcov/
+*.egg-info/
+dist/
+build/
 
 # Node / Next.js
 node_modules/
 .next/
 out/
 coverage/
+*.tsbuildinfo
+next-env.d.ts
 playwright-report/
 test-results/
+npm-debug.log*
 
-# Local data
+# Local data, databases and logs
 /data/
 *.sqlite
+*.sqlite3
+*.db
+*.log
+logs/
+
+# Scratch and generated output
+tmp/
+.tmp/
+*.tmp
 
 # OS / editors
 .DS_Store

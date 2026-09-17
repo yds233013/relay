@@ -86,7 +86,7 @@ Related: [data-model.md](data-model.md) · [governance.md](governance.md) · [ai
 
 | ID | Requirement |
 |---|---|
-| SEC-30 | Locked dependencies (`uv.lock`, `pnpm-lock.yaml`); Renovate/Dependabot post-MVP. |
+| SEC-30 | Locked dependencies (`backend/uv.lock`, `web/package-lock.json`); Renovate/Dependabot post-MVP. |
 | SEC-31 | Docker images pinned by digest for base images; non-root runtime user. |
 | SEC-32 | No downloading or executing remote scripts during build beyond package managers with lockfiles. |
 

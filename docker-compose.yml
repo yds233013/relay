@@ -1,0 +1,79 @@
+# Relay local development stack.
+#
+#   db       PostgreSQL 16
+#   migrate  one-shot: alembic upgrade head, then exits
+#   api      FastAPI (relay.api.app)
+#   web      Next.js
+#
+# There is intentionally no worker service yet: the Postgres-backed job worker is built in M3
+# (docs/implementation-plan.md). All ports bind to 127.0.0.1 only.
+#
+# Credentials below are local-development defaults, not secrets. Override them in .env
+# (see .env.example). The application refuses to start in production with the default password.
+
+name: relay
+
+x-backend-env: &backend-env
+  RELAY_ENV: local
+  RELAY_DATABASE_URL: postgresql+psycopg://relay:${RELAY_DB_PASSWORD:-relay_local_dev_only}@db:5432/relay
+  RELAY_LOG_LEVEL: ${RELAY_LOG_LEVEL:-INFO}
+  RELAY_LOG_FORMAT: json
+
+services:
+  db:
+    image: postgres:16.15-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    environment:
+      POSTGRES_USER: relay
+      POSTGRES_PASSWORD: ${RELAY_DB_PASSWORD:-relay_local_dev_only}
+      POSTGRES_DB: relay
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "127.0.0.1:${RELAY_DB_HOST_PORT:-55432}:5432"
+    volumes:
+      - relay-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relay -d relay"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    # Same image as api (built by the api service); no second build.
+    image: relay-backend:local
+    pull_policy: never
+    command: ["alembic", "upgrade", "head"]
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: relay-backend:local
+    build:
+      context: ./backend
+    environment: *backend-env
+    ports:
+      - "127.0.0.1:${RELAY_API_HOST_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    image: relay-web:local
+    build:
+      context: ./web
+    environment:
+      RELAY_API_URL: http://api:8000
+    ports:
+      - "127.0.0.1:${RELAY_WEB_HOST_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  relay-db:

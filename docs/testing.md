@@ -1,6 +1,6 @@
 # Relay — Testing Strategy
 
-Status: **Planned.** No test infrastructure exists yet.
+Status: **M0 test infrastructure implemented** (pytest + Hypothesis unit/property tests, PostgreSQL integration tests, Vitest). Scenario, contract, AI and e2e layers are planned.
 
 Related: [security-and-correctness.md](security-and-correctness.md) · [demo-scenario.md](demo-scenario.md) · [ai-safety.md](ai-safety.md)
 
@@ -99,19 +99,29 @@ Related: [security-and-correctness.md](security-and-correctness.md) · [demo-sce
 
 ---
 
-## 3. Commands (planned — none exist yet)
+## 3. Commands
+
+Implemented in M0 (see CLAUDE.md for the full list):
 
 | Command | Purpose |
 |---|---|
-| `make test` | backend unit + scenario (pure) + frontend unit |
-| `make test-integration` | backend integration against compose Postgres |
-| `make test-e2e` | Playwright against compose stack with seeded demo |
-| `make test-all` | everything above |
-| `make eval-ai` | live-model evals (requires API key; manual) |
+| `make test` | Backend unit + property tests and web unit tests (no database) |
+| `make test-integration` | Backend integration tests against Compose PostgreSQL |
+| `make check` | Full verification: format, lint, types, all of the above, web build, Compose config |
+
+Planned:
+
+| Command | Purpose | Milestone |
+|---|---|---|
+| `make test-e2e` | Playwright against compose stack with seeded demo | M4 |
+| `make test-all` | Everything, including e2e | M4 |
+| `make eval-ai` | Live-model evals (requires API key; manual) | M8 |
 
 ---
 
-## 4. CI (planned, GitHub Actions)
+## 4. CI (GitHub Actions)
+
+M0 CI (`.github/workflows/ci.yml`) runs `make setup`, `make check`, then `make up` and `make smoke`. The steps below are the target as later layers land.
 
 1. Lint & format check: `ruff check`, `ruff format --check`, `eslint`, `prettier --check`
 2. Types: `mypy --strict` (backend), `tsc --noEmit` (web)
@@ -128,5 +138,5 @@ Coverage is reported but not gated globally; the rules, reconciliation, changes,
 ## 5. Definition of done for any change
 
 - Tests added/updated at the lowest layer that can catch the bug.
-- All CI steps above pass locally (`make check`, planned).
+- All CI steps above pass locally (`make check`).
 - If behavior of a rule, reconciliation or gate changed: its version bumped, docs updated, scenario manifests updated **with an explanation in the commit message** of why the expected set changed.
