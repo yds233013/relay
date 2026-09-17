@@ -215,7 +215,17 @@ def evaluate_readiness(
             [f"{e.stage} — {e.error}" for e in result.errored_stages],
         )
     )
-    blocking = [e for e in unresolved if e.severity in {Severity.CRITICAL, Severity.HIGH}]
+    # governance.md §4.2 G5: a critical must be *resolved* — a run that no longer produces it. A
+    # disposition is a decision about a finding that stands, which only clears a high.
+    # governance.md §4.2 G5: a critical is cleared only by a run that no longer produces it, so
+    # every critical this run still reports blocks, dispositioned or not. A disposition is a
+    # decision about a finding that stands, and it clears a high.
+    blocking = [
+        e
+        for e in result.exceptions
+        if e.severity is Severity.CRITICAL
+        or (e.severity is Severity.HIGH and statuses[e.fingerprint] == "open")
+    ]
     gates.append(
         _gate(
             "G5",
@@ -223,7 +233,7 @@ def evaluate_readiness(
             not blocking,
             f"{sum(e.severity is Severity.CRITICAL for e in blocking)} critical, "
             f"{sum(e.severity is Severity.HIGH for e in blocking)} high",
-            "0 unresolved critical, 0 undispositioned high",
+            "0 critical in this run, 0 undispositioned high",
             "No critical or high findings remain open",
             [e.fingerprint for e in blocking],
         )

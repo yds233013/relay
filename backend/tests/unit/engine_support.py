@@ -23,6 +23,7 @@ from relay_scenarios.brightwater.exports import bank_csv, implementation_csv, le
 from relay_scenarios.volume import build_volume_migration, export_volume_migration
 
 GL = "ledgerpro/ledgerpro_gl_detail_2026H1.csv"
+TRIAL_BALANCE = "ledgerpro/ledgerpro_trial_balance_by_period.csv"
 CUSTOMERS = "ledgerpro/ledgerpro_customers.csv"
 VENDORS = "ledgerpro/ledgerpro_vendors.csv"
 INVOICES = "ledgerpro/ledgerpro_invoices.csv"

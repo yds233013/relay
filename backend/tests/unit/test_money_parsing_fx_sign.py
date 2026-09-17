@@ -6,7 +6,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 
-from relay.core.currency import UnknownCurrencyError
+from relay.core.currency import Currency, UnknownCurrencyError
 from relay.core.money import (
     FX_ROUNDING,
     AmountFormat,
@@ -19,6 +19,7 @@ from relay.core.money import (
     convert,
     parse_amount_text,
     signed_ledger_amount,
+    to_functional,
 )
 
 US = AmountFormat(
@@ -212,3 +213,53 @@ def test_ambiguous_or_invalid_debit_credit_pairs(debit: object, credit: object) 
 def test_both_sides_nonzero_is_a_debit_credit_error() -> None:
     with pytest.raises(DebitCreditError, match="both a debit and a credit"):
         signed_ledger_amount(Decimal("5"), Decimal("5"))
+
+
+# Digit systems whose code points `\\d` also matches. Written as offsets rather than literals so
+# this file stays unambiguous ASCII.
+FULLWIDTH, ARABIC_INDIC, DEVANAGARI = 0xFF10, 0x0660, 0x0966
+
+
+def in_digits(text: str, zero: int) -> str:
+    return "".join(chr(zero + int(ch)) if ch.isdigit() else ch for ch in text)
+
+
+@pytest.mark.parametrize("zero", [FULLWIDTH, ARABIC_INDIC, DEVANAGARI])
+@pytest.mark.parametrize("written", ["123", "1,234.56", "0.50"])
+def test_amounts_written_in_non_ascii_digits_are_refused(written: str, zero: int) -> None:
+    """Review pass 2: `\\d` accepts these, and the stored number would not be the one a reader of
+    the file sees. An explicit format means ASCII digits."""
+    amount_format = AmountFormat(thousands_separator=",", parentheses_negative=True)
+    assert parse_amount_text(written, amount_format) is not None  # the ASCII form parses
+    with pytest.raises(AmountFormatError):
+        parse_amount_text(in_digits(written, zero), amount_format)
+
+
+def test_a_single_non_ascii_digit_inside_an_amount_is_refused() -> None:
+    mixed = "1" + chr(FULLWIDTH + 2) + "3.45"
+    with pytest.raises(AmountFormatError):
+        parse_amount_text(mixed, AmountFormat())
+
+
+def test_to_functional_rounds_half_away_from_zero_not_to_even() -> None:
+    """Review pass 1 (D3): converting by hand picked Python's banker's rounding and two decimals.
+
+    0.125 and 0.135 are the pair that separates the two modes; JPY shows the minor units matter.
+    """
+    usd = Currency.of("USD")
+    assert to_functional(Money(Decimal("0.25"), Currency.of("EUR")), "0.5", usd).amount == Decimal(
+        "0.13"
+    )  # half away from zero, not 0.12
+    assert to_functional(Money(Decimal("0.27"), Currency.of("EUR")), "0.5", usd).amount == Decimal(
+        "0.14"
+    )
+    assert to_functional(Money(Decimal("-0.25"), Currency.of("EUR")), "0.5", usd).amount == Decimal(
+        "-0.13"
+    )
+    yen = to_functional(Money(Decimal("100.00"), Currency.of("USD")), "150.456", "JPY")
+    assert yen.amount == Decimal("15046")  # zero minor units, not two
+
+
+def test_to_functional_returns_a_functional_amount_unchanged() -> None:
+    exact = Money(Decimal("1234.5678"), Currency.of("USD"))
+    assert to_functional(exact, "1", Currency.of("USD")) == exact

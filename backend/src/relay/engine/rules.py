@@ -350,6 +350,50 @@ def gl_account_exists(ctx: RuleContext, spec: RuleSpec) -> Iterable[RuleExceptio
                 )
 
 
+def _period_ends_in_window(start: date, cutover: date) -> list[date]:
+    """Every month end from ``start`` to ``cutover``, and the cutover itself if it is not one."""
+    ends: list[date] = []
+    year, month = start.year, start.month
+    while True:
+        following = date(year + (month == 12), (month % 12) + 1, 1)
+        end = following - timedelta(days=1)
+        if end > cutover:
+            break
+        if end >= start:
+            ends.append(end)
+        year, month = following.year, following.month
+    if cutover not in ends:
+        ends.append(cutover)
+    return ends
+
+
+@rule(
+    "TB.PERIOD_COVERAGE",
+    "Trial balance is missing a period of the history window",
+    Severity.HIGH,
+    Nature.MIGRATION_DEFECT,
+    Category.COMPLETENESS,
+    {"trial_balance"},
+)
+def tb_period_coverage(ctx: RuleContext, spec: RuleSpec) -> Iterable[RuleException]:
+    """A control report that skips a period silently narrows what R1 and R2 can compare.
+
+    Both reconciliations take their period ends from the trial balance itself, so a month missing
+    from the export is never reconciled at all rather than being reported as a difference.
+    """
+    plan = ctx.snapshot.plan
+    present = {end for _, end in ctx.snapshot.trial_balance}
+    for end in _period_ends_in_window(plan.history_start_date, plan.cutover_date):
+        if end not in present:
+            yield _exception(
+                spec,
+                [f"period:{end.isoformat()}"],
+                f"the trial balance has no rows at {end}, so that period is never reconciled",
+                expected=end.isoformat(),
+                observed="missing",
+            )
+
+
 @rule(
     "GL.DATE_IN_WINDOW",
     "Entry date outside the history window",
@@ -552,6 +596,70 @@ def _register_subledger_rules() -> None:  # noqa: PLR0915 - one closure per mirr
             Category.COMPLETENESS,
             {"payments", parties_dataset},
         )(payment_party_exists)
+
+        def document_date_in_window(
+            ctx: RuleContext,
+            spec: RuleSpec,
+            document_type: DocumentType = document_type,
+        ) -> Iterable[RuleException]:
+            """A document dated after the cutover is not part of the balances being migrated.
+
+            Dates before the history window are normal: a carried-forward document is exported
+            because it is still open, not because it belongs to the window (SC-04).
+            """
+            cutover = ctx.snapshot.plan.cutover_date
+            for number, od in sorted(_documents(ctx, document_type).items()):
+                if od.document.document_date <= cutover:
+                    continue
+                key = nk.document(document_type, number)
+                yield _exception(
+                    spec,
+                    [key],
+                    f"{number} is dated {od.document.document_date}, after the cutover {cutover}",
+                    expected=f"on or before {cutover}",
+                    observed=od.document.document_date.isoformat(),
+                    amount_at_risk=od.document.functional_total.amount,
+                    lineage=_lineage(ctx, key),
+                )
+
+        rule(
+            f"{prefix}.{document_word.upper()}_DATE_IN_WINDOW",
+            f"{document_word.title()} dated after the cutover",
+            Severity.HIGH,
+            Nature.MIGRATION_DEFECT,
+            Category.DATES,
+            {documents_dataset},
+        )(document_date_in_window)
+
+        def payment_date_in_window(
+            ctx: RuleContext,
+            spec: RuleSpec,
+            direction: PaymentDirection = direction,
+        ) -> Iterable[RuleException]:
+            cutover = ctx.snapshot.plan.cutover_date
+            for payment in _payments(ctx, direction):
+                if payment.payment_date <= cutover:
+                    continue
+                key = nk.payment(direction, payment.number)
+                yield _exception(
+                    spec,
+                    [key],
+                    f"{payment.number} is dated {payment.payment_date}, "
+                    f"after the cutover {cutover}",
+                    expected=f"on or before {cutover}",
+                    observed=payment.payment_date.isoformat(),
+                    amount_at_risk=payment.functional_amount.amount,
+                    lineage=_lineage(ctx, key),
+                )
+
+        rule(
+            f"{prefix}.PAYMENT_DATE_IN_WINDOW",
+            "Payment dated after the cutover",
+            Severity.HIGH,
+            Nature.MIGRATION_DEFECT,
+            Category.DATES,
+            {"payments"},
+        )(payment_date_in_window)
 
         def application_document_exists(
             ctx: RuleContext,

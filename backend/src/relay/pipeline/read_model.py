@@ -17,7 +17,9 @@ from typing import Any
 from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from relay.core.currency import Currency
 from relay.core.errors import NotFoundError
+from relay.core.money import Money, to_functional
 from relay.imports.models import QuarantinedRow
 from relay.issues.models import Issue, IssueOccurrence
 from relay.pipeline.models import (
@@ -220,9 +222,15 @@ def _open_value(record: StagedRecord) -> Decimal:
     open_amount = Decimal(str(record.data.get("open_amount", "0")))
     if open_amount == 0:
         return Decimal(0)
-    if open_amount == Decimal(record.data["total"]["amount"]):
+    total = record.data["total"]
+    if open_amount == Decimal(str(total["amount"])):
         return record.functional_amount or Decimal(0)
-    return (open_amount * Decimal(str(record.data.get("fx_rate", "1")))).quantize(Decimal("0.01"))
+    # The same conversion the engine performs, through the one place that may round (FC-02).
+    return to_functional(
+        Money(open_amount, Currency.of(str(total["currency"]))),
+        Decimal(str(record.data.get("fx_rate", "1"))),
+        Currency.of(str(record.data["functional_total"]["currency"])),
+    ).amount
 
 
 def _mapped_legacy_accounts(session: Session, run_id: uuid.UUID, subtype: str) -> list[str]:

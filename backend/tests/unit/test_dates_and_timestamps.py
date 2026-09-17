@@ -306,3 +306,15 @@ def test_frozen_clock() -> None:
         clock.advance(timedelta(seconds=-1))
     with pytest.raises(TimestampError):
         FrozenClock(datetime(2026, 9, 17))  # noqa: DTZ001 - naive on purpose
+
+
+@pytest.mark.parametrize("zero", [0xFF10, 0x0660, 0x0966])
+def test_dates_written_in_non_ascii_digits_are_refused(zero: int) -> None:
+    """Review pass 2: the same hardening as amounts. A date must read as itself."""
+    written = "2026-03-31"
+    assert parse_business_date(written, DateFormat.ISO) == date(2026, 3, 31)
+    other = "".join(chr(zero + int(ch)) if ch.isdigit() else ch for ch in written)
+    with pytest.raises(BusinessDateError):
+        parse_business_date(other, DateFormat.ISO)
+    with pytest.raises(BusinessDateError):
+        parse_business_date("2026-" + other[5:7] + "-31", DateFormat.ISO)

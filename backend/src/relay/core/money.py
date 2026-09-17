@@ -130,7 +130,9 @@ _FX_QUANTIZE: Final = Context(
 
 # Strict textual form for API and serialized data: optional minus, digits, optional fraction.
 # No exponent, no plus sign, no whitespace, no separators, no leading zeros.
-_STRICT_AMOUNT_PATTERN: Final = re.compile(r"-?(?:0|[1-9]\d*)(?:\.\d+)?")
+# Digits are ASCII only: `\d` would also accept Devanagari, Arabic-Indic or full-width digits, and
+# an amount whose digits are not the ones a reader sees is never something to guess at.
+_STRICT_AMOUNT_PATTERN: Final = re.compile(r"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -455,6 +457,20 @@ class FxConversion:
     """``converted.amount - exact_amount``; recorded so rounding is always explainable."""
 
 
+def to_functional(amount: Money, rate: Decimal | str, functional: Currency | str) -> Money:
+    """``amount`` expressed in the functional currency (FC-02).
+
+    An amount already in the functional currency is returned exactly as it is; anything else goes
+    through :func:`convert`, which is the only place that rounds, and rounds half away from zero to
+    the functional currency's minor units. Callers must never quantize by hand: doing so picks
+    Python's default banker's rounding and assumes two decimal places.
+    """
+    target = _coerce_currency(functional)
+    if amount.currency == target:
+        return amount
+    return convert(amount, rate, target).converted
+
+
 def convert(source: Money, rate: Decimal | str, target: Currency | str) -> FxConversion:
     """Convert ``source`` into ``target`` at ``rate`` (units of target per unit of source).
 
@@ -536,12 +552,14 @@ class AmountFormat:
 @functools.cache
 def _number_pattern(decimal_separator: str, thousands_separator: str | None) -> re.Pattern[str]:
     decimal = re.escape(decimal_separator)
+    # ASCII digits only (see _STRICT_AMOUNT_PATTERN): a mis-encoded or manipulated export must not
+    # parse as a number that reads differently to a person.
     if thousands_separator is None:
-        integer = r"\d+"
+        integer = r"[0-9]+"
     else:
         sep = re.escape(thousands_separator)
-        integer = rf"(?:\d{{1,3}}(?:{sep}\d{{3}})+|\d+)"
-    return re.compile(rf"{integer}(?:{decimal}\d+)?")
+        integer = rf"(?:[0-9]{{1,3}}(?:{sep}[0-9]{{3}})+|[0-9]+)"
+    return re.compile(rf"{integer}(?:{decimal}[0-9]+)?")
 
 
 def parse_amount_text(text: str, amount_format: AmountFormat) -> Decimal:

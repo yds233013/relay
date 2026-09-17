@@ -55,7 +55,7 @@ class ExceptionDraft:
 
 | Severity | Meaning | Readiness effect |
 |---|---|---|
-| critical | Would load data that breaks double-entry integrity, references that cannot be resolved, or balances that are wrong | Blocks (G5); not dispositionable as `accepted_risk` |
+| critical | Would load data that breaks double-entry integrity, references that cannot be resolved, or balances that are wrong | Blocks (G5) until a run no longer produces it: a disposition records a decision about a finding that stands, and never clears a critical (it is also not dispositionable as `accepted_risk`) |
 | high | Material misstatement or incompleteness risk | Blocks (G5) unless dispositioned by controller |
 | medium | Likely data-quality problem needing a decision | Counts toward exposure (G9) |
 | low | Informational / hygiene | Visible only |
@@ -95,6 +95,12 @@ class ExceptionDraft:
 | `GL.DUPLICATE_ENTRY` | Two **manual** entries with same date, same line signature (account, amount multiset), not a reversal pair. Module postings are covered by the document-level duplicate rules ([0003](decisions/0003-deterministic-engine.md) E-07) | high | \|debit total of duplicate\| |
 | `GL.CONTROL_ACCOUNT_DIRECT_POST` | Manual (`source_module=manual`) lines to AR/AP control accounts without a party | medium | \|line\| |
 
+**Control reports**
+
+| ID | What | Sev | Amount at risk |
+|---|---|---|---|
+| `TB.PERIOD_COVERAGE` | A month end of `[history_start, cutover]` has no trial balance rows, so R1 and R2 never compare that period | high | — |
+
 **AR / AP / payments** (AR shown; AP rules mirror with `bill`/vendor)
 
 | ID | What | Sev | Nature |
@@ -108,6 +114,8 @@ class ExceptionDraft:
 | `AP.DUPLICATE_BILL` | Same party cluster + normalized vendor reference, or same cluster + amount + date within N days | high | source_anomaly |
 | `PAY.DUPLICATE_PAYMENT` | Two payments (either direction) in the same party cluster with the same functional amount that apply to the same document, or to documents flagged as duplicates by `AP.DUPLICATE_BILL` ([0003](decisions/0003-deterministic-engine.md) E-08) | high | source_anomaly |
 | `PAY.UNAPPLIED_CASH` | Receipt with unapplied amount at cutover | low | source_anomaly |
+| `AR.INVOICE_DATE_IN_WINDOW` | Invoice dated after the cutover: it is not part of the balances being migrated, and takes no part in the open items at cutover. Dates before the window are normal for carried-forward documents (SC-04) | high | migration_defect |
+| `AR.PAYMENT_DATE_IN_WINDOW` | Receipt dated after the cutover | high | migration_defect |
 
 `AP.DUPLICATE_BILL` and `PAY.DUPLICATE_PAYMENT` operate on **party clusters**, so an approved entity merge can reveal new duplicates on rerun — intentionally.
 
@@ -229,7 +237,7 @@ All arithmetic is exact `Decimal`. Tolerance compares exact unexplained differen
 
 **R2 inherits R1 differences.** R2's right side is built from staged GL detail bucketed by derived period, the same basis as R1's right side, and both left sides come from the control TB. So every R1 discrepancy on a mapped legacy account also appears in R2 on its target account, for the same periods and with the same sign. R2 additionally detects mapping-level problems such as the `unmapped` bucket. This follows from the definitions; nothing is special-cased (SC-02).
 | **R5.CASH_VS_BANK** | completeness | Staged GL cash account balance | Bank statement ending balance at cutover | bank account | cutover | 0.00 unexplained | `outstanding_checks`, `deposits_in_transit`, `bank_only_activity` |
-| **R6.ACTIVITY_TOTALS** | completeness | Source GL rows, including quarantined records reconstructed provisionally through the approved column mapping | Staged journal lines | posting period as exported: count, Σ debits, Σ credits | each period | exact counts, 0.00 | — |
+| **R6.ACTIVITY_TOTALS** | completeness | Source GL rows, counted from the file through the approved column mapping: every data row, plus quarantined records reconstructed provisionally, plus rows an approved repair restored. A row whose amount will not parse still counts in its period; a row that names no period is reported in the result's note | Staged journal lines | posting period as exported: count, Σ debits, Σ credits | each period | exact counts, 0.00 | — |
 
 **Period basis.** R1 compares the control TB (which the legacy system reports by *posting period*) against detail bucketed by **derived period from entry date**, because the target ERP derives period from date (decision D-09). Posting-period/date disagreements therefore surface as R1 discrepancies in two adjacent periods that net to zero cumulatively, plus a `GL.PERIOD_MATCHES_DATE` exception. This is deliberate: it shows exactly how comparatives will differ after migration.
 

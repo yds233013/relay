@@ -8,7 +8,7 @@ indicates an error remains unexplained.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from decimal import Decimal
@@ -25,13 +25,14 @@ from relay.canonical.enums import (
 )
 from relay.canonical.records import JournalEntry
 from relay.core.errors import InvalidInputError, RelayError
+from relay.core.money import Money, to_functional
 from relay.engine.exceptions import Category, Nature, RuleException, Severity, make_exception
 from relay.engine.policy import Policy
 from relay.engine.snapshot import BankRecord, RunSnapshot
 from relay.ingestion.csv_reader import QuarantinedRow, RawTable, reconstruct_quarantined
 from relay.mapping.transforms import FieldMapping, TransformError
 
-RECONCILIATION_VERSION: Final = 1
+RECONCILIATION_VERSION: Final = 2
 UNASSIGNED: Final = "unassigned"
 UNMAPPED: Final = "unmapped"
 
@@ -208,12 +209,20 @@ def r2_legacy_vs_staged(snapshot: RunSnapshot, policy: Policy) -> ReconResult:
         if end == opening:
             continue
         left[(mapping.get(account, UNMAPPED), end)] += balance
-        if account in mapping:
-            right[(mapping[account], end)] += snapshot.trial_balance.get(
-                (account, opening), Decimal(0)
-            )
+    # The right side carries each mapped account's opening balance into **every** period, exactly
+    # as R1 does. Deriving it from the trial balance rows that happen to exist would drop the
+    # carry wherever a sparse export omits a row, and R1 discrepancies would stop appearing in R2
+    # (the inheritance §B.3 documents).
+    for account in sorted(mapping):
+        carried = snapshot.trial_balance.get((account, opening), Decimal(0))
+        if carried == 0:
+            continue
+        for end in ends:
+            if end != opening:
+                right[(mapping[account], end)] += carried
     for (account, end), amount in _activity_to(snapshot, set(mapping), ends).items():
-        right[(mapping[account], end)] += amount
+        if end != opening:
+            right[(mapping[account], end)] += amount
     lines = [
         ReconLine(
             (("target_account", target), ("period_end", end.isoformat())),
@@ -266,26 +275,39 @@ _AP = _SubledgerSide(
 def _open_items(
     snapshot: RunSnapshot, side: _SubledgerSide
 ) -> tuple[dict[str, Decimal], dict[str, Decimal]]:
-    """Staged open items at cutover in the ledger sign: by party and by document."""
+    """Staged open items **at the cutover date** in the ledger sign: by party and by document.
+
+    A document or payment dated after the cutover is not open at the cutover, whatever the export
+    says, so it takes no part in this measure (``DOC.DATE_IN_WINDOW`` reports it separately).
+    """
+    cutover = snapshot.plan.cutover_date
     documents = snapshot.invoices if side.document_type is DocumentType.INVOICE else snapshot.bills
     by_party: dict[str, Decimal] = defaultdict(Decimal)
     by_document: dict[str, Decimal] = {}
     for number, od in documents.items():
-        if od.open_amount == 0:
+        if od.open_amount == 0 or od.document.document_date > cutover:
             continue
         document = od.document
         if od.open_amount == document.total.amount:
             functional = document.functional_total.amount
         else:
-            functional = (od.open_amount * document.fx_rate).quantize(Decimal("0.01"))
+            functional = to_functional(
+                Money(od.open_amount, document.currency),
+                document.fx_rate,
+                snapshot.functional_currency,
+            ).amount
         value = side.sign * functional
         by_party[document.party_code] += value
         by_document[number] = value
     for (direction, _), payment in snapshot.payments.items():
-        if direction is side.direction and not payment.unapplied_amount.is_zero():
-            unapplied = (payment.unapplied_amount.amount * payment.fx_rate).quantize(
-                Decimal("0.01")
-            )
+        if (
+            direction is side.direction
+            and payment.payment_date <= cutover
+            and not payment.unapplied_amount.is_zero()
+        ):
+            unapplied = to_functional(
+                payment.unapplied_amount, payment.fx_rate, snapshot.functional_currency
+            ).amount
             by_party[payment.party_code] -= side.sign * unapplied
     return by_party, by_document
 
@@ -602,16 +624,72 @@ def _reconstruct_amount(
 ) -> tuple[str, Decimal] | None:
     """Period and signed amount of a quarantined GL record, or None when it cannot be read."""
     record = reconstruct_quarantined(table, row, delimiter=delimiter)
-    if record is None or "posting_period" not in fields or "functional_amount" not in fields:
+    if record is None:
         return None
+    period, amount = _read_period_amount(record, fields)
+    return None if period is None or amount is None else (period, amount)
+
+
+def _source_gl_rows(snapshot: RunSnapshot) -> tuple[dict[str, tuple[int, Decimal, Decimal]], int]:
+    """Count and total the GL rows **in the source files**, independently of what staged.
+
+    This is what makes R6 a completeness control: a row dropped during normalization (a parse
+    failure, a missing required field, an entry whose lines disagree) stays on this side of the
+    reconciliation and shows up as a count difference. Rows the mapping excludes are not source
+    rows; rows whose period or amount cannot be read are counted in the returned total of
+    unreadable rows, because they belong to no period.
+    """
+    zero = (0, Decimal(0), Decimal(0))
+    source: dict[str, tuple[int, Decimal, Decimal]] = defaultdict(lambda: zero)
+    unreadable = 0
+    for file_name, mapping in snapshot.dataset_mappings.items():
+        if mapping.dataset_type != "gl_detail":
+            continue
+        table = snapshot.raw_tables.get(file_name)
+        if table is None:
+            continue
+        fields = {f.target: f for f in mapping.fields}
+        repaired = snapshot.repaired_rows.get(file_name, ())
+        for values in [*(r.values for r in table.rows), *repaired]:
+            if mapping.excludes(values):
+                continue
+            period, amount = _read_period_amount(values, fields)
+            if period is None:
+                # The row exists in the file but names no period: it belongs to no line, so it is
+                # reported separately rather than silently dropped from the control.
+                unreadable += 1
+                continue
+            count, debits, credit_total = source[period]
+            source[period] = (
+                count + 1,
+                debits + max(amount or Decimal(0), Decimal(0)),
+                credit_total + max(-(amount or Decimal(0)), Decimal(0)),
+            )
+    return source, unreadable
+
+
+def _read_period_amount(
+    values: Mapping[str, str], fields: dict[str, FieldMapping]
+) -> tuple[str | None, Decimal | None]:
+    """The row's period and signed amount as the source file writes them.
+
+    Either can be unreadable on its own: a row whose amount will not parse still belongs to its
+    period and still counts, which is how R6 sees a row that normalization later drops.
+    """
+    period_field, amount_field = fields.get("posting_period"), fields.get("functional_amount")
+    if period_field is None or amount_field is None:
+        return None, None
     try:
-        period = fields["posting_period"].apply(record)
-        amount = fields["functional_amount"].apply(record)
+        period = period_field.apply(values)
     except (TransformError, InvalidInputError):
-        return None
-    if not isinstance(period, str) or not isinstance(amount, Decimal):
-        return None
-    return period, amount
+        return None, None
+    try:
+        amount = amount_field.apply(values)
+    except (TransformError, InvalidInputError):
+        amount = None
+    if not isinstance(period, str):
+        return None, None
+    return period, amount if isinstance(amount, Decimal) else None
 
 
 def r6_activity_totals(snapshot: RunSnapshot) -> ReconResult:
@@ -633,8 +711,7 @@ def r6_activity_totals(snapshot: RunSnapshot) -> ReconResult:
                 credit_total + max(-amount, Decimal(0)),
             )
         staged[period] = (count, debits, credit_total)
-    source = dict(staged)
-    unreconstructable = 0
+    source, unreconstructable = _source_gl_rows(snapshot)
     for file_name in snapshot.quarantined_files("gl_detail"):
         table = snapshot.raw_tables[file_name]
         mapping = snapshot.dataset_mappings[file_name]
@@ -677,9 +754,7 @@ def r6_activity_totals(snapshot: RunSnapshot) -> ReconResult:
         Decimal(0),
         tuple(lines),
         "gl_detail" in snapshot.datasets_present,
-        note=f"{unreconstructable} quarantined records could not be reconstructed"
-        if unreconstructable
-        else "",
+        note=f"{unreconstructable} source rows could not be read" if unreconstructable else "",
     )
 
 

@@ -40,7 +40,7 @@ from relay.canonical.records import (
 from relay.core.currency import Currency
 from relay.core.dates import parse_iso_business_date
 from relay.core.errors import InvalidInputError
-from relay.core.money import Money
+from relay.core.money import Money, to_functional
 from relay.engine.exceptions import Category, Nature, RuleException, Severity, make_exception
 from relay.engine.inputs import BankAccountLink, ConversionPlan, DatasetSpec, MigrationInputs
 from relay.engine.overlays import Overlays
@@ -93,6 +93,8 @@ class RunSnapshot:
     fx_rates: dict[tuple[str, str, date], Decimal] = field(default_factory=dict)
     raw_tables: dict[str, RawTable] = field(default_factory=dict)
     quarantined: dict[str, list[tuple[DatasetSpec, QuarantinedRow]]] = field(default_factory=dict)
+    repaired_rows: dict[str, list[dict[str, str]]] = field(default_factory=dict)
+    """Quarantined rows an approved repair restored, by file: still source rows for R6."""
     locations: dict[str, SourceLocation] = field(default_factory=dict)
     dataset_mappings: dict[str, DatasetMapping] = field(default_factory=dict)
     source_posting_periods: dict[str, str] = field(default_factory=dict)
@@ -150,6 +152,7 @@ class _Normalizer:
         location: SourceLocation | None,
         discriminator: str = "",
         details: dict[str, Any] | None = None,
+        amount_at_risk: Decimal | None = None,
     ) -> None:
         self.snapshot.exceptions.append(
             make_exception(
@@ -160,6 +163,7 @@ class _Normalizer:
                 category=Category.COMPLETENESS,
                 subjects=[subject],
                 message=message,
+                amount_at_risk=amount_at_risk,
                 discriminator=discriminator,
                 details={"dataset_type": spec.dataset_type, "file": spec.file, **(details or {})},
                 lineage=[location] if location else [],
@@ -211,14 +215,11 @@ class _Normalizer:
                 line_end=row.line_end,
             )
             if repair is not None:
-                repaired_rows.append(
-                    (
-                        repair_quarantined(
-                            table, repair.replacement_text, delimiter=spec.delimiter
-                        ),
-                        location,
-                    )
+                values = repair_quarantined(
+                    table, repair.replacement_text, delimiter=spec.delimiter
                 )
+                repaired_rows.append((values, location))
+                self.snapshot.repaired_rows.setdefault(spec.file, []).append(values)
                 self.snapshot.applied_overrides.append(repair.id)
                 continue
             remaining.append((spec, row))
@@ -570,8 +571,9 @@ class _Normalizer:
                     PaymentApplication(
                         document_number=r["applied_document"],
                         applied_amount=Money(r["applied_amount"], currency),
-                        applied_functional_amount=Money(
-                            (r["applied_amount"] * rate).quantize(Decimal("0.01")),
+                        applied_functional_amount=to_functional(
+                            Money(r["applied_amount"], currency),
+                            rate,
                             self.snapshot.functional_currency,
                         ),
                     )
@@ -624,6 +626,31 @@ class _Normalizer:
         for record, location in self.stage(spec):
             value: Decimal = record["functional_open_amount"]
             kind = AgingItemKind(record["kind"])
+            # The reconciliation takes the sign from the kind, so a row whose own sign disagrees —
+            # a credit memo printed under "Invoice", say — would otherwise be flipped silently and
+            # count twice in the difference. Report it; the magnitude is still what the file says.
+            if value < 0 and kind is AgingItemKind.DOCUMENT:
+                self._norm(
+                    "NORM.AGING_SIGN_CONFLICT",
+                    Severity.HIGH,
+                    spec,
+                    nk.aging_item(aging_type, spec.as_of, record["reference"]),
+                    f"{record['reference']} is typed as a document but its open amount is "
+                    f"{value}; a credit is an unapplied payment in this aging",
+                    location,
+                    details={"open_amount": str(value), "kind": kind.value},
+                )
+            if value > 0 and kind is AgingItemKind.UNAPPLIED_PAYMENT:
+                self._norm(
+                    "NORM.AGING_SIGN_CONFLICT",
+                    Severity.HIGH,
+                    spec,
+                    nk.aging_item(aging_type, spec.as_of, record["reference"]),
+                    f"{record['reference']} is typed as an unapplied payment but its open amount "
+                    f"is {value}; a positive balance is a document in this aging",
+                    location,
+                    details={"open_amount": str(value), "kind": kind.value},
+                )
             try:
                 item = AgingItem(
                     aging_type=aging_type,
@@ -708,14 +735,20 @@ class _Normalizer:
             }
             entry_key = nk.journal_entry(number)
             if len(headers) != 1:
+                # The whole entry is discarded, so the ledger loses real activity: that is a
+                # balance that is wrong, not a data-quality note (severity table, §A.2). R6's
+                # count difference shows the same rows missing from the staged side.
                 self._norm(
                     "NORM.PARSE_FAILURE",
-                    Severity.HIGH,
+                    Severity.CRITICAL,
                     spec,
                     entry_key,
-                    "lines of one entry disagree on date, period or type",
+                    "lines of one entry disagree on date, period or type; the entry was not staged",
                     rows[0][1],
                     discriminator="entry_header",
+                    amount_at_risk=sum(
+                        (max(r["functional_amount"], Decimal(0)) for r, _ in rows), Decimal(0)
+                    ),
                 )
                 continue
             module = SourceModule(head["source_module"])

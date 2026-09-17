@@ -22,6 +22,7 @@ from tests.unit.engine_support import (
     INVOICES,
     MAPPING,
     PAYMENTS,
+    TRIAL_BALANCE,
     VENDORS,
     Rows,
     base_files,
@@ -128,6 +129,22 @@ def _open_amount_changed(path: str) -> Files:
         return rows
 
     return edit(base_files(), path, change)
+
+
+def _document_dated_after_cutover(path: str, column: str) -> Files:
+    def change(rows: Rows) -> Rows:
+        _first(rows, Status="Open")[column] = "07/15/2026"  # after the 2026-06-30 cutover
+        return rows
+
+    return edit(base_files(), path, change)
+
+
+def _payment_dated_after_cutover(kind: str) -> Files:
+    def change(rows: Rows) -> Rows:
+        _first(rows, Type=kind)["Date"] = "07/15/2026"
+        return rows
+
+    return edit(base_files(), PAYMENTS, change)
 
 
 def _tax_without_total() -> Files:
@@ -324,6 +341,28 @@ UNREACHABLE_THROUGH_EXPORTS = {
 }
 
 _CLEAN_EUR = _eur("1.0800", keep_one_usd=False, publish_rates=True)
+
+
+def _trial_balance_missing_a_period() -> Files:
+    def change(rows: Rows) -> Rows:
+        return [r for r in rows if r["Period Ending"] != "03/31/2026"]
+
+    return edit(base_files(), TRIAL_BALANCE, change)
+
+
+_DATE_CASES: list[tuple[str, Callable[[], Files], int | None]] = [
+    ("TB.PERIOD_COVERAGE", _trial_balance_missing_a_period, 1),
+    (
+        "AR.INVOICE_DATE_IN_WINDOW",
+        lambda: _document_dated_after_cutover(INVOICES, "Invoice Date"),
+        1,
+    ),
+    ("AP.BILL_DATE_IN_WINDOW", lambda: _document_dated_after_cutover(BILLS, "Bill Date"), 1),
+    ("AR.PAYMENT_DATE_IN_WINDOW", lambda: _payment_dated_after_cutover("Receipt"), 1),
+    ("AP.PAYMENT_DATE_IN_WINDOW", lambda: _payment_dated_after_cutover("Bill Payment"), 1),
+]
+POSITIVE_CASES += _DATE_CASES
+
 NEAR_MISS_CASES: list[tuple[str, Callable[[], Files]]] = [
     ("GL.DUPLICATE_ENTRY", lambda: _gl(lambda r: _duplicate_manual_entry(r, 1))),
     ("MAP.TYPE_COMPATIBLE", lambda: _mapping("6200", "5000")),
@@ -368,5 +407,5 @@ def test_rule_catalog_metadata_is_complete() -> None:
         assert spec.title
         assert spec.version >= 1
         prefix = rule_id.split(".", 1)[0]
-        assert prefix in {"MAP", "GL", "AR", "AP", "PAY", "CUR", "PARTY", "DATA"}
+        assert prefix in {"MAP", "GL", "TB", "AR", "AP", "PAY", "CUR", "PARTY", "DATA"}
     assert json.dumps(sorted(REGISTRY))  # identifiers are plain strings

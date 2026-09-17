@@ -14,7 +14,13 @@ import pytest
 
 from relay.canonical.enums import PartyType
 from relay.engine.exceptions import Severity
-from relay.engine.overlays import EntityDecision, Overlays, QuarantineRepair, RecordOverride
+from relay.engine.overlays import (
+    Disposition,
+    EntityDecision,
+    Overlays,
+    QuarantineRepair,
+    RecordOverride,
+)
 from relay.engine.pipeline import input_fingerprint, run_engine
 from relay.engine.policy import Policy
 from relay.engine.readiness import GovernanceFacts, evaluate_readiness, unresolved_exposure
@@ -300,6 +306,27 @@ def test_instruction_like_text_is_flagged_and_ordinary_notes_are_not() -> None:
 
 
 # ----------------------------------------------------------------------------- completeness
+def test_r6_counts_source_rows_so_a_row_lost_in_normalization_is_visible() -> None:
+    """Review pass 1 (D1): R6's source side must be counted from the file, not from what staged.
+
+    A row dropped by normalization — here an unreadable amount — leaves the staged side without
+    being quarantined. If the source side were derived from the staged side, the control would tie.
+    """
+
+    def break_amount(rows: Rows) -> Rows:
+        row = _manual_lines(rows)[1]
+        row["Debit"] = "not a number"
+        return rows
+
+    result = run(edit(base_files(), GL, break_amount))
+    assert rules_fired(result)["NORM.PARSE_FAILURE"] == 1
+    assert "NORM.MALFORMED_ROW" not in rules_fired(result)  # nothing was quarantined
+    r6 = next(r for r in result.reconciliations if r.recon_id == "R6")
+    [line] = r6.discrepancies()
+    assert line.extra["count_difference"] == 1
+    assert any(e.rule_id == "RECON.R6" for e in result.exceptions)
+
+
 def test_unquoted_line_break_quarantines_the_row_and_repair_restores_it() -> None:
     target = {"num": ""}
 
@@ -528,3 +555,117 @@ def test_a_reconciliation_that_raises_leaves_the_others_intact(
     assert [e.stage for e in result.errored_stages] == ["reconciliation:R6"]
     assert {r.recon_id for r in result.reconciliations} >= {"R1", "R2", "R3", "R5"}
     assert "R6" not in {r.recon_id for r in result.reconciliations}
+
+
+def _invoice_after_cutover(rows: Rows) -> Rows:
+    """An invoice dated after the cutover: a high finding, and dispositionable."""
+    next(r for r in rows if r["Status"] == "Open")["Invoice Date"] = "07/15/2026"
+    return rows
+
+
+def test_a_dispositioned_critical_still_blocks_go_live() -> None:
+    """Review pass 1 (D4): governance.md §4.2 G5 clears a critical only by resolving it.
+
+    A disposition records a decision about a finding that stands. It clears a high; a critical
+    needs a run that no longer produces the finding.
+    """
+
+    def drop_a_credit_line(rows: Rows) -> Rows:
+        credit = _manual_lines(rows)[1]
+        return [r for r in rows if r is not credit]
+
+    result = run(edit(base_files(), GL, drop_a_credit_line))
+    critical = next(e for e in result.exceptions if e.severity is Severity.CRITICAL)
+    facts = GovernanceFacts(required_datasets=frozenset())
+    dispositioned = Overlays(
+        dispositions=(Disposition("D1", critical.fingerprint, "accepted_risk", "Probe"),)
+    )
+    for overlays in (Overlays(), dispositioned):
+        gate = evaluate_readiness(result, overlays, Policy(), facts).gate("G5")
+        assert gate.status.value == "fail"
+        assert critical.fingerprint in gate.evidence
+
+    # A high, by contrast, is cleared by a disposition.
+    with_high = run(edit(base_files(), INVOICES, _invoice_after_cutover))
+    high = next(e for e in with_high.exceptions if e.severity is Severity.HIGH)
+    cleared = evaluate_readiness(
+        with_high,
+        Overlays(dispositions=(Disposition("D2", high.fingerprint, "false_positive", "Probe"),)),
+        Policy(),
+        facts,
+    ).gate("G5")
+    assert high.fingerprint not in cleared.evidence
+
+
+def test_an_aging_row_whose_sign_contradicts_its_kind_is_reported() -> None:
+    """Review pass 1 (D7): the reconciliation takes the sign from the kind, so a row that
+    disagrees would be flipped silently and count twice in the difference."""
+
+    def credit_typed_as_a_document(rows: Rows) -> Rows:
+        row = next(r for r in rows if r["Type"] == "Invoice")
+        row["Open Balance (USD)"] = "-500.00"
+        return rows
+
+    aging = "ledgerpro/ledgerpro_ar_aging_20260630.csv"
+    result = run(edit(base_files(), aging, credit_typed_as_a_document))
+    assert rules_fired(result)["NORM.AGING_SIGN_CONFLICT"] == 1
+    finding = next(e for e in result.exceptions if e.rule_id == "NORM.AGING_SIGN_CONFLICT")
+    assert finding.severity is Severity.HIGH
+    assert "credit" in finding.message
+
+
+def test_an_entry_whose_lines_disagree_is_dropped_as_a_critical_with_its_amount() -> None:
+    """Review pass 1 (D8): losing a whole entry changes the balances, so it blocks go-live."""
+
+    def disagreeing_header(rows: Rows) -> Rows:
+        lines = _manual_lines(rows)
+        lines[0]["Period"] = "02/2026" if lines[0]["Period"] == "01/2026" else "01/2026"
+        return rows
+
+    result = run(edit(base_files(), GL, disagreeing_header))
+    finding = next(
+        e
+        for e in result.exceptions
+        if e.rule_id == "NORM.PARSE_FAILURE" and e.discriminator == "entry_header"
+    )
+    assert finding.severity is Severity.CRITICAL
+    assert finding.amount_at_risk is not None
+    assert finding.amount_at_risk > 0
+    r6 = next(r for r in result.reconciliations if r.recon_id == "R6")
+    assert sum(int(str(line.extra["count_difference"])) for line in r6.lines) > 0
+
+
+def test_r2_carries_the_opening_balance_even_when_the_trial_balance_is_sparse() -> None:
+    """Review pass 1 (D5): §B.3 says every R1 discrepancy appears in R2 on the target account,
+    for the same period and with the same amount.
+
+    R2 used to take each account's opening balance from the trial balance rows that happened to
+    exist, so a sparse export (zero suppression, an account that stops appearing) dropped the
+    carry: with 1010's January row missing, R1 reported -752,538.69 and R2 only -2,538.69 —
+    exactly the 750,000.00 opening balance apart.
+    """
+    tb = "ledgerpro/ledgerpro_trial_balance_by_period.csv"
+
+    def drop_a_later_row(rows: Rows) -> Rows:
+        dropped = next(
+            r for r in rows if r["Account"] == "1010" and r["Period Ending"] != "12/31/2025"
+        )
+        return [r for r in rows if r is not dropped]
+
+    result = run(edit(base_files(), tb, drop_a_later_row))
+    r1 = next(r for r in result.reconciliations if r.recon_id == "R1")
+    r2 = next(r for r in result.reconciliations if r.recon_id == "R2")
+    cash = [
+        line
+        for line in r1.discrepancies()
+        if dict(line.grain)["account"] == "1010" and dict(line.grain)["period_end"] == "2026-01-31"
+    ]
+    assert len(cash) == 1
+    inherited = [
+        line
+        for line in r2.discrepancies()
+        if dict(line.grain)["target_account"] == "1000"
+        and dict(line.grain)["period_end"] == "2026-01-31"
+    ]
+    assert len(inherited) == 1
+    assert inherited[0].difference == cash[0].difference

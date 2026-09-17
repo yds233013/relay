@@ -43,17 +43,19 @@ class DateFormat(StrEnum):
     EU_DOTTED = "DD.MM.YYYY"
 
 
+# ASCII digits only: `\d` would also match Devanagari, Arabic-Indic and full-width digits, so a date
+# could parse as one a reader of the file would not recognise.
 _FORMAT_PATTERNS: Final[dict[DateFormat, re.Pattern[str]]] = {
-    DateFormat.ISO: re.compile(r"(?P<y>\d{4})-(?P<m>\d{2})-(?P<d>\d{2})"),
-    DateFormat.COMPACT: re.compile(r"(?P<y>\d{4})(?P<m>\d{2})(?P<d>\d{2})"),
-    DateFormat.US_PADDED: re.compile(r"(?P<m>\d{2})/(?P<d>\d{2})/(?P<y>\d{4})"),
-    DateFormat.US: re.compile(r"(?P<m>\d{1,2})/(?P<d>\d{1,2})/(?P<y>\d{4})"),
-    DateFormat.EU_PADDED: re.compile(r"(?P<d>\d{2})/(?P<m>\d{2})/(?P<y>\d{4})"),
-    DateFormat.EU: re.compile(r"(?P<d>\d{1,2})/(?P<m>\d{1,2})/(?P<y>\d{4})"),
-    DateFormat.EU_DOTTED: re.compile(r"(?P<d>\d{2})\.(?P<m>\d{2})\.(?P<y>\d{4})"),
+    DateFormat.ISO: re.compile(r"(?P<y>[0-9]{4})-(?P<m>[0-9]{2})-(?P<d>[0-9]{2})"),
+    DateFormat.COMPACT: re.compile(r"(?P<y>[0-9]{4})(?P<m>[0-9]{2})(?P<d>[0-9]{2})"),
+    DateFormat.US_PADDED: re.compile(r"(?P<m>[0-9]{2})/(?P<d>[0-9]{2})/(?P<y>[0-9]{4})"),
+    DateFormat.US: re.compile(r"(?P<m>[0-9]{1,2})/(?P<d>[0-9]{1,2})/(?P<y>[0-9]{4})"),
+    DateFormat.EU_PADDED: re.compile(r"(?P<d>[0-9]{2})/(?P<m>[0-9]{2})/(?P<y>[0-9]{4})"),
+    DateFormat.EU: re.compile(r"(?P<d>[0-9]{1,2})/(?P<m>[0-9]{1,2})/(?P<y>[0-9]{4})"),
+    DateFormat.EU_DOTTED: re.compile(r"(?P<d>[0-9]{2})\.(?P<m>[0-9]{2})\.(?P<y>[0-9]{4})"),
 }
 
-_DAY_MONTH_CANDIDATE: Final = re.compile(r"(?P<a>\d{1,2})[/.\-](?P<b>\d{1,2})[/.\-]\d{4}")
+_DAY_MONTH_CANDIDATE: Final = re.compile(r"(?P<a>[0-9]{1,2})[/.\-](?P<b>[0-9]{1,2})[/.\-][0-9]{4}")
 _MIN_YEAR: Final = 1900
 _MAX_YEAR: Final = 2999
 
