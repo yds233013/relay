@@ -1,0 +1,70 @@
+Account Number,Account Name,Account Type,Account Subtype
+1000,Cash - Operating,Asset,cash
+1005,Cash - Payroll,Asset,cash
+1010,Cash - Savings & Money Market,Asset,cash
+1015,Cash on Hand & Undeposited,Asset,cash
+1100,Short-Term Investments,Asset,other_current_asset
+1200,Accounts Receivable,Asset,accounts_receivable
+1210,Allowance for Credit Losses,Asset,contra_asset
+1220,Unbilled Receivables,Asset,other_current_asset
+1250,Other Receivables,Asset,other_current_asset
+1300,Inventory,Asset,inventory
+1310,Inventory Reserve,Asset,contra_asset
+1400,Prepaid Expenses,Asset,prepaid
+1450,Deposits,Asset,other_current_asset
+1500,Property & Equipment,Asset,fixed_asset
+1590,Accumulated Depreciation,Asset,accumulated_depreciation
+1600,Right-of-Use Assets,Asset,fixed_asset
+1700,"Intangible Assets, Net",Asset,fixed_asset
+1800,Deferred Tax Assets,Asset,other_current_asset
+1999,Suspense,Asset,suspense
+2000,Accounts Payable,Liability,accounts_payable
+2010,Accounts Payable - Intercompany,Liability,accounts_payable
+2050,Credit Cards Payable,Liability,accrued_liability
+2100,Accrued Expenses,Liability,accrued_liability
+2150,Payroll Liabilities,Liability,payroll_liability
+2200,Taxes Payable,Liability,accrued_liability
+2300,Customer Deposits & Deferred Revenue,Liability,accrued_liability
+2350,Lease Liabilities - Current,Liability,accrued_liability
+2500,Line of Credit,Liability,line_of_credit
+2700,Long-Term Debt,Liability,long_term_debt
+2750,Lease Liabilities - Non-Current,Liability,long_term_debt
+2800,Related Party Payables,Liability,long_term_debt
+2900,Deferred Tax Liabilities,Liability,long_term_debt
+3000,Common Stock & Paid-In Capital,Equity,common_stock
+3900,Retained Earnings,Equity,retained_earnings
+4000,Revenue - Wholesale,Revenue,operating_revenue
+4010,Revenue - Foodservice,Revenue,operating_revenue
+4020,Revenue - Export,Revenue,operating_revenue
+4030,Revenue - E-Commerce,Revenue,operating_revenue
+4100,Other Revenue,Revenue,other_income
+4900,Contra Revenue,Revenue,operating_revenue
+5000,Cost of Goods Sold,Expense,cost_of_goods_sold
+5100,Freight & Fulfillment,Expense,cost_of_goods_sold
+5150,Packaging,Expense,cost_of_goods_sold
+5200,Landed Cost Variance,Expense,cost_of_goods_sold
+6000,Marketing,Expense,operating_expense
+6100,Salaries & Wages,Expense,operating_expense
+6120,Payroll Taxes & Benefits,Expense,operating_expense
+6150,Commissions,Expense,operating_expense
+6190,Other Personnel Costs,Expense,operating_expense
+6200,Utilities,Expense,operating_expense
+6220,Telecommunications,Expense,operating_expense
+6300,Rent & Occupancy,Expense,operating_expense
+6420,Vehicle & Delivery,Expense,operating_expense
+6500,Insurance,Expense,operating_expense
+6600,Repairs & Maintenance,Expense,operating_expense
+6610,Equipment Leases,Expense,operating_expense
+6700,Depreciation & Amortization,Expense,operating_expense
+6800,Bad Debt,Expense,operating_expense
+6900,Office & Administrative,Expense,operating_expense
+6920,Bank & Merchant Fees,Expense,operating_expense
+6940,Professional Services,Expense,operating_expense
+6960,Software & IT,Expense,operating_expense
+6970,Facilities Services,Expense,operating_expense
+6980,Taxes & Licenses,Expense,operating_expense
+6990,Research & Development,Expense,operating_expense
+7100,Foreign Exchange Gain/Loss,Expense,other_expense
+7200,Interest Expense,Expense,other_expense
+7300,Other Income & Expense,Expense,other_expense
+7500,Income Tax Expense,Expense,other_expense

@@ -1,6 +1,6 @@
 # Relay — Testing Strategy
 
-Status: **M0 test infrastructure implemented** (pytest + Hypothesis unit/property tests, PostgreSQL integration tests, Vitest). Scenario, contract, AI and e2e layers are planned.
+Status: **M0–M1 implemented**: pytest + Hypothesis unit/property tests, PostgreSQL integration tests, Vitest, and Brightwater scenario tests (`backend/tests/scenario`: clean-book invariants, per-injector isolation, traps, golden manifest, determinism, answer leakage, runtime boundary). Engine, contract, AI and e2e layers are planned.
 
 Related: [security-and-correctness.md](security-and-correctness.md) · [demo-scenario.md](demo-scenario.md) · [ai-safety.md](ai-safety.md)
 

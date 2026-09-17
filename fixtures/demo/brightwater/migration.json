@@ -1,0 +1,135 @@
+{
+  "fictional": true,
+  "notice": "Fictional sample data. All companies, people and figures are invented.",
+  "company": {
+    "name": "Brightwater Provisions, Inc.",
+    "functional_currency": "USD",
+    "fiscal_year_start_month": 1
+  },
+  "conversion_plan": {
+    "opening_balance_date": "2025-12-31",
+    "history_start_date": "2026-01-01",
+    "cutover_date": "2026-06-30",
+    "go_live_date": "2026-07-01",
+    "bank_clearing_window_days": 15
+  },
+  "source_systems": [
+    {
+      "id": "ledgerpro",
+      "name": "LedgerPro Desktop 2014",
+      "kind": "legacy_erp"
+    },
+    {
+      "id": "first_cascade_bank",
+      "name": "First Cascade Bank (account ending 4471)",
+      "kind": "bank"
+    },
+    {
+      "id": "implementation_team",
+      "name": "Implementation team",
+      "kind": "other"
+    }
+  ],
+  "datasets": [
+    {
+      "dataset_type": "legacy_coa",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_chart_of_accounts.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "trial_balance",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_trial_balance_by_period.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "gl_detail",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_gl_detail_2026H1.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "customers",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_customers.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "vendors",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_vendors.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "invoices",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_invoices.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "bills",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_bills.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "payments",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_payments.csv",
+      "encoding": "cp1252"
+    },
+    {
+      "dataset_type": "ar_aging",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_ar_aging_20251231.csv",
+      "encoding": "cp1252",
+      "as_of": "2025-12-31"
+    },
+    {
+      "dataset_type": "ar_aging",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_ar_aging_20260630.csv",
+      "encoding": "cp1252",
+      "as_of": "2026-06-30"
+    },
+    {
+      "dataset_type": "ap_aging",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_ap_aging_20251231.csv",
+      "encoding": "cp1252",
+      "as_of": "2025-12-31"
+    },
+    {
+      "dataset_type": "ap_aging",
+      "source_system": "ledgerpro",
+      "file": "ledgerpro/ledgerpro_ap_aging_20260630.csv",
+      "encoding": "cp1252",
+      "as_of": "2026-06-30"
+    },
+    {
+      "dataset_type": "bank_transactions",
+      "source_system": "first_cascade_bank",
+      "file": "firstcascade/firstcascade_4471_statement.csv",
+      "encoding": "utf-8-sig"
+    },
+    {
+      "dataset_type": "fx_rates",
+      "source_system": "first_cascade_bank",
+      "file": "firstcascade/firstcascade_fx_eurusd.csv",
+      "encoding": "utf-8-sig"
+    },
+    {
+      "dataset_type": "target_coa",
+      "source_system": "implementation_team",
+      "file": "implementation/target_chart_of_accounts.csv",
+      "encoding": "utf-8"
+    },
+    {
+      "dataset_type": "account_mapping",
+      "source_system": "implementation_team",
+      "file": "implementation/account_mapping_v2.csv",
+      "encoding": "utf-8"
+    }
+  ]
+}

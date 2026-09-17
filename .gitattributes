@@ -1,0 +1,3 @@
+# Source-style fixtures are byte-exact reproductions of legacy exports (CRLF line endings,
+# Windows-1252, a UTF-8 BOM, and deliberately unquoted line breaks). Never normalize them.
+fixtures/** -text whitespace=cr-at-eol,-blank-at-eof

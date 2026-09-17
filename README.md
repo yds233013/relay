@@ -2,7 +2,7 @@
 
 **Migration operations for ERP implementations: prove the data is right before go-live.**
 
-> **Status: milestone M0 (repository foundation) implemented.** The backend and web foundations, financial primitives, database tooling, Docker Compose stack and CI exist. **None of Relay's product features exist yet.** That includes imports, mappings, validation, reconciliation, issues, approvals, readiness, audit and AI. See [docs/progress.md](docs/progress.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
+> **Status:** M0 (foundation) and M1 (canonical model and the Brightwater demo scenario) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
 
 ---
 
@@ -33,6 +33,43 @@ The planned demo is **Brightwater Provisions, Inc.**, a fictional food distribut
 | `.github/workflows/ci.yml` | Runs `make check`, then builds and smoke-tests the stack |
 
 Design decisions for money handling are in [docs/decisions/0001-money-representation.md](docs/decisions/0001-money-representation.md).
+
+## Brightwater demo data (M1)
+
+A deterministic, fictional migration with clean books, independent control reports, 13 seeded issues and 5 legitimate look-alike patterns. Layout:
+
+| Path | What | Who may read it |
+|---|---|---|
+| `fixtures/demo/brightwater/` | Source-style files Relay ingests: LedgerPro exports (Windows-1252), First Cascade Bank statement and FX rates, target chart and account mapping, `migration.json`, `SHA256SUMS` | Anyone, including runtime code |
+| `evaluation/brightwater/golden_manifest.toml` | Hand-authored ground truth: what is wrong, expected reconciliation discrepancies and issues, and what must stay silent | Tests and evaluation tooling only |
+| `backend/src/relay_scenarios/` | Generator (clean books, controls, exports, injectors) | Tests and demo tooling only |
+| `backend/src/relay_evaluation/` | Manifest loader, reference oracle, verifier | Tests and evaluation tooling only |
+
+Import-linter contracts and tests prevent runtime code (`relay`) from importing the generator or the evaluation truth. They also prevent runtime code from containing scenario-specific identifiers or amounts.
+
+Regenerate the fixtures and print a summary (no answers):
+
+```bash
+make demo-data
+```
+
+Check that the committed fixtures are byte-identical to a fresh generation:
+
+```bash
+make demo-check
+```
+
+Evaluation only (reveals expected answers):
+
+```bash
+make demo-verify
+```
+
+```bash
+make demo-manifest
+```
+
+Generation is deterministic: every value comes from named random streams derived from seed `20260630`, using integer arithmetic only.
 
 ## Prerequisites
 
@@ -85,9 +122,10 @@ make check
 
 `make check` runs, in order:
 - format check (ruff, prettier)
-- lint (ruff, import-linter, eslint)
+- lint (ruff, import-linter contracts, eslint)
 - type checks (mypy `--strict`, `tsc`)
-- backend unit and property tests, web unit tests
+- backend unit, property and scenario tests, web unit tests
+- Brightwater fixture determinism and golden-manifest verification
 - integration tests against PostgreSQL (started automatically)
 - Next.js production build
 - Docker Compose config validation
@@ -118,7 +156,7 @@ make help
 | Doc | Contents |
 |---|---|
 | [CLAUDE.md](CLAUDE.md) | Rules for contributors and AI coding sessions |
-| [docs/progress.md](docs/progress.md) | What has been built, and deviations from the plan |
+| [docs/progress.md](docs/progress.md) | What has been built, measured results, deviations from the plan |
 | [docs/product-spec.md](docs/product-spec.md) | Problem, critique of the original brief, MVP scope, UX |
 | [docs/architecture.md](docs/architecture.md) | System design, modules, pipeline, API, jobs |
 | [docs/data-model.md](docs/data-model.md) | Domain model and schema |

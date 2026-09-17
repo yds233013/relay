@@ -1,6 +1,6 @@
 # Relay — Demo Scenario: Brightwater Provisions, Inc.
 
-Status: **Planned.** The generator, fixtures and golden manifest do not exist yet. Corrected before implementation: see [decisions/0002-brightwater-spec-corrections.md](decisions/0002-brightwater-spec-corrections.md) (SC-01 – SC-03). Amounts marked **fixed** must be reproduced exactly by the generator; all other data is generated deterministically from seed `20260630`.
+Status: **Implemented in M1** (generator `backend/src/relay_scenarios/brightwater/`, fixtures `fixtures/demo/brightwater/`, golden manifest `evaluation/brightwater/golden_manifest.toml`). Corrected before implementation: see [decisions/0002-brightwater-spec-corrections.md](decisions/0002-brightwater-spec-corrections.md) (SC-01 – SC-03). Amounts marked **fixed** must be reproduced exactly by the generator; all other data is generated deterministically from seed `20260630`.
 
 All companies, people, addresses and systems below are fictional.
 
@@ -258,7 +258,7 @@ After all resolutions and a final run: G1–G11 pass; sign-off by Daniel and Pri
 
 ### 6.3 Golden manifest
 
-`fixtures/demo/brightwater/expected/run1_manifest.yaml` (planned) lists every expected issue fingerprint input for Run #1 — `rule_id`, subject natural keys, severity, amount at risk — and every expected reconciliation discrepancy line. The scenario test asserts **exact set equality**: no missing issues, no extra issues. A second manifest covers the post-merge run (DS-02 appears) and a third the final ready state.
+`evaluation/brightwater/golden_manifest.toml` (TOML, hand-authored) lists every expected issue fingerprint input for Run #1 — `rule_id`, subject natural keys, severity, amount at risk — and every expected reconciliation discrepancy line. The scenario test asserts **exact set equality**: no missing issues, no extra issues. Post-merge expectations (DS-02) are recorded as `expected_issues_after_resolution`. It lives outside `fixtures/` so that source data and evaluation truth are physically separate. The illustrative excerpt below predates the TOML format.
 
 ```yaml
 # illustrative excerpt

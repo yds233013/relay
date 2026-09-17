@@ -102,3 +102,16 @@ Performed after SC-01 – SC-07, still before any M1 code. The following were ch
 | Readiness | 9 of 12 gates fail in Run #1; SC-01 – SC-07 change no gate outcome. |
 
 No contradiction remains that would alter ground truth.
+
+---
+
+## SC-08 — DS-11 also triggers the period/date rule (autonomous pre-implementation correction)
+
+Recorded 2026-09-17 while hand-authoring the golden manifest. The generator produced source files, but **no validation or reconciliation engine existed**, and the expectation below was derived from the rule catalog, not from any engine output.
+
+| | |
+|---|---|
+| **Original** | DS-11's expected issues listed `GL.DATE_IN_WINDOW` only. |
+| **Problem** | `GL.PERIOD_MATCHES_DATE` is defined as "posting period ≠ fiscal period of entry date; medium, **high if crosses fiscal year**". JE-AP-20455 has posting period 2026-03 and entry date 2062-03-14 (fiscal period 2062-03), so the rule necessarily fires, at high severity because the dates are in different fiscal years. |
+| **Correction** | DS-11's expected issues also include `GL.PERIOD_MATCHES_DATE` on `je:JE-AP-20455`, severity high. |
+| **Why autonomous** | The consequence is uniquely implied by the documented rule definition, changes no documented amount, record or gate outcome (G5 already fails), and involves no choice between accounting interpretations. |

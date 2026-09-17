@@ -134,6 +134,21 @@ smoke: ## Verify a running stack end to end: web page shows API and database hea
 		grep -q 'at_head' <<<"$$page" || { echo "smoke: migrations not at head"; exit 1; }
 	@echo "smoke: web -> api -> database OK"
 
+# ------------------------------------------------------------------------------------ demo data
+
+.PHONY: demo-data demo-check demo-verify demo-manifest
+demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
+	$(UV) relay-demo generate
+
+demo-check: ## Verify committed Brightwater fixtures match a fresh generation byte for byte
+	$(UV) relay-demo check
+
+demo-verify: ## EVALUATION ONLY: verify fixtures against the golden manifest
+	$(UV) relay-eval verify-brightwater
+
+demo-manifest: ## EVALUATION ONLY: print the golden manifest (reveals expected answers)
+	$(UV) relay-eval show-manifest
+
 # ------------------------------------------------------------------------------------ build & verify
 
 .PHONY: build build-web compose-config compose-build check clean
@@ -148,7 +163,7 @@ compose-config: ## Validate docker-compose.yml
 compose-build: ## Build Docker images
 	docker compose build
 
-check: fmt-check lint typecheck test test-integration build-web compose-config ## Full verification (CI runs this)
+check: fmt-check lint typecheck test demo-check demo-verify test-integration build-web compose-config ## Full verification (CI runs this)
 	@echo "make check: all checks passed"
 
 clean: ## Remove caches and build output (keeps dependencies and database volume)

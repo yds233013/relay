@@ -90,7 +90,7 @@ backend/src/relay/
 ├── workspace/          # companies, migrations, conversion plans, source systems, datasets
 ├── ingestion/          # BlobStore, CSV reader, import service, connector protocol
 ├── profiling/          # profilers → DatasetProfile
-├── canonical/          # Canonical Accounting Model types, natural keys, RecordRef
+├── canonical/          # Canonical Accounting Model types, natural keys, lineage       (M1)
 ├── mapping/            # column/account mapping sets, transforms, deterministic suggesters
 ├── entity_resolution/  # blocking, features, scoring, decisions applier
 ├── validation/         # engine, registry, RuleContext, rules/*.py
@@ -108,7 +108,7 @@ backend/src/relay/
 │   ├── verification.py # finding schema + provenance verification
 │   └── prompts/        # versioned prompt templates
 ├── jobs/               # jobs table, enqueue, worker loop, retry policy
-├── demo/               # Brightwater scenario generator, manifest, seed command
+├── (demo)              # moved out of the runtime package in M1: see relay_scenarios below
 ├── cli.py              # `relay` CLI (typer): seed, run-pipeline, verify-audit, generate-demo
 └── api/
     ├── app.py          # app factory                                             (M0)
@@ -117,6 +117,15 @@ backend/src/relay/
     ├── deps.py         # session, current_actor, pagination
     └── routers/        # one router per module; health.py                        (M0)
 ```
+
+Evaluation-only packages (M1), deliberately outside the runtime `relay` package:
+
+```
+backend/src/relay_scenarios/   # scenario generators (know which issues they plant); CLI relay-demo
+backend/src/relay_evaluation/  # golden-manifest loader, reference oracle, verifier; CLI relay-eval
+```
+
+Import-linter forbids `relay` → `relay_scenarios`/`relay_evaluation` and `relay_scenarios` → `relay_evaluation`.
 
 Within a module:
 
@@ -426,3 +435,5 @@ Frontend rules: no money arithmetic in TypeScript; server-state only via TanStac
 | D-12 | Money representation details (canonical scale, sub-minor precision, FX rounding, equality across currencies): see [decisions/0001-money-representation.md](decisions/0001-money-representation.md) | Accepted (M0) |
 | D-13 | npm instead of pnpm for the web app | Accepted (M0) |
 | D-14 | Web reads the API server-side only (`RELAY_API_URL`, not exposed to the browser); no CORS configured until the browser needs to call the API | Accepted (M0) |
+| D-15 | Scenario generation and evaluation truth live in separate top-level packages (`relay_scenarios`, `relay_evaluation`) rather than `relay/demo`, so runtime code cannot import answers | Accepted (M1) |
+| D-16 | Golden manifest is TOML (stdlib `tomllib`, comments allowed, no new dependency) under `evaluation/`, not YAML under `fixtures/` | Accepted (M1) |

@@ -1,0 +1,128 @@
+Legacy Account,Legacy Description,Target Account,Target Description
+1000,Petty Cash,1015,Cash on Hand & Undeposited
+1010,Operating Account - First Cascade 4471,1000,Cash - Operating
+1015,Payroll Account - First Cascade 4488,1005,Cash - Payroll
+1020,Money Market - First Cascade 4490,1010,Cash - Savings & Money Market
+1100,Undeposited Funds,1015,Cash on Hand & Undeposited
+1110,Returned Checks,1250,Other Receivables
+1200,Accounts Receivable,1200,Accounts Receivable
+1205,Allowance for Doubtful Accounts,1200,Accounts Receivable
+1215,Employee Advances,1250,Other Receivables
+1250,Other Receivables,1250,Other Receivables
+1260,Notes Receivable,1250,Other Receivables
+1300,Inventory - Finished Goods,1300,Inventory
+1310,Inventory in Transit,1300,Inventory
+1320,Inventory - Samples,1300,Inventory
+1400,Prepaid Insurance,1400,Prepaid Expenses
+1410,Prepaid Expenses - Other,1400,Prepaid Expenses
+1420,Security Deposits,1450,Deposits
+1500,Warehouse Equipment,1500,Property & Equipment
+1510,Vehicles,1500,Property & Equipment
+1520,Leasehold Improvements,1500,Property & Equipment
+1530,Office Furniture & Equipment,1500,Property & Equipment
+1540,Computer Equipment,1500,Property & Equipment
+1590,Accumulated Depreciation,1590,Accumulated Depreciation
+1600,Utility Deposits,1450,Deposits
+1700,Customer Lists,1700,"Intangible Assets, Net"
+1790,Accumulated Amortization,1590,Accumulated Depreciation
+2000,Accounts Payable,2000,Accounts Payable
+2050,Cascade Visa Business,2050,Credit Cards Payable
+2100,Accrued Liabilities,2100,Accrued Expenses
+2150,Payroll Liabilities,2150,Payroll Liabilities
+2160,Accrued Commissions,2100,Accrued Expenses
+2170,Accrued Vacation,2100,Accrued Expenses
+2200,Sales Tax Payable,2200,Taxes Payable
+2210,Use Tax Payable,2200,Taxes Payable
+2220,Oregon CAT Payable,2200,Taxes Payable
+2300,Customer Deposits,2300,Customer Deposits & Deferred Revenue
+2400,Deferred Revenue,2300,Customer Deposits & Deferred Revenue
+2500,Line of Credit - First Cascade,2500,Line of Credit
+2700,Equipment Loan - First Cascade,2700,Long-Term Debt
+2710,Vehicle Loans,2700,Long-Term Debt
+2800,Due to Shareholder,2800,Related Party Payables
+3000,Common Stock,3000,Common Stock & Paid-In Capital
+3100,Additional Paid-In Capital,3000,Common Stock & Paid-In Capital
+3900,Retained Earnings,3900,Retained Earnings
+3950,Shareholder Distributions,3900,Retained Earnings
+4000,Sales - Wholesale Grocery,4000,Revenue - Wholesale
+4010,Sales - Foodservice,4010,Revenue - Foodservice
+4100,Sales - Export,4020,Revenue - Export
+4200,Freight Income,4100,Other Revenue
+4300,Rebate Income,4100,Other Revenue
+4400,Miscellaneous Income,4100,Other Revenue
+4900,Sales Discounts,4900,Contra Revenue
+4950,Returns & Allowances,4900,Contra Revenue
+5000,Cost of Goods Sold,5000,Cost of Goods Sold
+5010,Inventory Adjustments,5000,Cost of Goods Sold
+5020,Purchase Price Variance,5000,Cost of Goods Sold
+5030,Samples & Demos,5000,Cost of Goods Sold
+5100,Inbound Freight - COGS,5100,Freight & Fulfillment
+5150,Packaging Materials,5150,Packaging
+5200,Spoilage & Shrink,5000,Cost of Goods Sold
+5300,Co-Packing Fees,5100,Freight & Fulfillment
+6000,Advertising & Marketing,6000,Marketing
+6010,Trade Shows,6000,Marketing
+6020,Website,6000,Marketing
+6030,Meals & Entertainment,6900,Office & Administrative
+6040,Travel,6900,Office & Administrative
+6050,Donations,6900,Office & Administrative
+6060,Licenses & Permits,6980,Taxes & Licenses
+6070,Property Taxes,6980,Taxes & Licenses
+6080,Business Taxes,6980,Taxes & Licenses
+6090,Recruiting,6190,Other Personnel Costs
+6100,Wages - Warehouse,6100,Salaries & Wages
+6105,Wages - Drivers,6100,Salaries & Wages
+6110,Wages - Office,6100,Salaries & Wages
+6120,Payroll Taxes,6120,Payroll Taxes & Benefits
+6130,Employee Benefits,6120,Payroll Taxes & Benefits
+6140,Workers Compensation,6120,Payroll Taxes & Benefits
+6150,Sales Commissions,6150,Commissions
+6160,Temporary Labor,6100,Salaries & Wages
+6170,Training,6190,Other Personnel Costs
+6180,Employee Relations,6190,Other Personnel Costs
+6190,Payroll Processing Fees,6190,Other Personnel Costs
+6200,Utilities - Electric,6200,Utilities
+6210,Utilities - Water & Sewer,6200,Utilities
+6220,Telephone & Internet,6220,Telecommunications
+6230,Utilities - Gas,6200,Utilities
+6240,Waste Removal,6200,Utilities
+6300,Rent - Portland Warehouse,6300,Rent & Occupancy
+6310,Rent - Seattle Warehouse,6300,Rent & Occupancy
+6320,Rent - Boise Warehouse,6300,Rent & Occupancy
+6330,Third-Party Storage,6300,Rent & Occupancy
+6400,Freight-In,5100,Freight & Fulfillment
+6410,Freight Rebates,5100,Freight & Fulfillment
+6420,Delivery Fuel,6420,Vehicle & Delivery
+6430,Vehicle Repairs & Maintenance,6420,Vehicle & Delivery
+6440,Tolls & Parking,6420,Vehicle & Delivery
+6450,Vehicle Registration,6420,Vehicle & Delivery
+6460,Vehicle Leases,6420,Vehicle & Delivery
+6500,Insurance - General,6500,Insurance
+6510,Insurance - Vehicles,6500,Insurance
+6520,Insurance - Product Liability,6500,Insurance
+6600,Repairs - Refrigeration & Equipment,6600,Repairs & Maintenance
+6610,Forklift Lease,6610,Equipment Leases
+6620,Building Repairs,6300,Rent & Occupancy
+6630,Small Tools & Equipment,6600,Repairs & Maintenance
+6700,Depreciation Expense,6700,Depreciation & Amortization
+6710,Amortization Expense,6700,Depreciation & Amortization
+6800,Bad Debt Expense,6800,Bad Debt
+6810,Collection Fees,6800,Bad Debt
+6900,Office Supplies,6900,Office & Administrative
+6910,Postage & Delivery,6900,Office & Administrative
+6920,Bank Service Charges,6920,Bank & Merchant Fees
+6925,Merchant Fees,6920,Bank & Merchant Fees
+6930,Dues & Subscriptions,6900,Office & Administrative
+6935,Software Subscriptions,6960,Software & IT
+6940,Accounting Fees,6940,Professional Services
+6945,Consulting Fees,6940,Professional Services
+6950,Legal Fees,6940,Professional Services
+6960,IT Services,6960,Software & IT
+6970,Janitorial,6970,Facilities Services
+6980,Pest Control,6970,Facilities Services
+6990,Uniforms & Laundry,6970,Facilities Services
+7100,Foreign Exchange Gain/Loss,7100,Foreign Exchange Gain/Loss
+7200,Interest Expense,7200,Interest Expense
+7300,Interest Income,4100,Other Revenue
+7400,Gain/Loss on Asset Disposal,7300,Other Income & Expense
+7900,Other Expense,7300,Other Income & Expense

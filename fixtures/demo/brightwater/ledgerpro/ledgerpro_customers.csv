@@ -1,0 +1,172 @@
+Customer ID,Customer Name,Address,City,State,Zip,Country,AP Email,Tax ID,Currency,Terms,Status,Created
+C-0001,Meadowlark Bistro,1332 Main St,Gresham,OR,97094,US,billing@meadowlarkbistro.com,XX-XXX9219,USD,Net 15,Active,08/05/2011
+C-0002,Flint Noodle House,4020 SE Division St,Lake Oswego,OR,97017,US,billing@flintnoodlehouse.com,XX-XXX1000,USD,Net 15,Active,01/19/2020
+C-0008,Alder Cantina,5857 Evergreen Pkwy,Salem,OR,97363,US,billing@aldercantina.com,XX-XXX2817,USD,Net 15,Active,01/31/2021
+C-0012,Olallie Market,4111 Market St,Hood River,OR,97059,US,ap@olalliemarket.com,XX-XXX8751,USD,Net 30,Active,09/28/2017
+C-0014,Rivet Supper Club,8871 Broadway,Tacoma,WA,98413,US,billing@rivetsupperclub.com,XX-XXX9325,USD,Net 15,Active,12/18/2014
+C-0020,Boise School Nutrition Services,5952 Evergreen Pkwy,Meridian,ID,83619,US,ap@boiseschoolnutriti.org,XX-XXX2892,USD,Net 30,Active,06/28/2016
+C-0027,Cascade Harvest Grocers,7731 Market St,Corvallis,OR,97384,US,ap@cascadeharvestgroc.com,XX-XXX3546,USD,Net 30,Active,10/06/2022
+C-0031,Oyster Taproom,4596 N Mississippi Ave,Meridian,ID,83678,US,billing@oystertaproom.com,XX-XXX5306,USD,Net 15,Active,05/20/2020
+C-0033,Treasure Valley Market,4495 Oak St,Idaho Falls,ID,83417,US,ap@treasurevalleymark.com,XX-XXX9017,USD,Net 30,Active,08/03/2012
+C-0035,Velvet Taproom,5821 Commercial St NE,Hillsboro,OR,97112,US,billing@velvettaproom.com,XX-XXX4066,USD,Net 15,Active,05/01/2023
+C-0036,Alpine Eatery,9385 Harbor Dr,Gresham,OR,97020,US,billing@alpineeatery.com,XX-XXX5179,USD,Net 15,Active,11/01/2012
+C-0037,Bellwether Tavern,4159 Center St,Corvallis,OR,97357,US,billing@bellwethertavern.com,XX-XXX6972,USD,Net 15,Active,04/16/2016
+C-0040,Parsnip Pizzeria,4927 Rainier Ave S,Hood River,OR,97033,US,billing@parsnippizzeria.com,XX-XXX9167,USD,Net 15,Active,03/14/2012
+C-0045,Bridgetown Pantry,5415 SW Barbur Blvd,Bellevue,WA,98087,US,ap@bridgetownpantry.com,XX-XXX5001,USD,Net 30,Active,07/18/2013
+C-0046,Yakima Orchard Market,1877 Main St,Everett,WA,98200,US,ap@yakimaorchardmarke.com,XX-XXX3181,USD,Net 30,Active,04/26/2013
+C-0047,Gable Brasserie,8184 SE Division St,Seattle,WA,98156,US,billing@gablebrasserie.com,XX-XXX8600,USD,Net 15,Active,08/04/2011
+C-0049,Portland Catering Collective,4271 Center St,Portland,OR,97210,US,ap@portlandcateringco.org,XX-XXX7457,USD,Net 30,Active,06/10/2012
+C-0050,Aster Kitchen,2816 Center St,Eugene,OR,97405,US,billing@asterkitchen.com,XX-XXX5160,USD,Net 15,Active,05/17/2016
+C-0055,Lumen Kitchen,5165 Commercial St NE,Beaverton,OR,97006,US,billing@lumenkitchen.com,XX-XXX9968,USD,Net 15,Active,07/25/2018
+C-0056,Granary Pizzeria,3256 Market St,Nampa,ID,83617,US,billing@granarypizzeria.com,XX-XXX4760,USD,Net 15,Active,03/10/2013
+C-0064,Juniper Hill Foods,5921 Main St,Beaverton,OR,97070,US,ap@juniperhillfoods.com,XX-XXX2232,USD,Net 30,Active,03/26/2017
+C-0066,Keel Smokehouse,9647 Evergreen Pkwy,Idaho Falls,ID,83446,US,billing@keelsmokehouse.com,XX-XXX5673,USD,Net 15,Active,12/02/2022
+C-0069,Riverbend Natural Grocers,5461 Market St,Seattle,WA,98196,US,ap@riverbendnaturalgr.com,XX-XXX2543,USD,Net 30,Active,03/14/2015
+C-0074,Estuary Smokehouse,673 Broadway,Hood River,OR,97006,US,billing@estuarysmokehouse.com,XX-XXX2825,USD,Net 15,Active,06/29/2016
+C-0075,Vesper Pizzeria,8154 N Mississippi Ave,Everett,WA,98248,US,billing@vesperpizzeria.com,XX-XXX1340,USD,Net 15,Active,12/31/2024
+C-0076,Thimbleberry Eatery,3849 Center St,Boise,ID,83773,US,billing@thimbleberryeatery.com,XX-XXX8451,USD,Net 15,Active,01/22/2019
+C-0081,Fernwood Grill,7989 Olive Way,Hillsboro,OR,97161,US,billing@fernwoodgrill.com,XX-XXX2414,USD,Net 15,Active,07/18/2025
+C-0082,Chanterelle Supper Club,9326 Market St,Boise,ID,83714,US,billing@chanterellesupperc.com,XX-XXX9575,USD,Net 15,Active,03/29/2012
+C-0083,Acorn Supper Club,1758 Industrial Way,Hood River,OR,97015,US,billing@acornsupperclub.com,XX-XXX4485,USD,Net 15,Active,12/07/2012
+C-0087,Inkwell Supper Club,3631 Evergreen Pkwy,Eugene,OR,97483,US,billing@inkwellsupperclub.com,XX-XXX7392,USD,Net 15,Active,03/13/2016
+C-0088,Palouse Provisions,2379 NE Alberta St,Meridian,ID,83663,US,ap@palouseprovisions.com,XX-XXX6891,USD,Net 30,Active,07/02/2022
+C-0089,Kinfolk Pizzeria,6184 W Idaho St,Vancouver,WA,98687,US,billing@kinfolkpizzeria.com,XX-XXX4207,USD,Net 15,Active,11/10/2018
+C-0090,Zigzag Mountain Grocery,5578 Center St,Vancouver,WA,98682,US,ap@zigzagmountaingroc.com,XX-XXX2712,USD,Net 30,Active,09/27/2012
+C-0093,Heron Cafe,225 Pacific Ave,Gresham,OR,97044,US,billing@heroncafe.com,XX-XXX7708,USD,Net 15,Active,03/13/2012
+C-0096,Pioneer Square Provisions,7733 Riverside Dr,Beaverton,OR,97004,US,ap@pioneersquareprovi.com,XX-XXX6947,USD,Net 30,Active,07/20/2021
+C-0100,Copperleaf Brasserie,3520 SE Division St,Idaho Falls,ID,83491,US,billing@copperleafbrasseri.com,XX-XXX1632,USD,Net 15,Active,06/29/2016
+C-0102,Indigo Deli,5439 Pearl St,Eugene,OR,97412,US,billing@indigodeli.com,XX-XXX2586,USD,Net 15,Active,06/26/2021
+C-0103,Salem Campus Dining,9204 Industrial Way,Boise,ID,83768,US,ap@salemcampusdining.org,XX-XXX4541,USD,Net 30,Active,12/06/2021
+C-0105,Whidbey Harvest Co-op,969 SW Barbur Blvd,Tacoma,WA,98406,US,ap@whidbeyharvestcoop.com,XX-XXX4984,USD,Net 30,Active,04/11/2013
+C-0106,Fiddlehead Taproom,6600 Pearl St,Bellevue,WA,98081,US,billing@fiddleheadtaproom.com,XX-XXX5889,USD,Net 15,Active,07/13/2014
+C-0107,Green Valley Co-op,1220 SE Hawthorne Blvd,Portland,OR,97214,US,ap@greenvalley.coop,XX-XXX8447,USD,Net 30,Active,05/12/2014
+C-0108,Millrace Pizzeria,9724 Olive Way,Portland,OR,97222,US,billing@millracepizzeria.com,XX-XXX3499,USD,Net 15,Active,09/30/2021
+C-0112,Loam Bakery,3900 Broadway,Corvallis,OR,97388,US,billing@loambakery.com,XX-XXX2154,USD,Net 15,Active,09/08/2023
+C-0113,Willet Cafe,210 E Fairview Ave,Idaho Falls,ID,83420,US,billing@willetcafe.com,XX-XXX4137,USD,Net 15,Active,01/29/2025
+C-0115,Gull Eatery,6665 Capitol Blvd,Idaho Falls,ID,83435,US,billing@gulleatery.com,XX-XXX9405,USD,Net 15,Active,01/01/2025
+C-0116,Ember Eatery,4101 SE Belmont St,Salem,OR,97349,US,billing@embereatery.com,XX-XXX7774,USD,Net 15,Active,07/01/2014
+C-0120,Saltbox Kitchen,2214 NW Thurman St,Portland,OR,97210,US,owner@saltboxkitchen.com,XX-XXX1212,USD,Net 15,Active,07/29/2018
+C-0121,Upland Kitchen,4842 Market St,Eugene,OR,97424,US,billing@uplandkitchen.com,XX-XXX1146,USD,Net 15,Active,07/28/2021
+C-0122,Owyhee Mercantile,9188 Oak St,Nampa,ID,83666,US,ap@owyheemercantile.com,XX-XXX8929,USD,Net 30,Active,10/09/2023
+C-0129,Anchor Pizzeria,579 SW Barbur Blvd,Gresham,OR,97041,US,billing@anchorpizzeria.com,XX-XXX1575,USD,Net 15,Active,04/02/2011
+C-0130,Cinder Kitchen,1653 Broadway,Idaho Falls,ID,83466,US,billing@cinderkitchen.com,XX-XXX7946,USD,Net 15,Active,02/26/2012
+C-0132,Jubilee Cantina,4328 Front Ave,Tacoma,WA,98442,US,billing@jubileecantina.com,XX-XXX2631,USD,Net 15,Active,05/19/2014
+C-0133,Sawtooth Natural Foods,7612 SW Barbur Blvd,Boise,ID,83707,US,ap@sawtoothnaturalfoo.com,XX-XXX4852,USD,Net 30,Active,03/01/2024
+C-0135,Vine Bistro,2990 NW 23rd Ave,Seattle,WA,98160,US,billing@vinebistro.com,XX-XXX8326,USD,Net 15,Active,05/05/2024
+C-0136,Redtail Brasserie,9661 Pacific Ave,Everett,WA,98286,US,billing@redtailbrasserie.com,XX-XXX8851,USD,Net 15,Active,04/27/2021
+C-0139,Greenhouse Bistro,9562 SE Belmont St,Boise,ID,83738,US,billing@greenhousebistro.com,XX-XXX2008,USD,Net 15,Active,01/25/2022
+C-0142,Sextant Bakery,5789 E Fairview Ave,Olympia,WA,98573,US,billing@sextantbakery.com,XX-XXX3438,USD,Net 15,Active,06/27/2015
+C-0143,Gorge Valley Co-op,2339 Olive Way,Eugene,OR,97434,US,ap@gorgevalleycoop.com,XX-XXX2759,USD,Net 30,Active,11/27/2018
+C-0145,Hearth Cantina,171 N Mississippi Ave,Meridian,ID,83620,US,billing@hearthcantina.com,XX-XXX1260,USD,Net 15,Active,11/20/2012
+C-0146,Jetty Tavern,1031 Pacific Ave,Tacoma,WA,98471,US,billing@jettytavern.com,XX-XXX5015,USD,Net 15,Active,04/18/2019
+C-0147,Vashon Island Market,4937 Riverside Dr,Bellevue,WA,98062,US,ap@vashonislandmarket.com,XX-XXX3479,USD,Net 30,Active,03/04/2025
+C-0154,Green Valley Cooperative Market,1220 S.E. Hawthorne Boulevard,Portland,OR,97214,US,accounts@greenvalley.coop,XX-XXX5307,USD,Net 30,Active,09/18/2025
+C-0155,Lodestar Cafe,1816 Front Ave,Meridian,ID,83612,US,billing@lodestarcafe.com,XX-XXX2480,USD,Net 15,Active,01/30/2024
+C-0156,Hollow Noodle House,1760 Pacific Ave,Hillsboro,OR,97153,US,billing@hollownoodlehouse.com,XX-XXX3490,USD,Net 15,Active,06/05/2017
+C-0158,Umber Grill,6987 Market St,Lake Oswego,OR,97094,US,billing@umbergrill.com,XX-XXX3750,USD,Net 15,Active,02/27/2022
+C-0161,Bramble Noodle House,2454 Riverside Dr,Seattle,WA,98186,US,billing@bramblenoodlehouse.com,XX-XXX9841,USD,Net 15,Active,08/29/2011
+C-0163,Elk Rock Provisions,9511 Rainier Ave S,Gresham,OR,97047,US,ap@elkrockprovisions.com,XX-XXX8363,USD,Net 30,Active,10/01/2019
+C-0171,Dune Cantina,1576 Capitol Blvd,Lake Oswego,OR,97017,US,billing@dunecantina.com,XX-XXX3869,USD,Net 15,Active,04/20/2021
+C-0172,Driftless Tavern,9354 Evergreen Pkwy,Hillsboro,OR,97123,US,billing@driftlesstavern.com,XX-XXX4498,USD,Net 15,Active,07/15/2017
+C-0177,Quarterdeck Tavern,6657 Pacific Ave,Corvallis,OR,97331,US,billing@quarterdecktavern.com,XX-XXX7844,USD,Net 15,Active,09/18/2014
+C-0182,Jasper Bakery,6779 Center St,Salem,OR,97300,US,billing@jasperbakery.com,XX-XXX2988,USD,Net 15,Active,08/09/2020
+C-0183,Madrona Food Co-op,2889 Market St,Portland,OR,97275,US,ap@madronafoodcoop.com,XX-XXX1748,USD,Net 30,Active,08/13/2025
+C-0185,Gristmill Supper Club,2421 Pearl St,Olympia,WA,98520,US,billing@gristmillsupperclu.com,XX-XXX4299,USD,Net 15,Active,12/01/2024
+C-0186,Hawthorne Fresh Market,7480 Broadway,Eugene,OR,97462,US,ap@hawthornefreshmark.com,XX-XXX9098,USD,Net 30,Active,08/13/2018
+C-0189,Ironclad Brasserie,7458 Center St,Lake Oswego,OR,97040,US,billing@ironcladbrasserie.com,XX-XXX7268,USD,Net 15,Active,12/26/2022
+C-0190,Magpie Tavern,4498 SE Division St,Corvallis,OR,97385,US,billing@magpietavern.com,XX-XXX8941,USD,Net 15,Active,08/18/2015
+C-0191,Riverstone Smokehouse,4816 SE Belmont St,Corvallis,OR,97352,US,billing@riverstonesmokehou.com,XX-XXX8576,USD,Net 15,Active,10/17/2015
+C-0193,Quinault Country Store,7073 SE Division St,Seattle,WA,98192,US,ap@quinaultcountrysto.com,XX-XXX2439,USD,Net 30,Active,10/20/2014
+C-0197,Elderberry Deli,1505 Market St,Lake Oswego,OR,97070,US,billing@elderberrydeli.com,XX-XXX7091,USD,Net 15,Active,09/03/2015
+C-0198,GREEN VALLEY COOP #2,7815 N Lombard St,Portland,OR,97203,US,store2.accounts@greenvalley.coop,XX-XXX7054,USD,Net 30,Active,08/03/2021
+C-0200,Ember Lane Grocers,9320 NE Alberta St,Idaho Falls,ID,83485,US,ap@emberlanegrocers.com,XX-XXX4343,USD,Net 30,Active,02/22/2021
+C-0204,Foundry Bakery,9797 Rainier Ave S,Vancouver,WA,98678,US,billing@foundrybakery.com,XX-XXX3538,USD,Net 15,Active,03/12/2014
+C-0206,Otter Brasserie,6950 SE Belmont St,Idaho Falls,ID,83439,US,billing@otterbrasserie.com,XX-XXX9510,USD,Net 15,Active,05/30/2014
+C-0207,Wildwood Tavern,6693 Oak St,Seattle,WA,98171,US,billing@wildwoodtavern.com,XX-XXX6584,USD,Net 15,Active,06/02/2023
+C-0208,Ursa Noodle House,4997 Capitol Blvd,Portland,OR,97273,US,billing@ursanoodlehouse.com,XX-XXX4720,USD,Net 15,Active,09/08/2012
+C-0209,Kelp Grill,5311 Harbor Dr,Boise,ID,83731,US,billing@kelpgrill.com,XX-XXX3550,USD,Net 15,Active,06/02/2020
+C-0214,Nectar Noodle House,9325 Oak St,Seattle,WA,98167,US,billing@nectarnoodlehouse.com,XX-XXX5822,USD,Net 15,Active,11/16/2011
+C-0215,Nook Eatery,3554 Main St,Gresham,OR,97015,US,billing@nookeatery.com,XX-XXX2149,USD,Net 15,Active,09/15/2021
+C-0216,Arbor Kitchen,9774 Harbor Dr,Lake Oswego,OR,97051,US,billing@arborkitchen.com,XX-XXX7723,USD,Net 15,Active,06/25/2013
+C-0217,Paddle Eatery,8379 Broadway,Corvallis,OR,97346,US,billing@paddleeatery.com,XX-XXX5625,USD,Net 15,Active,05/16/2023
+C-0218,Undertow Bakery,4803 SE Division St,Eugene,OR,97401,US,billing@undertowbakery.com,XX-XXX8821,USD,Net 15,Active,09/06/2015
+C-0219,Huckleberry Grill,4233 Olive Way,Eugene,OR,97420,US,billing@huckleberrygrill.com,XX-XXX5614,USD,Net 15,Active,04/26/2012
+C-0221,Kiln Deli,4539 Harbor Dr,Nampa,ID,83613,US,billing@kilndeli.com,XX-XXX1215,USD,Net 15,Active,08/20/2016
+C-0233,Rose City Market Hall,405 NE Couch St,Portland,OR,97232,US,payables@rosecitymarkethall.com,XX-XXX1967,USD,Net 30,Active,01/21/2019
+C-0237,Plover Supper Club,5933 Riverside Dr,Nampa,ID,83674,US,billing@ploversupperclub.com,XX-XXX6711,USD,Net 15,Active,12/14/2020
+C-0239,Larkspur Noodle House,9708 Front Ave,Boise,ID,83794,US,billing@larkspurnoodlehous.com,XX-XXX1379,USD,Net 15,Active,06/29/2012
+C-0242,Pumice Cantina,2252 SW Barbur Blvd,Hood River,OR,97006,US,billing@pumicecantina.com,XX-XXX7993,USD,Net 15,Active,09/09/2012
+C-0247,Wren Noodle House,6634 Market St,Meridian,ID,83690,US,billing@wrennoodlehouse.com,XX-XXX5472,USD,Net 15,Active,06/12/2016
+C-0250,Nettle Cantina,2862 Industrial Way,Eugene,OR,97469,US,billing@nettlecantina.com,XX-XXX3761,USD,Net 15,Active,09/26/2021
+C-0261,Harbor Tavern,4865 Oak St,Boise,ID,83725,US,billing@harbortavern.com,XX-XXX2129,USD,Net 15,Active,09/19/2013
+C-0264,Vale Brasserie,780 Pearl St,Portland,OR,97254,US,billing@valebrasserie.com,XX-XXX5752,USD,Net 15,Active,06/20/2015
+C-0272,Ramble Deli,2958 Rainier Ave S,Salem,OR,97324,US,billing@rambledeli.com,XX-XXX3512,USD,Net 15,Active,07/04/2014
+C-0273,Coldwater Creek Market,8677 Front Ave,Olympia,WA,98577,US,ap@coldwatercreekmark.com,XX-XXX7201,USD,Net 30,Active,12/28/2017
+C-0275,Tamarack Smokehouse,4962 Market St,Portland,OR,97201,US,billing@tamaracksmokehouse.com,XX-XXX1284,USD,Net 15,Active,12/20/2016
+C-0276,Mossy Rock Taproom,5799 Oak St,Gresham,OR,97047,US,billing@mossyrocktaproom.com,XX-XXX5797,USD,Net 15,Active,05/21/2019
+C-0278,Sorrel Cantina,7670 Riverside Dr,Boise,ID,83712,US,billing@sorrelcantina.com,XX-XXX1738,USD,Net 15,Active,02/11/2015
+C-0281,Tidewater Deli,9188 SW Barbur Blvd,Gresham,OR,97005,US,billing@tidewaterdeli.com,XX-XXX7397,USD,Net 15,Active,04/25/2016
+C-0282,Yarrow Deli,6947 NW 23rd Ave,Idaho Falls,ID,83413,US,billing@yarrowdeli.com,XX-XXX4819,USD,Net 15,Active,09/05/2014
+C-0283,Yardarm Smokehouse,2209 SW Barbur Blvd,Idaho Falls,ID,83435,US,billing@yardarmsmokehouse.com,XX-XXX5506,USD,Net 15,Active,09/23/2015
+C-0287,Tacoma Event Kitchens,2863 Center St,Everett,WA,98235,US,ap@tacomaeventkitchen.org,XX-XXX8140,USD,Net 30,Active,02/20/2021
+C-0291,Lantern Supper Club,9732 Pearl St,Beaverton,OR,97023,US,billing@lanternsupperclub.com,XX-XXX3208,USD,Net 15,Active,09/04/2023
+C-0295,Zephyr Bakery,5557 W Idaho St,Lake Oswego,OR,97030,US,billing@zephyrbakery.com,XX-XXX5083,USD,Net 15,Active,11/27/2015
+C-0296,Bluebird Smokehouse,2509 W Idaho St,Everett,WA,98261,US,billing@bluebirdsmokehouse.com,XX-XXX3051,USD,Net 15,Active,08/15/2014
+C-0297,Canopy Deli,152 Center St,Olympia,WA,98530,US,billing@canopydeli.com,XX-XXX1152,USD,Net 15,Active,06/12/2018
+C-0298,Nimbus Cafe,7692 W Idaho St,Seattle,WA,98198,US,billing@nimbuscafe.com,XX-XXX5785,USD,Net 15,Active,09/11/2023
+C-0299,Orchard Bakery,2973 Olive Way,Idaho Falls,ID,83463,US,billing@orchardbakery.com,XX-XXX1238,USD,Net 15,Active,07/23/2024
+C-0301,Alpenkost GmbH,Leopoldstrasse 118,Munich,BY,80802,DE,kreditoren@alpenkost.de,,EUR,Net 90,Active,10/09/2023
+C-0303,Trillium Bistro,3276 Rainier Ave S,Meridian,ID,83657,US,billing@trilliumbistro.com,XX-XXX5290,USD,Net 15,Active,05/08/2018
+C-0305,Bittern Bistro,7437 SE Belmont St,Gresham,OR,97047,US,billing@bitternbistro.com,XX-XXX1657,USD,Net 15,Active,11/19/2013
+C-0306,Tillamook Road Grocery,3026 SW Barbur Blvd,Tacoma,WA,98412,US,ap@tillamookroadgroce.com,XX-XXX9664,USD,Net 30,Active,05/02/2016
+C-0307,Sparrow Tavern,264 Evergreen Pkwy,Boise,ID,83710,US,billing@sparrowtavern.com,XX-XXX3576,USD,Net 15,Active,08/10/2023
+C-0308,Northstar Deli,7238 Rainier Ave S,Tacoma,WA,98420,US,billing@northstardeli.com,XX-XXX8675,USD,Net 15,Active,12/12/2015
+C-0323,Waxwing Eatery,423 Broadway,Olympia,WA,98570,US,billing@waxwingeatery.com,XX-XXX3287,USD,Net 15,Active,01/06/2019
+C-0324,Obsidian Grill,846 SE Belmont St,Everett,WA,98213,US,billing@obsidiangrill.com,XX-XXX7199,USD,Net 15,Active,02/02/2017
+C-0325,Cobalt Cafe,5512 Main St,Olympia,WA,98518,US,billing@cobaltcafe.com,XX-XXX8670,USD,Net 15,Active,07/19/2016
+C-0328,Drumlin Bakery,4423 Center St,Idaho Falls,ID,83446,US,billing@drumlinbakery.com,XX-XXX8661,USD,Net 15,Active,07/22/2015
+C-0329,Oxbow Smokehouse,7048 Capitol Blvd,Vancouver,WA,98671,US,billing@oxbowsmokehouse.com,XX-XXX2239,USD,Net 15,Active,11/24/2024
+C-0330,Alder Street Market,6553 N Mississippi Ave,Eugene,OR,97420,US,ap@alderstreetmarket.com,XX-XXX9547,USD,Net 30,Active,04/14/2020
+C-0331,Ironwood Grocery,241 Olive Way,Corvallis,OR,97328,US,ap@ironwoodgrocery.com,XX-XXX5598,USD,Net 30,Active,08/23/2023
+C-0334,Isle Smokehouse,4707 Riverside Dr,Lake Oswego,OR,97004,US,billing@islesmokehouse.com,XX-XXX5114,USD,Net 15,Active,12/14/2020
+C-0335,Mountain Grocers Inc.,61535 S Hwy 97,Bend,OR,97702,US,office@mountaingrocersbend.com,XX-XXX2210,USD,Net 30,Active,08/30/2012
+C-0337,Saffron Taproom,3309 NE Alberta St,Olympia,WA,98528,US,billing@saffrontaproom.com,XX-XXX8655,USD,Net 15,Active,04/09/2018
+C-0340,Eastside Cafe,5375 Broadway,Lake Oswego,OR,97007,US,billing@eastsidecafe.com,XX-XXX1143,USD,Net 15,Active,08/08/2015
+C-0348,Foxglove Market,3761 SE Belmont St,Boise,ID,83736,US,ap@foxglovemarket.com,XX-XXX3827,USD,Net 30,Active,04/14/2014
+C-0349,Dovetail Taproom,3988 Broadway,Meridian,ID,83678,US,billing@dovetailtaproom.com,XX-XXX4646,USD,Net 15,Active,02/23/2017
+C-0351,Yeoman Brasserie,7994 Main St,Hood River,OR,97075,US,billing@yeomanbrasserie.com,XX-XXX1226,USD,Net 15,Active,12/30/2011
+C-0353,Uproot Cafe,8860 SE Division St,Eugene,OR,97455,US,billing@uprootcafe.com,XX-XXX8169,USD,Net 15,Active,12/25/2017
+C-0355,Jackdaw Kitchen,6025 E Fairview Ave,Salem,OR,97313,US,billing@jackdawkitchen.com,XX-XXX3259,USD,Net 15,Active,12/01/2020
+C-0357,Mountain Grocers LLC,1450 W Main St,Boise,ID,83702,US,ap@mtngrocersidaho.com,XX-XXX9043,USD,Net 30,Active,12/22/2012
+C-0359,Yew Grill,9539 Harbor Dr,Boise,ID,83754,US,billing@yewgrill.com,XX-XXX5412,USD,Net 15,Active,01/22/2013
+C-0362,Quince Noodle House,209 Riverside Dr,Corvallis,OR,97368,US,billing@quincenoodlehouse.com,XX-XXX5768,USD,Net 15,Active,11/29/2023
+C-0365,Quarry Bistro,6181 Market St,Corvallis,OR,97381,US,billing@quarrybistro.com,XX-XXX4366,USD,Net 15,Active,05/26/2020
+C-0366,Kettle Bistro,6627 Pacific Ave,Seattle,WA,98109,US,billing@kettlebistro.com,XX-XXX9611,USD,Net 15,Active,01/27/2018
+C-0367,Juniper Eatery,6863 Riverside Dr,Bellevue,WA,98075,US,billing@junipereatery.com,XX-XXX4653,USD,Net 15,Active,06/30/2011
+C-0369,Eddy Pizzeria,8037 Center St,Portland,OR,97288,US,billing@eddypizzeria.com,XX-XXX4046,USD,Net 15,Active,06/01/2014
+C-0371,Marrow Brasserie,2243 Industrial Way,Portland,OR,97213,US,billing@marrowbrasserie.com,XX-XXX7041,USD,Net 15,Active,09/09/2024
+C-0378,Yellowjacket Taproom,1284 Broadway,Beaverton,OR,97019,US,billing@yellowjackettaproo.com,XX-XXX7451,USD,Net 15,Active,11/26/2014
+C-0379,Filbert & Oak Market,9626 Riverside Dr,Gresham,OR,97052,US,ap@filbertoakmarket.com,XX-XXX3683,USD,Net 30,Active,01/23/2021
+C-0380,Quill Grill,4437 Broadway,Beaverton,OR,97093,US,billing@quillgrill.com,XX-XXX4895,USD,Net 15,Active,04/04/2022
+C-0381,Rookery Cafe,2719 Industrial Way,Gresham,OR,97028,US,billing@rookerycafe.com,XX-XXX9452,USD,Net 15,Active,10/30/2015
+C-0386,Eugene Hospital Foodservice,6390 Market St,Portland,OR,97208,US,ap@eugenehospitalfood.org,XX-XXX4695,USD,Net 30,Active,07/24/2016
+C-0389,Umpqua Valley Foods,8609 Harbor Dr,Everett,WA,98229,US,ap@umpquavalleyfoods.com,XX-XXX8634,USD,Net 30,Active,12/11/2011
+C-0390,Dogwood Bistro,2572 Oak St,Hillsboro,OR,97118,US,billing@dogwoodbistro.com,XX-XXX5504,USD,Net 15,Active,09/12/2023
+C-0396,Driftwood Pantry,8231 Capitol Blvd,Hood River,OR,97036,US,ap@driftwoodpantry.com,XX-XXX7959,USD,Net 30,Active,03/23/2021
+C-0397,Fable Kitchen,1284 Broadway,Bellevue,WA,98062,US,billing@fablekitchen.com,XX-XXX4385,USD,Net 15,Active,07/23/2012
+C-0399,Larch Mountain Mercantile,7293 Market St,Corvallis,OR,97339,US,ap@larchmountainmerca.com,XX-XXX1449,USD,Net 30,Active,11/13/2018
+C-0400,Salmonberry Market,5533 NE Alberta St,Tacoma,WA,98417,US,ap@salmonberrymarket.com,XX-XXX9169,USD,Net 30,Active,03/13/2019
+C-0401,Pinewood Kitchen,8671 Pacific Ave,Boise,ID,83704,US,billing@pinewoodkitchen.com,XX-XXX8585,USD,Net 15,Active,10/23/2017
+C-0402,Verbena Supper Club,4602 N Mississippi Ave,Salem,OR,97319,US,billing@verbenasupperclub.com,XX-XXX6344,USD,Net 15,Active,12/15/2023
+C-0403,Basalt Grill,8274 Oak St,Everett,WA,98288,US,billing@basaltgrill.com,XX-XXX5416,USD,Net 15,Active,06/04/2020
+C-0404,Cairn Cafe,3922 Industrial Way,Everett,WA,98251,US,billing@cairncafe.com,XX-XXX4131,USD,Net 15,Active,10/24/2020
+C-0406,Wharf Cantina,8845 Market St,Olympia,WA,98565,US,billing@wharfcantina.com,XX-XXX7023,USD,Net 15,Active,09/24/2023
+C-0411,Iris Taproom,8946 NE Alberta St,Eugene,OR,97494,US,billing@iristaproom.com,XX-XXX6333,USD,Net 15,Active,08/16/2015
+C-0414,Belmont Natural Foods,9330 Riverside Dr,Beaverton,OR,97089,US,ap@belmontnaturalfood.com,XX-XXX8037,USD,Net 30,Active,02/02/2024
+C-0415,Kestrel Market Hall,237 Pacific Ave,Hillsboro,OR,97134,US,ap@kestrelmarkethall.com,XX-XXX2485,USD,Net 30,Active,05/06/2012
+C-0420,Nehalem Bay Grocers,8280 Commercial St NE,Beaverton,OR,97097,US,ap@nehalembaygrocers.com,XX-XXX3384,USD,Net 30,Active,01/08/2021
+C-0423,Salt Marsh Kitchen,4576 Evergreen Pkwy,Tacoma,WA,98408,US,billing@saltmarshkitchen.com,XX-XXX7245,USD,Net 15,Active,01/29/2025
+C-0425,Thistle Pizzeria,7630 Rainier Ave S,Meridian,ID,83672,US,billing@thistlepizzeria.com,XX-XXX4015,USD,Net 15,Active,07/09/2018
+C-0427,Deschutes Food Hall,6302 Rainier Ave S,Vancouver,WA,98668,US,ap@deschutesfoodhall.com,XX-XXX3838,USD,Net 30,Active,11/21/2022
+C-0428,Birchwood Bistro,7233 NW 23rd Ave,Hillsboro,OR,97182,US,billing@birchwoodbistro.com,XX-XXX1594,USD,Net 15,Active,07/06/2024
+C-0429,Seattle Farmers Guild,7016 E Fairview Ave,Vancouver,WA,98602,US,ap@seattlefarmersguil.org,XX-XXX6252,USD,Net 30,Active,08/23/2023

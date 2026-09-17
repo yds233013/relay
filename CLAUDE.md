@@ -30,16 +30,19 @@ Canonical documents (read the relevant one before working in an area):
 
 ## Current state
 
-**Milestone M0 (repository foundation) is implemented and awaiting review.** It includes:
-- backend and web foundations
-- financial, date and timestamp primitives in `backend/src/relay/core/`
-- Alembic with an empty baseline revision
-- Docker Compose, Makefile and CI
+Implemented milestones (see `docs/progress.md` for status, commits and verification):
+- **M0**: backend and web foundations, financial/date/timestamp primitives (`backend/src/relay/core/`), Alembic baseline, Docker Compose, Makefile, CI.
+- **M1**: canonical accounting model (`relay.canonical`), deterministic Brightwater generator (`relay_scenarios`), source fixtures (`fixtures/demo/brightwater/`), hand-authored golden manifest (`evaluation/brightwater/`), evaluation verifier (`relay_evaluation`).
 
-**No Relay product features exist yet** (imports, mappings, rules, reconciliation, issues, approvals, readiness, audit, AI, demo data). Do not start a milestone without explicit user approval; the user approves milestones one at a time. `docs/progress.md` records what exists.
+Relay product features (ingestion, rules engine, reconciliation engine, issues, approvals, readiness, audit, AI) are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
-- `backend/`: Python package `relay` (src layout), `migrations/` (Alembic), `tests/unit`, `tests/integration`
+- `backend/src/relay/`: **runtime** package (`core`, `canonical`, `api`, and later engine/product modules)
+- `backend/src/relay_scenarios/`: **demo/evaluation-only** scenario generators (they know which issues they plant)
+- `backend/src/relay_evaluation/`: **evaluation-only** golden-manifest loader, reference oracle, verifier
+- `backend/migrations/` (Alembic), `backend/tests/{unit,integration,scenario}`
+- `fixtures/demo/brightwater/`: generated source-style files Relay ingests (no answers inside)
+- `evaluation/brightwater/golden_manifest.toml`: hand-authored ground truth (never read by runtime code)
 - `web/`: Next.js app (`src/app`, `src/lib`)
   - `web/AGENTS.md` and `web/CLAUDE.md` are generated and re-created by `next dev`. They only point to the Next.js 16 docs bundled in `node_modules/next/dist/docs/`. Read those docs before writing Next.js code; every rule in this file still applies inside `web/`.
 - `docs/`: planning documents, `decisions/`, `progress.md`
@@ -61,7 +64,7 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make typecheck` | mypy `--strict` (src, tests, migrations), `next typegen && tsc --noEmit` |
 | `make test` | Backend unit + property tests (`-m "not integration"`) and web Vitest tests |
 | `make test-integration` | Starts Compose Postgres, runs `-m integration` against database `relay_test` (dropped/recreated) |
-| `make check` | **Canonical full verification**: fmt-check, lint, typecheck, test, test-integration, build-web, compose-config |
+| `make check` | **Canonical full verification**: fmt-check, lint, typecheck, test, demo-check, demo-verify, test-integration, build-web, compose-config |
 | `make build-web` | Next.js production build |
 | `make build` | build-web + `docker compose build` |
 | `make compose-config` | Validate `docker-compose.yml` |
@@ -74,6 +77,10 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make smoke` | Against a running stack: API health, readiness, and web page showing both healthy with migrations at head |
 | `make dev` | API (uvicorn `--reload`) + web (`next dev`) on the host, Compose Postgres; `make dev-api`, `make dev-web` run one each |
 | `make logs` | Follow Compose logs |
+| `make demo-data` | Regenerate Brightwater fixtures (`relay-demo generate`) and print a summary without answers |
+| `make demo-check` | Committed fixtures equal a fresh generation byte for byte |
+| `make demo-verify` | **Evaluation only**: verify fixtures against the golden manifest |
+| `make demo-manifest` | **Evaluation only**: print the golden manifest |
 | `make clean` | Remove caches and build output |
 
 Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY_DB_HOST_PORT`, `RELAY_API_HOST_PORT` and `RELAY_WEB_HOST_PORT` in the environment or `.env`.
@@ -82,7 +89,6 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| `uv run relay demo generate --seed 20260630 --out fixtures/demo/brightwater` | Generate demo CSVs | M1 |
 | `uv run relay engine run --fixtures … --config …` | Run pure engine from files | M2 |
 | `uv run relay worker` (+ `worker` Compose service) | Job worker | M3 |
 | `uv run relay demo seed` | Seed Brightwater "day 9" state | M3 |
@@ -124,6 +130,14 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 Requirement IDs (FC-xx, GV-xx, SEC-xx) live in `docs/security-and-correctness.md`. Reference them in tests.
 
 ---
+
+## Evaluation-truth boundary (anti-cheating, non-negotiable)
+
+- Runtime code (`relay.*`) must never import `relay_scenarios` or `relay_evaluation`, read `evaluation/`, or branch on scenario knowledge: `DS-*`/`TN-*` ids, Brightwater record ids (`JE-AP-20455`, `INV-10877`, `V-1042`, ...), party names, or known defect amounts. Enforced by import-linter contracts and `tests/scenario/test_determinism_and_boundaries.py`.
+- `relay_scenarios` must never import `relay_evaluation`: generators cannot read the answers.
+- The golden manifest is hand-authored from the specification. **Never change it to match engine or generator output.** A mismatch is classified (engine bug / generator bug / manifest bug / specification ambiguity) with evidence, and truth changes only when justified by the accounting specification, recorded in `docs/decisions/`.
+- Source fixtures must not contain answer-revealing text, flags or file names (tested).
+- Identifiers are opaque (SC-05 – SC-07): never infer chronology from identifier magnitude.
 
 ## AI safety boundaries
 
