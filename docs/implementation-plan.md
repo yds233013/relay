@@ -1,6 +1,6 @@
 # Relay — Implementation Plan
 
-Status: **M0 to M8 implemented** (M8 without a recorded live eval run; see decisions/0009). Progress log and current status: [progress.md](progress.md).
+Status: **M0 to M9 implemented** (M8 without a recorded live eval run; see decisions/0009 and 0010). Progress log and current status: [progress.md](progress.md).
 
 Related: all docs in this folder.
 

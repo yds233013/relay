@@ -44,7 +44,9 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 
 - **M8**: AI investigation layer: providers (`disabled`, `scripted`, `anthropic` over the standard library), 15 read-only tools with redaction, investigator loop with budgets, provenance verification, findings to operator-owned draft change requests, consent through `policy_change` (`ai_enabled`), `run_investigation` jobs (`relay.investigations`), investigation UI, scripted evals E1–E6 (`relay_evaluation.ai`); E2E-7. No live eval run recorded (no key). Decisions: `docs/decisions/0009-ai-investigation-layer.md`.
 
-Hardening (M9) comes next. `docs/progress.md` is the recovery log: read it first in a new session.
+- **M9**: security review against every requirement ID (`docs/traceability.md`), errored rule and reconciliation stages (FC-10), the over-explanation invariant (FC-11), CSP, upload rate limiting, route inventory and static guards, measured pipeline performance (`make pipeline-perf`) and the read-path fix behind it, two more seeded migrations, E2E-6, `make test-all`, README demo guide and the retrospective. Decisions: `docs/decisions/0010-m9-hardening.md`.
+
+`docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
 - `backend/src/relay/`: **runtime** package. Pure: `core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`. Database: `audit`, `identity`, `workspace`, `jobs`, `imports`, `mapping_sets`, `changes`, `issues`, `pipeline`, `investigations`. AI (read models only): `ai`. Entry points: `api`, `worker.py`, `cli.py`. Layers are enforced by import-linter (see `backend/pyproject.toml`).

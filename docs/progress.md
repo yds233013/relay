@@ -466,7 +466,7 @@ M9: hardening and demo rehearsal.
 
 ## M9 — Hardening and demo rehearsal
 
-Status: **In progress.** Decisions: [decisions/0010-m9-hardening.md](decisions/0010-m9-hardening.md).
+Status: **Complete.** Decisions: [decisions/0010-m9-hardening.md](decisions/0010-m9-hardening.md).
 Requirement traceability: [traceability.md](traceability.md).
 
 ### Built so far
@@ -520,6 +520,11 @@ issue-heavy reads are not represented.
 | `make check` | 1,008 unit and scenario tests, 99 integration tests, 43 web tests, 115/115 manifest checks |
 | Whole suite under `TZ=Australia/Adelaide` | 892 unit, 99 integration, 115/115 manifest |
 | E2E-6 and the CSP check against the running stack | pass |
+| `make test-all` (checks, stack build, smoke, reseed, end-to-end suite) | passed in 10 min 19 s |
+| Walkthrough rehearsal: `make demo-reset` then the full end-to-end suite, twice in a row, no manual database edits | 2 min 53 s and 3 min 4 s, 12 of 12 specs both times |
+
+The rehearsal times the *mechanics* of the walkthrough — the same steps the demo takes, driven by
+Playwright. A person narrating it was not timed, and no claim is made about that.
 
 - **Portfolio**: `make demo-portfolio` (`relay-demo seed-portfolio`) adds two more fictional
   migrations through the same services — Harborline Supply Co. (clean books, every gate passing,
@@ -529,6 +534,87 @@ issue-heavy reads are not represented.
 - **README** rewritten as a demo-led guide with screenshots of the real seeded state
   (`docs/images/`), and `make test-all` (checks, stack, smoke, reseed, end-to-end suite).
 
-### Remaining
+### Status
 
-Walkthrough rehearsal timing and the retrospective.
+M9 is complete. Requirement traceability, the retrospective below, and the acceptance commands
+(`make test-all`, the twice-run rehearsal) are all in place. What was deliberately not built is
+listed in `docs/traceability.md` and decision 0010.
+
+---
+
+## Retrospective
+
+Written at the end of M9, covering the whole build.
+
+### Shape of the result
+
+| | Lines (committed, generated files excluded) |
+|---|---|
+| Runtime backend (`relay`) | 23,066 |
+| Demo and evaluation packages | 10,170 |
+| Backend tests | 8,634 |
+| Alembic migrations | 1,979 |
+| Web application | 6,685 (plus 16,167 generated from the OpenAPI schema) |
+| End-to-end tests | 967 |
+| Documentation | 4,211 |
+
+1,008 unit and scenario tests, 99 integration tests against real PostgreSQL, 43 web tests, 12
+end-to-end specs, 115 golden-manifest checks, 10 decision records.
+
+### What was cut, and why
+
+- **AI mapping suggestions** (ai-safety.md §5, plan cut line 2). The investigator was the part that
+  needed proving; column mapping already had deterministic suggestions from M5, and account mapping
+  has deterministic signals. Cutting it removed no workflow.
+- **Separate database roles** (SEC-25). Real defence in depth, but it needs a second credential, a
+  Compose init script and grants maintained as migrations add tables. Recorded as a limitation
+  rather than half-built, with the consequence stated: the audit log is tamper-evident, not
+  tamper-proof.
+- **Waiver expiry dates** (M7). Scope-bound lapsing covers the risk that a waiver silently outlives
+  the facts it was granted for; a date would have been a second, weaker mechanism.
+- **A CSV export** (SEC-05). Nothing in the demo needs one, and adding it would have meant adding
+  formula-injection neutralisation to test.
+- **An instrumented audit test** (GV-05) that proves *every* committing service method writes an
+  event. Each flow asserts its own events instead. This is the gap I would close first.
+
+### What cost the most time, and what it taught
+
+- **A yield dependency that committed after the response** (M6). FastAPI's default meant a client
+  could read a 201 for a transaction that had not committed. The fix was one keyword; finding it
+  took a day of a flaky test. Now `SessionDep` is `scope="function"` with a test that fails if that
+  changes.
+- **A deadlock between approvals and the worker** (M6): one path took the audit lock then the
+  pipeline lock, the other the reverse. Reproducing it in a test before fixing it was worth more
+  than the fix.
+- **Sign-off bound to the wrong fingerprint** (M7). Relay's run fingerprint and the engine's input
+  fingerprint are different values for good reasons, and G12 compared them silently. The lesson was
+  to make the translation explicit and test it, not to make the two the same.
+- **Measuring instead of guessing** (M9). The readiness endpoint took 5.8 seconds on a 250,000-line
+  migration because gate evidence loaded every reconciliation line once per gate. No test would ever
+  have caught it; a single profile did.
+- **Writing the golden manifest by hand first** (M1) is the decision the whole project rests on.
+  Two mismatches came out of the first full comparison: one was a generator bug (it planted records
+  the specification does not describe) and one was an engine bug (a rule broader than its
+  documentation). The manifest itself has never changed to match output — which is the only reason
+  those two investigations meant anything (decisions/0003 §3).
+
+### What I would do differently
+
+- **Gate evidence should be structured references, not strings.** Today a reconciliation line is
+  named `R3:{'party': 'C-0233'}` and parsed back with a regular expression. It works, but it is the
+  weakest seam in the codebase.
+- **`load_configuration` should load its datasets in one query.** It issues about 90 for a
+  sixteen-dataset migration, which is most of what the overview and readiness reads still cost.
+- **Pipeline persistence is the throughput ceiling** (75 seconds for 620,000 staged records), not
+  the engine (53 seconds). If this had to scale past a quarter of a million lines, that is where the
+  work is: partitioned inserts, or keeping the staged set out of the transaction.
+- **The AI layer should have been split from the start.** `relay.ai` may only import read models, so
+  persistence had to move to `relay.investigations` mid-milestone. The rule was right; I found its
+  consequences late.
+
+### What is not true of this project
+
+- It has never been deployed, and the development identity is not authentication.
+- No live model run is recorded: the investigator's evals pass only with scripted transcripts, so
+  nothing here demonstrates a model's real accuracy on this data.
+- Every figure, company and person in the demo is invented. No customer data was used at any point.

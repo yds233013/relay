@@ -13,7 +13,7 @@ hash-chained audit trail, and explicit readiness gates bound to a reproducible p
 investigator helps explain discrepancies, with read-only tools and verified citations — and removing
 it removes no correctness.
 
-> **Status:** M0–M8 complete, M9 (hardening and demo rehearsal) in progress. See
+> **Status:** M0–M9 complete. See
 > [docs/progress.md](docs/progress.md) for what exists, what was measured, and what was cut.
 > The demo customer, **Brightwater Provisions, Inc.**, is fictional; so is every figure in it.
 
