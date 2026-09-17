@@ -3169,6 +3169,17 @@
             "title": "Nature",
             "type": "string"
           },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
           "owner_user_id": {
             "anyOf": [
               {
@@ -3376,6 +3387,17 @@
           "nature": {
             "title": "Nature",
             "type": "string"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
           },
           "owner_user_id": {
             "anyOf": [

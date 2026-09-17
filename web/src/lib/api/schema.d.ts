@@ -2169,6 +2169,8 @@ export interface components {
             latest_exception: components["schemas"]["ExceptionOut"] | null;
             /** Nature */
             nature: string;
+            /** Owner Name */
+            owner_name?: string | null;
             /** Owner User Id */
             owner_user_id: string | null;
             /** Rule Or Recon Id */
@@ -2236,6 +2238,8 @@ export interface components {
             last_seen_run_id: string | null;
             /** Nature */
             nature: string;
+            /** Owner Name */
+            owner_name?: string | null;
             /** Owner User Id */
             owner_user_id: string | null;
             /** Rule Or Recon Id */

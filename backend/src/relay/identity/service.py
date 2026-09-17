@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterable
 from typing import ClassVar
 
 from sqlalchemy import func, select
@@ -41,6 +42,17 @@ def find_active_user_by_email(session: Session, email: str) -> User | None:
     return session.scalars(
         select(User).where(func.lower(User.email) == email.strip().lower(), User.is_active)
     ).first()
+
+
+def display_names(session: Session, user_ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, str]:
+    """Display names for a set of users in one query (issue owners, reviewers)."""
+    wanted = set(user_ids)
+    if not wanted:
+        return {}
+    return {
+        user.id: user.display_name
+        for user in session.scalars(select(User).where(User.id.in_(wanted)))
+    }
 
 
 def get_user(session: Session, user_id: uuid.UUID) -> User | None:

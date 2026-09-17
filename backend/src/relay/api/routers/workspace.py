@@ -126,12 +126,19 @@ def get_migration(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDe
 def get_overview(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDep) -> OverviewOut:
     """What is blocking this migration from going live, with links to the evidence."""
     migration = workspace.get_migration(session, migration_id)
-    company_name = next(
-        (c.name for m, c in workspace_read.migrations(session) if m.id == migration_id), ""
-    )
+    found = workspace_read.migration_with_company(session, migration_id)
+    company_name = found[1].name if found else ""
     currency = migration.functional_currency
     data = overview_read.overview(session, migration, user_id=actor.user_id, role=actor.role)
     run = data["run"]
+    names = identity.display_names(
+        session,
+        {
+            issue.owner_user_id
+            for issue in [*data["top_issues"], *data["queue"]["issues"]]
+            if issue.owner_user_id
+        },
+    )
     return OverviewOut(
         migration=migration_out(migration, company_name),
         run_id=run.id if run else None,
@@ -157,8 +164,8 @@ def get_overview(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDep)
             AmountByNatureOut(nature=nature, amount=amount_text(amount, currency) or "0")
             for nature, amount in sorted(data["open_issue_amounts_by_nature"].items())
         ],
-        top_issues=[issue_out(i, currency) for i in data["top_issues"]],
-        my_issues=[issue_out(i, currency) for i in data["queue"]["issues"]],
+        top_issues=[issue_out(i, currency, names) for i in data["top_issues"]],
+        my_issues=[issue_out(i, currency, names) for i in data["queue"]["issues"]],
         my_approvals=[
             ChangeRequestSummaryOut(id=c.id, key=c.key, kind=c.kind, title=c.title, status=c.status)
             for c in data["queue"]["approvals"]
@@ -306,7 +313,9 @@ def audit_event_out(event: AuditEvent) -> AuditEventOut:
     )
 
 
-def issue_out(issue: Issue, currency: Currency) -> IssueOut:
+def issue_out(
+    issue: Issue, currency: Currency, names: dict[uuid.UUID, str] | None = None
+) -> IssueOut:
     return IssueOut(
         id=issue.id,
         key=issue.key,
@@ -320,6 +329,7 @@ def issue_out(issue: Issue, currency: Currency) -> IssueOut:
         subjects=list(issue.subjects),
         status=issue.status,
         owner_user_id=issue.owner_user_id,
+        owner_name=(names or {}).get(issue.owner_user_id) if issue.owner_user_id else None,
         amount_at_risk=amount_text(issue.amount_at_risk, currency),
         currency=currency.code,
         first_seen_run_id=issue.first_seen_run_id,
@@ -378,8 +388,9 @@ def list_issues(
         offset=cursor,
         limit=limit,
     )
+    names = identity.display_names(session, {i.owner_user_id for i in items if i.owner_user_id})
     return Page(
-        items=[issue_out(i, migration.functional_currency) for i in items],
+        items=[issue_out(i, migration.functional_currency, names) for i in items],
         next_cursor=str(cursor + limit) if len(items) == limit else None,
     )
 

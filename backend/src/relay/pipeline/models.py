@@ -36,6 +36,8 @@ class RunStatus(StrEnum):
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+    SUPERSEDED = "superseded"
+    """The inputs changed before this run started, so a later run covers it. Not an error."""
 
 
 class EvaluationTrigger(StrEnum):

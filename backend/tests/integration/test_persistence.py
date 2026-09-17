@@ -478,7 +478,7 @@ def test_a_rule_that_raises_is_persisted_as_errored_and_blocks_readiness(
     assert gate[1] == [f"rule:{rule_id} — ZeroDivisionError: division by zero"]
 
 
-def test_run_fails_cleanly_when_inputs_change_after_the_request(
+def test_a_run_whose_inputs_changed_before_it_started_is_superseded(
     factory: sessionmaker[Session], space: Workspace, blob_root: Path
 ) -> None:
     context = worker_context(factory, blob_root)
@@ -511,11 +511,19 @@ def test_run_fails_cleanly_when_inputs_change_after_the_request(
     drain(context)
     with session_scope(factory) as session:
         run = session.get_one(PipelineRun, request.run.id)
-    assert run.status == "failed"
+    # Review pass 5: results for a fingerprint that is no longer current must never be computed,
+    # but this is not a failure — the change that moved the inputs requests its own run. Seeding
+    # approves sixteen mappings in a row, and the run history used to fill with red.
+    assert run.status == "superseded"
     assert run.error == {
         "code": "pipeline.inputs_changed",
-        "detail": "configuration changed after the request",
+        "detail": "the inputs changed before this run started; a later run covers them",
     }
+    with session_scope(factory) as session:
+        events = set(
+            session.scalars(select(AuditEvent.action).where(AuditEvent.entity_id == request.run.id))
+        )
+    assert events == {"pipeline_run.requested", "pipeline_run.superseded"}
 
 
 def _cr(session: Session, space: Workspace) -> uuid.UUID:

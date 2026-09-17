@@ -104,7 +104,9 @@ export async function approve(page: Page, changeUrl: string, notice: RegExp): Pr
   await page.getByLabel("Comment (required to reject)").fill("Checked against the evidence.");
   await page.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByRole("status").filter({ hasText: notice })).toBeVisible({
-    // Applying a change requests a run, which waits while a previous run holds the pipeline lock.
-    timeout: 30_000,
+    // Applying a change requests a run, and the request takes the migration's pipeline lock. One
+    // worker drains the whole queue, so this waits for any run already executing — including runs
+    // of another migration queued by an earlier spec. See docs/review-findings.md, pass 5.
+    timeout: 120_000,
   });
 }

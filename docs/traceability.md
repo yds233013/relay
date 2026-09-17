@@ -102,6 +102,10 @@ Status values:
 
 ## Limitations restated
 
+- One worker drains the whole job queue, and an approval takes its migration's pipeline lock before
+  applying anything, so under a backlog an approval's response waits for the runs ahead of it. Two
+  candidate fixes are recorded in [review-findings.md](review-findings.md) (pass 5).
+
 - Development identity is not authentication; Relay must not be deployed with real data.
 - The audit log is tamper-evident, not tamper-proof: with one database role (SEC-25) a determined
   operator can disable the triggers, and verification then reports the break.

@@ -153,6 +153,7 @@ def evaluate_readiness(
     result: EngineResult, overlays: Overlays, policy: Policy, facts: GovernanceFacts
 ) -> Readiness:
     snapshot = result.snapshot
+    currency = snapshot.functional_currency.code
     statuses = issue_statuses(result, overlays)
     unresolved = [e for e in result.exceptions if statuses[e.fingerprint] == "open"]
     recon = {r.recon_id: r for r in result.reconciliations}
@@ -310,8 +311,9 @@ def evaluate_readiness(
             "G9",
             "Exposure below threshold",
             exposure <= policy.max_unresolved_exposure,
-            exposure,
-            f"≤ {policy.max_unresolved_exposure}",
+            # Gate text is read by people beside other amounts, so it is grouped like them.
+            f"{exposure:,.2f} {currency}",
+            f"≤ {policy.max_unresolved_exposure:,.2f} {currency}",
             "Unresolved amount at risk is within policy",
             scope={"exposure": str(exposure)},
         )

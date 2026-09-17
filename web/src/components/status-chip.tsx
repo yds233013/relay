@@ -24,6 +24,7 @@ const STYLES: Record<string, { icon: string; className: string }> = {
   medium: { icon: "●", className: "border-yellow-700 text-yellow-900 bg-yellow-50" },
   low: { icon: "○", className: "border-gray-500 text-gray-800 bg-gray-50" },
   stale: { icon: "!", className: "border-amber-700 text-amber-900 bg-amber-50" },
+  superseded: { icon: "→", className: "border-gray-500 text-gray-800 bg-gray-50" },
   lapsed: { icon: "!", className: "border-amber-700 text-amber-900 bg-amber-50" },
   invalidated: { icon: "!", className: "border-amber-700 text-amber-900 bg-amber-50" },
   signed_off: { icon: "✓", className: "border-green-700 text-green-900 bg-green-50" },

@@ -83,7 +83,8 @@ test("E2E-8: new migration from a CSV to its first issues", async ({ page, reque
   await waitForRuns(request, migrationId, 0);
 
   await page.goto(`/migrations/${migrationId}/issues`);
-  await expect(page.getByRole("table")).toContainText("NORM.DUPLICATE_NATURAL_KEY");
+  // The issue is titled by what happened, not by the rule identifier (review pass 5).
+  await expect(page.getByRole("table")).toContainText("appears more than once");
   const found = await api<{ items: { rule_or_recon_id: string }[] }>(
     request,
     `/api/v1/migrations/${migrationId}/issues`,

@@ -222,3 +222,60 @@ One `session.commit()` in the entire runtime (inside `session_scope`); no writes
 read model or GET handler; no `cast(`, no bare `except`, and every broad `except` justified inline
 (cleanup that re-raises, or FC-10's errored stages); no `any`, `@ts-ignore` or `eslint-disable`
 anywhere in `web/src`; no unused dependencies in either lockfile.
+
+---
+
+## Pass 5 — UX, as an implementation operator
+
+Used the seeded application as someone trying to take a customer live, asking the ten questions the
+product exists to answer. Most were answered quickly; four things were not, and were fixed.
+
+| Question | Answer in the product |
+|---|---|
+| What is blocking launch? | Overview, "Blockers": every failing gate with its evidence links |
+| How much money is affected? | Portfolio and overview: unresolved exposure, de-duplicated, with open issue amounts by nature |
+| Which source proves this? | Reconciliation → line → drill-down: the differing document, both sides, and the source row at its file and line number — two clicks from the blocker |
+| Is this source stale? | Every page states the run it was evaluated on and whether that run is current |
+| What changed? | Runs page with fingerprints, and a run-to-run diff of fingerprint components and findings |
+| What needs approval? | Approvals page, filtered by status; the overview's "My queue" |
+| Who owns it? | **Was missing from the issues list** (fixed below) |
+| What happened on the previous run? | Run detail and diff |
+| Why is the migration not ready? | Readiness: each gate with observed, threshold and evidence |
+| What happens if new evidence arrives? | A new run is requested; sign-offs invalidate; waivers lapse when their scope changes |
+
+### Fixed
+
+- **Sixteen failed runs in the demo's history.** Seeding approves sixteen column mappings in a row,
+  and each approval queues a run whose inputs the next approval changes before the worker starts it.
+  Refusing to compute results for a fingerprint that is no longer current is right, but calling it a
+  *failure* is not: the change that moved the inputs requested its own run. Runs now end as
+  **superseded** (Alembic `0008_superseded_runs`, which also relabels the ones already recorded), so
+  the history reads as sixteen superseded and one succeeded rather than a wall of red.
+- **Issues had no owner in the list.** "Who owns it?" needed opening each issue. The API now returns
+  `owner_name` (resolved in one query) and the issues list shows an Owner column.
+- **Issues from normalization and reconciliation showed a raw rule identifier as their title** —
+  `BANK.UNRECORDED_ACTIVITY: bank:4471:2026-06-30:65324449289b` in an operator's queue. Those
+  findings are not registered rules and have no title, but their message already reads as one, so
+  the message is used.
+- **G9 printed its amounts unformatted** (`217212.85`, `≤ 1000`) beside figures everywhere else
+  shown as `217,212.85 USD`. The gate now formats both.
+
+### Found under load, recorded rather than re-architected
+
+Running the whole end-to-end suite, a sign-off approval timed out waiting for its notice — the same
+flow passes in 90 seconds on its own. The cause is structural, not a bug in the change under review:
+an approval takes the migration's pipeline lock before it applies anything (the M6 lock-ordering
+fix), one worker drains the whole job queue, and runs queued by an *earlier spec for a different
+migration* sit in front of it. So the approval's HTTP response can wait as long as everything queued
+ahead of it.
+
+Two ways out, both larger than a review pass should take on: request the run from a job instead of
+inline, so an approval never takes the pipeline lock; or stop holding the pipeline lock for a whole
+run execution and serialize on the run row instead. Meanwhile the end-to-end helper waits up to two
+minutes and says why, and the limitation is listed in [traceability.md](traceability.md).
+
+### Checked and left alone
+
+The evidence trail is the strongest part of the product and needed nothing: blocker → reconciliation
+line → drill-down → source row, with amounts server-computed and shown with their currency, statuses
+never carried by colour alone, and every AI element absent when AI is off.

@@ -276,6 +276,7 @@ class IssueOut(Schema):
     subjects: list[str]
     status: str
     owner_user_id: uuid.UUID | None
+    owner_name: str | None = None
     amount_at_risk: str | None
     currency: str
     first_seen_run_id: uuid.UUID | None

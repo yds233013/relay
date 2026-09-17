@@ -10,7 +10,7 @@ import time
 import uuid
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Final
 
 from psycopg.types.json import Jsonb
 from sqlalchemy import func, insert, select, text
@@ -184,15 +184,11 @@ def execute_run(
     run.started_at = now
     configuration = load_configuration(session, run.migration_id)
     if configuration.fingerprint != run.fingerprint:
-        _finish_failed(
-            session,
-            run,
-            {
-                "code": "pipeline.inputs_changed",
-                "detail": "configuration changed after the request",
-            },
-            clock,
-        )
+        # Something changed the inputs between the request and the worker picking it up — usually
+        # another approval. Results for a fingerprint that is no longer current must never be
+        # computed, and the change that moved the inputs requested its own run, so this one is
+        # superseded rather than failed.
+        _finish_superseded(session, run, configuration.fingerprint, clock)
         return run
     inputs = load_engine_inputs(configuration, blob_store)
     timings["load_ms"] = (time.perf_counter_ns() - started) // 1_000_000
@@ -275,6 +271,28 @@ def mark_failed(
     if run is None or run.status not in {RunStatus.QUEUED.value, RunStatus.RUNNING.value}:
         return
     _finish_failed(session, run, error, clock)
+
+
+def _finish_superseded(
+    session: Session, run: PipelineRun, current_fingerprint: str, clock: Clock | None
+) -> None:
+    run.status = RunStatus.SUPERSEDED.value
+    run.error = {
+        "code": "pipeline.inputs_changed",
+        "detail": "the inputs changed before this run started; a later run covers them",
+    }
+    run.finished_at = (clock or SystemClock()).now()
+    session.flush()
+    audit.record(
+        session,
+        actor=Actor.system(),
+        action="pipeline_run.superseded",
+        entity_type="pipeline_run",
+        entity_id=run.id,
+        migration_id=run.migration_id,
+        after={"sequence": run.sequence, "current_fingerprint": current_fingerprint},
+        clock=clock,
+    )
 
 
 def _finish_failed(
@@ -495,16 +513,25 @@ def _persist_results(
     return exception_ids
 
 
+MAX_ISSUE_TITLE: Final = 200
+
+
 def _issue_title(finding: RuleException, result: EngineResult) -> str:
+    """What the issue is called in a queue: a rule's title with its subjects, or its own message.
+
+    Findings the normalization and reconciliation stages raise (NORM.*, BANK.*, OVERRIDE.*) are not
+    registered rules and have no title of their own, but their message already reads as one. A raw
+    rule identifier in an operator's queue tells them nothing.
+    """
     if finding.rule_id in REGISTRY:
         title = REGISTRY[finding.rule_id][0].title
     elif finding.rule_id.startswith("RECON."):
         recon_id = finding.rule_id.split(".", 1)[1]
         title = next((r.title for r in result.reconciliations if r.recon_id == recon_id), recon_id)
     else:
-        title = finding.rule_id
+        return finding.message[:MAX_ISSUE_TITLE]
     subjects = ", ".join(finding.subjects[:2]) + (", ..." if len(finding.subjects) > 2 else "")
-    return f"{title}: {subjects}" if subjects else title
+    return (f"{title}: {subjects}" if subjects else title)[:MAX_ISSUE_TITLE]
 
 
 def _issue_seeds(result: EngineResult, exception_ids: dict[str, uuid.UUID]) -> dict[str, IssueSeed]:

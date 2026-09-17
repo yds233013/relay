@@ -136,6 +136,10 @@ export default async function IssuesPage(props: PageProps<"/migrations/[migratio
           { header: "Title", cell: (i) => i.title },
           { header: "Nature", cell: (i) => i.nature.replace("_", " ") },
           {
+            header: "Owner",
+            cell: (i) => i.owner_name ?? (i.owner_user_id ? i.owner_user_id : "—"),
+          },
+          {
             header: "Amount at risk",
             align: "right",
             cell: (i) => <Money value={i.amount_at_risk} currency={i.currency} />,
