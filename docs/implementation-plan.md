@@ -1,6 +1,6 @@
 # Relay — Implementation Plan
 
-Status: **M0 and M1 implemented.** Progress log and current status: [progress.md](progress.md).
+Status: **M0, M1 and M2 implemented.** Progress log and current status: [progress.md](progress.md).
 
 Related: all docs in this folder.
 
@@ -69,7 +69,7 @@ Each milestone ends in a demoable, tested state and a short entry in `docs/progr
 - Entity resolution candidates + decision application.
 - Issue-lifecycle and readiness **domain** functions (no persistence).
 - Input fingerprint computation.
-- `relay engine run --fixtures fixtures/demo/brightwater --config fixtures/demo/brightwater/config/initial.yaml` printing gates, recon summaries and exceptions.
+- `relay engine run --migration fixtures/demo/brightwater --mapping-set fixtures/demo/brightwater_config/column_mapping_set_v1.json [--overlays overlays.json]` printing gates, recon summaries and exceptions (implemented form; overlays are JSON, see progress.md).
 
 **Acceptance criteria**
 - Scenario test: Run #1 exceptions and recon discrepancies **exactly equal** manifest v1.

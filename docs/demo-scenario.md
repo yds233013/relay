@@ -144,7 +144,7 @@ Each defect lists the planted data, detection signals, expected issues, and the 
 | | |
 |---|---|
 | Planted | `C-0107` "Green Valley Co-op", 1220 SE Hawthorne Blvd, Portland 97214, ap@greenvalley.coop · `C-0154` "Green Valley Cooperative Market", 1220 S.E. Hawthorne Boulevard, same email domain, open AR **3,215.40 fixed** · `C-0198` "GREEN VALLEY COOP #2", 7815 N Lombard St, Portland 97203, different AP contact |
-| Detection | Candidates: (0107, 0154) strong ≈ 0.93; (0107, 0198) ≈ 0.71; (0154, 0198) ≈ 0.68 (location token conflict lowers score) |
+| Detection | Candidates: (0107, 0154) strong; (0107, 0198) and (0154, 0198) above the candidate threshold but below strong (location token conflict lowers the score). Planning estimates were ≈ 0.93 / 0.71 / 0.68; the v1 weights give 1.0000 / 0.6013 / 0.6013 ([0003](decisions/0003-deterministic-engine.md) §3) |
 | Correct resolution | Merge C-0107 + C-0154 (survivor C-0107). Mark C-0198 **distinct** (separate store with its own billing). A naive "merge all Green Valley" is wrong. |
 
 ### DS-07 — EUR invoices keyed as USD
@@ -180,7 +180,7 @@ Each defect lists the planted data, detection signals, expected issues, and the 
 
 | | |
 |---|---|
-| Planted | Customer `C-0412` "Cedar & Salt Bistro" closed in May 2026, marked inactive; customer export filtered to active. `INV-10301` (2026-02-20, 2,980.00) and receipt `PMT-31877` (2026-05-09, **2,980.00 fixed**) reference C-0412. |
+| Planted | Customer `C-0412` "Cedar & Salt Bistro" closed in May 2026, marked inactive; customer export filtered to active. `INV-10301` (2026-02-20, 2,980.00) and receipt `PMT-31877` (2026-05-09, **2,980.00 fixed**) are the only exported records that reference C-0412 (clarified in M2, [0003](decisions/0003-deterministic-engine.md) M-01). |
 | Detection | `AR.INVOICE_PARTY_EXISTS` and `AR.PAYMENT_PARTY_EXISTS` (critical); no open balance |
 | Resolution | Re-export customers including inactive → new import → rerun |
 

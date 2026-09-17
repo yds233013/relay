@@ -20,6 +20,7 @@ import csv
 import io
 import json
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from typing import Final
@@ -88,12 +89,30 @@ def implementation_csv(header: Sequence[str], rows: Iterable[Sequence[str]]) -> 
     return buffer.getvalue().encode("utf-8")
 
 
+@dataclass(frozen=True, slots=True)
+class ExportFilters:
+    """LedgerPro export filter settings. The defaults reproduce the Run #1 exports."""
+
+    include_inactive_accounts: bool = False
+    include_inactive_customers: bool = False
+    include_unprinted_invoices: bool = False
+
+
+DEFAULT_FILTERS: Final = ExportFilters()
+
+
 # ------------------------------------------------------------------------------------ LedgerPro
-def export_chart_of_accounts(u: LegacyUniverse) -> bytes:
+def export_chart_of_accounts(u: LegacyUniverse, filters: ExportFilters = DEFAULT_FILTERS) -> bytes:
     rows = [
-        (code, info.account.name, info.ledgerpro_type, info.detail_type, "Yes")
+        (
+            code,
+            info.account.name,
+            info.ledgerpro_type,
+            info.detail_type,
+            "Yes" if info.account.is_active else "No",
+        )
         for code, info in sorted(u.accounts.items())
-        if info.account.is_active
+        if info.account.is_active or filters.include_inactive_accounts
     ]
     return ledgerpro_csv(("Account", "Description", "Type", "Detail Type", "Active"), rows)
 
@@ -194,7 +213,7 @@ def export_gl_detail(u: LegacyUniverse) -> bytes:
     return ledgerpro_csv(header, rows)
 
 
-def export_customers(u: LegacyUniverse) -> bytes:
+def export_customers(u: LegacyUniverse, filters: ExportFilters = DEFAULT_FILTERS) -> bytes:
     rows = [
         (
             p.code,
@@ -208,11 +227,11 @@ def export_customers(u: LegacyUniverse) -> bytes:
             f"XX-XXX{p.tax_id_last4}" if p.tax_id_last4 else "",
             p.default_currency.code,
             f"Net {p.payment_terms_days}",
-            "Active",
+            "Active" if p.is_active else "Inactive",
             lp_date(p.created_on),
         )
         for p in u.customers.values()
-        if p.is_active
+        if p.is_active or filters.include_inactive_customers
     ]
     header = (
         "Customer ID",
@@ -276,12 +295,11 @@ def _in_scope(u: LegacyUniverse, number: str, document_date: date, is_invoice: b
     return False
 
 
-def export_invoices(u: LegacyUniverse) -> bytes:
+def export_invoices(u: LegacyUniverse, filters: ExportFilters = DEFAULT_FILTERS) -> bytes:
     rows = []
     for number, invoice in u.invoices.items():
-        if not u.invoice_info[number].printed or not _in_scope(
-            u, number, invoice.document_date, True
-        ):
+        printed = u.invoice_info[number].printed or filters.include_unprinted_invoices
+        if not printed or not _in_scope(u, number, invoice.document_date, True):
             continue
         balance = controls.open_amount(u, invoice, u.plan.cutover_date)
         rows.append(
@@ -646,15 +664,15 @@ def migration_descriptor(u: LegacyUniverse, files: dict[str, bytes]) -> bytes:
     return (json.dumps(descriptor, indent=2, sort_keys=False) + "\n").encode("utf-8")
 
 
-def export_all(u: LegacyUniverse) -> dict[str, bytes]:
+def export_all(u: LegacyUniverse, filters: ExportFilters = DEFAULT_FILTERS) -> dict[str, bytes]:
     plan = u.plan
     files = {
-        "ledgerpro/ledgerpro_chart_of_accounts.csv": export_chart_of_accounts(u),
+        "ledgerpro/ledgerpro_chart_of_accounts.csv": export_chart_of_accounts(u, filters),
         "ledgerpro/ledgerpro_trial_balance_by_period.csv": export_trial_balance(u),
         "ledgerpro/ledgerpro_gl_detail_2026H1.csv": export_gl_detail(u),
-        "ledgerpro/ledgerpro_customers.csv": export_customers(u),
+        "ledgerpro/ledgerpro_customers.csv": export_customers(u, filters),
         "ledgerpro/ledgerpro_vendors.csv": export_vendors(u),
-        "ledgerpro/ledgerpro_invoices.csv": export_invoices(u),
+        "ledgerpro/ledgerpro_invoices.csv": export_invoices(u, filters),
         "ledgerpro/ledgerpro_bills.csv": export_bills(u),
         "ledgerpro/ledgerpro_payments.csv": export_payments(u),
         "ledgerpro/ledgerpro_ar_aging_20251231.csv": export_aging(

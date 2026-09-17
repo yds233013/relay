@@ -441,6 +441,12 @@ class _CleanBuilder:
         self, customer: CustomerProfile, rng: ScenarioRng, *, disputed: bool
     ) -> None:
         code = customer.party.code
+        if code == k.CEDAR_AND_SALT:
+            # DS-09: the closed customer's only activity is the orphan invoice and its receipt.
+            self._add_invoice(
+                customer, k.DS09_INVOICE_DATE, k.DS09_AMOUNT, rng=rng, number=k.DS09_INVOICE
+            )
+            return
         if disputed:
             self._add_invoice(
                 customer,
@@ -457,16 +463,6 @@ class _CleanBuilder:
                 rng=rng,
                 carried_forward=True,
             )
-        if code == k.CEDAR_AND_SALT:
-            for invoice_date, amount_text in (
-                (date(2026, 1, 9), "2215.60"),
-                (date(2026, 1, 23), "1948.25"),
-            ):
-                self._add_invoice(customer, invoice_date, Decimal(amount_text), rng=rng)
-            self._add_invoice(
-                customer, k.DS09_INVOICE_DATE, k.DS09_AMOUNT, rng=rng, number=k.DS09_INVOICE
-            )
-            return
         if code == k.TN05_CUSTOMER:
             self.tn05_invoices = [
                 self._add_invoice(customer, date(2026, 3, 3), k.TN05_AMOUNT, rng=rng),

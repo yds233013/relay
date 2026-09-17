@@ -2,7 +2,7 @@
 
 **Migration operations for ERP implementations: prove the data is right before go-live.**
 
-> **Status:** M0 (foundation) and M1 (canonical model and the Brightwater demo scenario) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
+> **Status:** M0 (foundation), M1 (canonical model and the Brightwater demo scenario) and M2 (the deterministic validation and reconciliation engine) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
 
 ---
 
@@ -70,6 +70,24 @@ make demo-manifest
 ```
 
 Generation is deterministic: every value comes from named random streams derived from seed `20260630`, using integer arithmetic only.
+
+## Deterministic engine (M2)
+
+A pure Python engine (no database, clock or network) reads the source files with line-level lineage, quarantines malformed rows, applies an approved column mapping set, and runs 32 validation rules, reconciliations R1–R6, duplicate-party candidates and readiness gates G1–G12. Every result is bound to an input fingerprint.
+
+```bash
+make engine-run
+```
+
+On Brightwater Run #1 the engine's findings and reconciliation discrepancies match the hand-authored golden manifest exactly. The documented resolutions reach "all gates pass except sign-off". The engine has no Brightwater-specific code: the same rules give zero findings on a synthetic clean company, and each rule is tested there with a planted defect and a legitimate look-alike.
+
+Measure throughput on a synthetic clean 250,000-line migration:
+
+```bash
+make engine-perf
+```
+
+Measured once on an Apple M2 (16 GB): 34.6 s, about 1 GB peak memory. See [docs/progress.md](docs/progress.md) for details and [docs/decisions/0003-deterministic-engine.md](docs/decisions/0003-deterministic-engine.md) for design decisions.
 
 ## Prerequisites
 

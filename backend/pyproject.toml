@@ -26,6 +26,7 @@ dev = [
 ]
 
 [project.scripts]
+relay = "relay.cli:main"
 relay-demo = "relay_scenarios.cli:main"
 relay-eval = "relay_evaluation.cli:main"
 
@@ -100,14 +101,34 @@ markers = [
 # ---------------------------------------------------------------- import-linter
 [tool.importlinter]
 root_packages = ["relay", "relay_scenarios", "relay_evaluation"]
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Runtime layers: api above canonical above core"
+name = "Runtime layers: api above engine above ingestion/mapping above canonical above core"
 type = "layers"
 layers = [
     "relay.api",
+    "relay.engine",
+    "relay.ingestion | relay.mapping",
     "relay.canonical",
     "relay.core",
+]
+containers = []
+
+[[tool.importlinter.contracts]]
+name = "The engine is pure: no database, web framework, network or clock access"
+type = "forbidden"
+source_modules = ["relay.engine", "relay.ingestion", "relay.mapping", "relay.canonical"]
+forbidden_modules = [
+    "relay.api",
+    "relay.core.db",
+    "relay.core.db_types",
+    "relay.core.clock",
+    "relay.core.config",
+    "sqlalchemy",
+    "psycopg",
+    "fastapi",
+    "httpx",
 ]
 
 [[tool.importlinter.contracts]]

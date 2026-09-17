@@ -7,11 +7,18 @@ evaluation-only ``relay-eval`` command for that.
 from __future__ import annotations
 
 import argparse
+import json
+import os
+import platform
+import resource
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 
 from relay.canonical.enums import PaymentDirection
+from relay.engine.inputs import build_inputs
+from relay.engine.pipeline import run_engine
 from relay_scenarios.brightwater.constants import DEFAULT_SEED
 from relay_scenarios.brightwater.scenario import (
     CHECKSUM_FILE,
@@ -20,9 +27,54 @@ from relay_scenarios.brightwater.scenario import (
     checksum_manifest,
     write_fixtures,
 )
+from relay_scenarios.volume import build_volume_migration, export_volume_migration
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUT = REPO_ROOT / "fixtures" / "demo" / "brightwater"
+DEFAULT_MAPPING_SET = (
+    REPO_ROOT / "fixtures" / "demo" / "brightwater_config" / "column_mapping_set_v1.json"
+)
+
+
+def _peak_rss_mib() -> float:
+    usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # macOS reports bytes, Linux reports kibibytes.
+    return usage / (1024 * 1024) if sys.platform == "darwin" else usage / 1024
+
+
+def perf_engine(lines: int, mapping_set_path: Path) -> int:
+    """Generate a clean synthetic migration, run the engine once, and report measured facts only."""
+    started = time.perf_counter()
+    migration = build_volume_migration(lines)
+    files = export_volume_migration(migration)
+    generated = time.perf_counter() - started
+    mapping = json.loads(mapping_set_path.read_text(encoding="utf-8"))
+    inputs = build_inputs(json.loads(files["migration.json"]), files, mapping)
+    started = time.perf_counter()
+    result = run_engine(inputs)
+    elapsed = time.perf_counter() - started
+    discrepancies = sum(len(r.discrepancies()) for r in result.reconciliations)
+    report = [
+        "Synthetic clean migration (Harborline Supply Co., fictional)",
+        f"  machine             {platform.platform()}; {platform.machine()}; "
+        f"{os.cpu_count()} logical CPUs; Python {platform.python_version()}",
+        f"  GL detail lines     {migration.line_count}",
+        f"  journal entries     {len(migration.entries)}",
+        f"  invoices / bills    {len(migration.invoices)} / {len(migration.bills)}",
+        f"  payments            {len(migration.payments)}",
+        f"  parties             {len(migration.customers)} customers, "
+        f"{len(migration.vendors)} vendors",
+        f"  source bytes        {sum(len(v) for v in files.values())}",
+        f"  generation seconds  {generated:.2f} (not part of the engine measurement)",
+        f"  engine seconds      {elapsed:.2f} (single run, wall clock, one process)",
+        f"  peak RSS MiB        {_peak_rss_mib():.0f} (whole process, including generation)",
+        f"  findings            {len(result.exceptions)}",
+        f"  recon discrepancies {discrepancies}",
+        f"  entity candidates   {len(result.candidates)}",
+    ]
+    sys.stdout.write("\n".join(report) + "\n")
+    # Clean books: any finding means the measurement is not of a correct run.
+    return 0 if not result.exceptions and discrepancies == 0 else 1
 
 
 def summary(scenario: Scenario, out_dir: Path | None) -> str:
@@ -72,7 +124,15 @@ def main(argv: list[str] | None = None) -> int:
         "check", help="verify committed fixtures match a fresh generation byte for byte"
     )
     check.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    perf = sub.add_parser(
+        "perf-engine", help="measure the engine on a synthetic clean migration of a given size"
+    )
+    perf.add_argument("--lines", type=int, default=250_000)
+    perf.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
     args = parser.parse_args(argv)
+
+    if args.command == "perf-engine":
+        return perf_engine(args.lines, args.mapping_set)
 
     if args.command == "generate":
         scenario = (

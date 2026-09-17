@@ -1,0 +1,1555 @@
+{
+  "description": "Column mapping set v1 as approved by the implementation team for the LedgerPro, First Cascade Bank and implementation-team files.",
+  "version": 1,
+  "bank_account_links": [
+    {
+      "file": "firstcascade/firstcascade_4471_statement.csv",
+      "bank_account": "4471",
+      "gl_account": "1010"
+    }
+  ],
+  "datasets": {
+    "ledgerpro/ledgerpro_chart_of_accounts.csv": {
+      "dataset_type": "legacy_coa",
+      "fields": {
+        "account_code": {
+          "source": "Account",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Description",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "subtype": {
+          "source": "Detail Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Cash on Hand": "cash",
+                "Checking": "cash",
+                "Money Market": "cash",
+                "Savings": "cash",
+                "Undeposited Funds": "cash",
+                "Accounts Receivable (A/R)": "accounts_receivable",
+                "Allowance for Bad Debts": "contra_asset",
+                "Other Current Assets": "other_current_asset",
+                "Employee Cash Advances": "other_current_asset",
+                "Loans to Others": "other_current_asset",
+                "Inventory": "inventory",
+                "Prepaid Expenses": "prepaid",
+                "Machinery & Equipment": "fixed_asset",
+                "Vehicles": "fixed_asset",
+                "Leasehold Improvements": "fixed_asset",
+                "Furniture & Fixtures": "fixed_asset",
+                "Accumulated Depreciation": "accumulated_depreciation",
+                "Security Deposits": "other_current_asset",
+                "Intangible Assets": "fixed_asset",
+                "Accumulated Amortization": "accumulated_depreciation",
+                "Accounts Payable (A/P)": "accounts_payable",
+                "Credit Card": "accrued_liability",
+                "Accrued Liabilities": "accrued_liability",
+                "Payroll Tax Payable": "payroll_liability",
+                "Sales Tax Payable": "accrued_liability",
+                "Federal Income Tax Payable": "accrued_liability",
+                "Other Current Liabilities": "accrued_liability",
+                "Deferred Revenue": "accrued_liability",
+                "Line of Credit": "line_of_credit",
+                "Notes Payable": "long_term_debt",
+                "Shareholder Notes Payable": "long_term_debt",
+                "Common Stock": "common_stock",
+                "Paid-In Capital or Surplus": "common_stock",
+                "Retained Earnings": "retained_earnings",
+                "Partner Distributions": "retained_earnings",
+                "Owner's Equity": "retained_earnings",
+                "Sales of Product Income": "operating_revenue",
+                "Service/Fee Income": "operating_revenue",
+                "Discounts/Refunds Given": "operating_revenue",
+                "Other Miscellaneous Income": "other_income",
+                "Interest Earned": "other_income",
+                "Supplies & Materials - COGS": "cost_of_goods_sold",
+                "Other Costs of Services - COS": "cost_of_goods_sold",
+                "Shipping, Freight & Delivery - COS": "cost_of_goods_sold",
+                "Advertising/Promotional": "operating_expense",
+                "Entertainment Meals": "operating_expense",
+                "Travel": "operating_expense",
+                "Charitable Contributions": "operating_expense",
+                "Taxes Paid": "operating_expense",
+                "Other Business Expenses": "operating_expense",
+                "Payroll Expenses": "operating_expense",
+                "Insurance": "operating_expense",
+                "Utilities": "operating_expense",
+                "Rent or Lease of Buildings": "operating_expense",
+                "Shipping, Freight & Delivery": "operating_expense",
+                "Auto": "operating_expense",
+                "Repair & Maintenance": "operating_expense",
+                "Equipment Rental": "operating_expense",
+                "Supplies": "operating_expense",
+                "Depreciation": "operating_expense",
+                "Amortization": "operating_expense",
+                "Bad Debts": "operating_expense",
+                "Office/General Administrative Expenses": "operating_expense",
+                "Bank Charges": "operating_expense",
+                "Dues & subscriptions": "operating_expense",
+                "Legal & Professional Fees": "operating_expense",
+                "Other Miscellaneous Service Cost": "operating_expense",
+                "Exchange Gain or Loss": "other_expense",
+                "Interest Paid": "other_expense",
+                "Other Miscellaneous Expense": "other_expense"
+              }
+            }
+          ]
+        },
+        "is_active": {
+          "source": "Active",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_boolean",
+              "true": [
+                "Yes"
+              ],
+              "false": [
+                "No"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_trial_balance_by_period.csv": {
+      "dataset_type": "trial_balance",
+      "fields": {
+        "account_code": {
+          "source": "Account",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "account_name": {
+          "source": "Description",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "period_end": {
+          "source": "Period Ending",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "balance": {
+          "debit_credit": {
+            "debit": "Debit",
+            "credit": "Credit",
+            "thousands_separator": ","
+          }
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_gl_detail_2026H1.csv": {
+      "dataset_type": "gl_detail",
+      "fields": {
+        "account_code": {
+          "source": "Account",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "entry_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "posting_period": {
+          "source": "Period",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_period",
+              "format": "MM/YYYY"
+            }
+          ]
+        },
+        "source_module": {
+          "source": "Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Invoice": "ar",
+                "Bill": "ap",
+                "Payment": "cash_receipts",
+                "Bill Pmt -Check": "cash_disbursements",
+                "Bill Pmt -ACH": "cash_disbursements",
+                "General Journal": "manual"
+              }
+            }
+          ]
+        },
+        "entry_number": {
+          "source": "Num",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "line_number": {
+          "source": "Line",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_integer"
+            }
+          ]
+        },
+        "document_number": {
+          "source": "Doc No",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "party_code": {
+          "source": "Name ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "memo": {
+          "source": "Memo",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "functional_amount": {
+          "debit_credit": {
+            "debit": "Debit",
+            "credit": "Credit",
+            "thousands_separator": ","
+          }
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "foreign_amount": {
+          "source": "Foreign Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ],
+          "required": false
+        },
+        "reversal_of": {
+          "source": "Reversal Of",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_customers.csv": {
+      "dataset_type": "customers",
+      "fields": {
+        "party_code": {
+          "source": "Customer ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Customer Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "address_line1": {
+          "source": "Address",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "city": {
+          "source": "City",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "region": {
+          "source": "State",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "postal_code": {
+          "source": "Zip",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "country": {
+          "source": "Country",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "email": {
+          "source": "AP Email",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "tax_id_last4": {
+          "source": "Tax ID",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "(\\d{4})$",
+              "group": 1
+            }
+          ],
+          "required": false
+        },
+        "default_currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "payment_terms_days": {
+          "source": "Terms",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "^Net (\\d+)$",
+              "group": 1
+            },
+            {
+              "step": "parse_integer"
+            }
+          ]
+        },
+        "is_active": {
+          "source": "Status",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_boolean",
+              "true": [
+                "Active"
+              ],
+              "false": [
+                "Inactive"
+              ]
+            }
+          ]
+        },
+        "created_on": {
+          "source": "Created",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_vendors.csv": {
+      "dataset_type": "vendors",
+      "fields": {
+        "party_code": {
+          "source": "Vendor ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Vendor Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "address_line1": {
+          "source": "Address",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "city": {
+          "source": "City",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "region": {
+          "source": "State",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "postal_code": {
+          "source": "Zip",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "tax_id_last4": {
+          "source": "Tax ID",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "(\\d{4})$",
+              "group": 1
+            }
+          ],
+          "required": false
+        },
+        "payment_terms_days": {
+          "source": "Terms",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Due on receipt": "Net 0"
+              },
+              "passthrough": true
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "^Net (\\d+)$",
+              "group": 1
+            },
+            {
+              "step": "parse_integer"
+            }
+          ]
+        },
+        "is_active": {
+          "source": "Status",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_boolean",
+              "true": [
+                "Active"
+              ],
+              "false": [
+                "Inactive"
+              ]
+            }
+          ]
+        },
+        "created_on": {
+          "source": "Created",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "notes": {
+          "source": "Notes",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_invoices.csv": {
+      "dataset_type": "invoices",
+      "fields": {
+        "document_number": {
+          "source": "Invoice No",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_code": {
+          "source": "Customer ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Customer Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "document_date": {
+          "source": "Invoice Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "subtotal": {
+          "source": "Subtotal",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        },
+        "tax": {
+          "source": "Tax",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        },
+        "total": {
+          "source": "Total",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        },
+        "fx_rate": {
+          "source": "Exchange Rate",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal"
+            }
+          ]
+        },
+        "functional_total": {
+          "source": "Total (USD)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        },
+        "open_amount": {
+          "source": "Balance Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_bills.csv": {
+      "dataset_type": "bills",
+      "fields": {
+        "document_number": {
+          "source": "Bill No",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_code": {
+          "source": "Vendor ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Vendor Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_reference": {
+          "source": "Vendor Ref",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "document_date": {
+          "source": "Bill Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "total": {
+          "source": "Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        },
+        "open_amount": {
+          "source": "Balance Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_payments.csv": {
+      "dataset_type": "payments",
+      "fields": {
+        "payment_number": {
+          "source": "Payment No",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "direction": {
+          "source": "Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Receipt": "received",
+                "Bill Payment": "disbursed"
+              }
+            }
+          ]
+        },
+        "payment_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "party_code": {
+          "source": "Name ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "method": {
+          "source": "Method",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "CHECK": "check",
+                "ACH": "ach",
+                "WIRE": "wire"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Check/Ref No",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "amount": {
+          "source": "Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        },
+        "fx_rate": {
+          "source": "Exchange Rate",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal"
+            }
+          ]
+        },
+        "functional_amount": {
+          "source": "Amount (USD)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        },
+        "applied_document": {
+          "source": "Applied To",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "applied_amount": {
+          "source": "Applied Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ],
+          "required": false
+        },
+        "unapplied_amount": {
+          "source": "Unapplied",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_ar_aging_20251231.csv": {
+      "dataset_type": "ar_aging",
+      "as_of": "2025-12-31",
+      "exclude_rows_where_blank": [
+        "Customer ID"
+      ],
+      "fields": {
+        "party_code": {
+          "source": "Customer ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Customer",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "kind": {
+          "source": "Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Invoice": "document",
+                "Payment": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Num",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open Balance (USD)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_ar_aging_20260630.csv": {
+      "dataset_type": "ar_aging",
+      "as_of": "2026-06-30",
+      "exclude_rows_where_blank": [
+        "Customer ID"
+      ],
+      "fields": {
+        "party_code": {
+          "source": "Customer ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Customer",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "kind": {
+          "source": "Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Invoice": "document",
+                "Payment": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Num",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open Balance (USD)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_ap_aging_20251231.csv": {
+      "dataset_type": "ap_aging",
+      "as_of": "2025-12-31",
+      "exclude_rows_where_blank": [
+        "Vendor ID"
+      ],
+      "fields": {
+        "party_code": {
+          "source": "Vendor ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Vendor",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "kind": {
+          "source": "Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Bill": "document",
+                "Payment": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Num",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open Balance (USD)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        }
+      }
+    },
+    "ledgerpro/ledgerpro_ap_aging_20260630.csv": {
+      "dataset_type": "ap_aging",
+      "as_of": "2026-06-30",
+      "exclude_rows_where_blank": [
+        "Vendor ID"
+      ],
+      "fields": {
+        "party_code": {
+          "source": "Vendor ID",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Vendor",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "kind": {
+          "source": "Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Bill": "document",
+                "Payment": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Num",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_date",
+              "format": "MM/DD/YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open Balance (USD)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "thousands_separator": ","
+            }
+          ]
+        }
+      }
+    },
+    "firstcascade/firstcascade_4471_statement.csv": {
+      "dataset_type": "bank_transactions",
+      "fields": {
+        "posted_date": {
+          "source": "Posted Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "YYYY-MM-DD"
+            }
+          ]
+        },
+        "description": {
+          "source": "Description",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "amount": {
+          "source": "Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal"
+            }
+          ]
+        },
+        "running_balance": {
+          "source": "Balance",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal"
+            }
+          ]
+        },
+        "reference": {
+          "source": "Reference",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "firstcascade/firstcascade_fx_eurusd.csv": {
+      "dataset_type": "fx_rates",
+      "fields": {
+        "rate_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "YYYY-MM-DD"
+            }
+          ]
+        },
+        "base_currency": {
+          "source": "Currency Pair",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "^([A-Z]{3})/",
+              "group": 1
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "quote_currency": {
+          "source": "Currency Pair",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "/([A-Z]{3})$",
+              "group": 1
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "rate": {
+          "source": "Rate",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal"
+            }
+          ]
+        }
+      }
+    },
+    "implementation/target_chart_of_accounts.csv": {
+      "dataset_type": "target_coa",
+      "fields": {
+        "account_code": {
+          "source": "Account Number",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Account Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "subtype": {
+          "source": "Account Subtype",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        }
+      }
+    },
+    "implementation/account_mapping_v2.csv": {
+      "dataset_type": "account_mapping",
+      "fields": {
+        "legacy_account_code": {
+          "source": "Legacy Account",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "target_account_code": {
+          "source": "Target Account",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

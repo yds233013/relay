@@ -137,3 +137,77 @@ Status: **Complete** (see commit log for the M1 commit).
 ### Next
 
 M2: deterministic engine (normalization, rules, reconciliations, entity candidates) run against the fixtures and compared with the golden manifest.
+
+---
+
+## M2 — Deterministic engine
+
+Status: **Complete** (commit `feat: implement deterministic validation engine`). Decisions and the engine-vs-manifest mismatch log: [decisions/0003-deterministic-engine.md](decisions/0003-deterministic-engine.md).
+
+### Built
+
+- **Ingestion** `relay.ingestion.csv_reader`: raw rows with physical-line lineage; malformed physical lines grouped into quarantined records with content-derived keys; bounded multi-line quoted fields; operator repair parsing.
+- **Column mapping** `relay.mapping.transforms`: allow-listed transform steps (trim, parse_decimal with an explicit amount format, parse_date/parse_period with explicit formats, value_map without guessing, regex_extract, currency, constant, debit/credit pairs). Invalid configuration fails before any row is read.
+- **Approved column mapping set** for the LedgerPro, First Cascade and implementation files: `fixtures/demo/brightwater_config/column_mapping_set_v1.json`. This is configuration a customer implementation would author; it contains no answers.
+- **Engine** `relay.engine`:
+  - `inputs`: migration descriptor, file hashes, bank account links
+  - `snapshot`: normalization with `NORM.*`, `COA.*`, `OVERRIDE.STALE`
+  - `overlays`: record overrides, quarantine repairs, entity decisions, account mapping changes, dispositions, gate waivers, sign-offs
+  - `entities`: candidate scoring v1 and decision clusters
+  - `rules`: 32 registered rules (MAP, GL, AR/AP mirrored, AP duplicates, PAY, CUR, PARTY, DATA)
+  - `reconciliation`: R1, R2, R3/R3b/R3o, R4/R4b/R4o, R5 (outstanding checks, deposits in transit, bank-only activity), R6 with provisional quarantine reconstruction, hints, drill-down
+  - `readiness`: G1–G12 on one result, exposure de-duplication, waivers and sign-offs bound to the input fingerprint
+  - `pipeline`: input and result fingerprints, severity overrides, de-duplication and stable ordering
+- **Runtime CLI** `relay engine run` (`make engine-run`): human summary or a JSON report.
+- **Evaluation** `relay_evaluation.brightwater.engine_compare`: resolves manifest selectors from the raw files with the independent reader and compares issues, reconciliation lines, R5, totals, candidates and traps exactly. `relay_evaluation.brightwater.resolution` encodes the documented resolutions (evaluation only).
+- **Generator additions** (`relay_scenarios`): LedgerPro export filter options for the re-exports DS-04, DS-09 and DS-12 require; `relay_scenarios.volume`, a synthetic clean company ("Harborline Supply Co.") at any GL size; `relay-demo perf-engine` (`make engine-perf`).
+- **Contracts**: layers `api > engine > ingestion | mapping > canonical > core`; the engine, ingestion, mapping and canonical packages may not import the API, database, configuration or clock modules, SQLAlchemy, psycopg, FastAPI or httpx. Verified to fail when violated.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Run #1 vs golden manifest (issues, severities, amounts, reconciliation lines, R5, totals, candidates, traps) | exact match (89 comparisons) |
+| Comparison is not vacuous (dropped, extra, wrong-severity and wrong-amount issues; missing reconciliation) | each detected |
+| Run #1 failing gates | G1, G3, G5, G6, G7, G8, G9, G10, G12 (= manifest) |
+| DS-01 merge | reveals exactly the manifest's DS-02 issues |
+| Documented resolutions (re-exports, overlays, dispositions) | G1–G11 pass, exposure 0.00, every reconciliation tied (R5 with explained items); G12 passes only with a sign-off bound to the same fingerprint |
+| Committed fixtures vs in-memory generation | identical input and result fingerprints |
+| Clean synthetic company | 0 findings, all reconciliations tied |
+| Rule catalog | every registered rule has a positive case except `AP.DOCUMENT_TOTAL_CONSISTENT` (not expressible in the bills export; enforced list); near-miss cases for look-alike patterns |
+| Backend tests (unit + scenario) | 591 passed |
+
+### Measured
+
+Brightwater Run #1 (fixtures, this machine): **1.0 s** for the full engine (read, normalize, rules, reconciliations, candidates); 9,669 staged GL lines; 65 findings (46 critical, 10 high, 7 medium, 2 low); 4 entity candidates.
+
+Synthetic volume (`make engine-perf`), measured once on an **Apple M2, 8 cores, 16 GB, macOS 14.5, Python 3.12.10**, single process:
+
+| GL lines | Entries | Invoices / bills | Payments | Parties | Source size | Engine wall time | Peak RSS (process) | Findings |
+|---|---|---|---|---|---|---|---|---|
+| 20,000 | 10,000 | 3,000 / 2,200 | 4,558 | 120 / 73 | 4.1 MB | 2.17 s | 127 MiB | 0 |
+| 250,000 | 125,000 | 37,500 / 27,500 | 56,697 | 1,500 / 916 | 50.8 MB | **34.64 s** | 1,019 MiB | 0 |
+
+The plan's target (< 60 s at 250k lines) is met on this machine. A cProfile run at 100,000 lines showed normalization at about 85% of engine time (money validation and per-cell transforms), with rules and reconciliations the remainder. Scaling from 20k to 250k lines is slightly worse than linear. Numbers from other machines will differ; nothing was extrapolated.
+
+### Changed from the plan, and why
+
+| Change | Reason |
+|---|---|
+| Overlays and the mapping set are JSON (`--mapping-set`, `--overlays`), not YAML | Standard library parser; the same shapes will be persisted in M3. |
+| Findings for reconciliation lines are `RECON.<id>` exceptions | One lifecycle for every blocking signal; see 0003 E-03. |
+| `GL.DUPLICATE_ENTRY` limited to manual entries; `PAY.DUPLICATE_PAYMENT` covers both directions; suspense is not a control subtype | 0003 E-07, E-08, E-09; the validation document was updated. |
+| Waivers do not carry across fingerprints yet; cross-run issue lifecycle not built | Needs persistence (M3) and waiver scopes (M7); 0003 E-11, E-12. |
+| Generator: C-0412 has only the DS-09 records; export filters added | Generator bug found by the manifest comparison (0003 M-01). Current Run #1 counts: 1,034 invoices, 1,331 bills, 879 receipts, 1,092 bill payments, 4,336 journal entries (9,678 lines), 2,019 bank lines. |
+
+### Known limitations and debt
+
+- The DS-06 below-strong candidate pairs score 0.6013 against a 0.60 threshold. The expected issue set is sensitive to entity weight changes.
+- `COA.TYPE_VALID` cannot be reached through the v1 mapping set (value maps reject unknown detail types first, as `NORM.PARSE_FAILURE`). `AP.DOCUMENT_TOTAL_CONSISTENT` cannot be reached through the LedgerPro bills export.
+- `regex_extract` patterns come from approved mapping configuration and are not protected against pathological backtracking; review before accepting mapping sets from untrusted users (M5).
+- Unresolved exposure is an attention metric that counts related findings on different subjects separately (for example R1 and R2 lines for the same defect).
+- The engine holds the whole migration in memory (about 1 GB at 250k lines). Persistence in M3 will stream staging to PostgreSQL.
+
+### Next
+
+M3: persistence of imports, runs, findings and issues; jobs; audit hash chain; read APIs.

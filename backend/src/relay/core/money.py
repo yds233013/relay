@@ -27,6 +27,7 @@ Decisions (see also ``docs/decisions/0001-money-representation.md``):
 
 from __future__ import annotations
 
+import functools
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -529,13 +530,18 @@ class AmountFormat:
                 raise AmountFormatError(f"invalid currency symbol {symbol!r}")
 
     def number_pattern(self) -> re.Pattern[str]:
-        decimal = re.escape(self.decimal_separator)
-        if self.thousands_separator is None:
-            integer = r"\d+"
-        else:
-            sep = re.escape(self.thousands_separator)
-            integer = rf"(?:\d{{1,3}}(?:{sep}\d{{3}})+|\d+)"
-        return re.compile(rf"{integer}(?:{decimal}\d+)?")
+        return _number_pattern(self.decimal_separator, self.thousands_separator)
+
+
+@functools.cache
+def _number_pattern(decimal_separator: str, thousands_separator: str | None) -> re.Pattern[str]:
+    decimal = re.escape(decimal_separator)
+    if thousands_separator is None:
+        integer = r"\d+"
+    else:
+        sep = re.escape(thousands_separator)
+        integer = rf"(?:\d{{1,3}}(?:{sep}\d{{3}})+|\d+)"
+    return re.compile(rf"{integer}(?:{decimal}\d+)?")
 
 
 def parse_amount_text(text: str, amount_format: AmountFormat) -> Decimal:

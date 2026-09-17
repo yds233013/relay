@@ -1,6 +1,6 @@
 # Relay — Validation Rules, Reconciliation & Entity Resolution
 
-Status: **Planned.**
+Status: **Implemented in M2** (`backend/src/relay/engine/`). Implementation decisions and refinements: [decisions/0003-deterministic-engine.md](decisions/0003-deterministic-engine.md).
 
 Related: [architecture.md](architecture.md) · [data-model.md](data-model.md) · [governance.md](governance.md) · [demo-scenario.md](demo-scenario.md)
 
@@ -81,7 +81,7 @@ class ExceptionDraft:
 | `MAP.ACCOUNT_UNMAPPED` | Legacy account with activity or non-zero balance has no target | critical | migration_defect |
 | `MAP.TARGET_ACCOUNT_EXISTS` | Mapping points to a code not in target CoA | critical | migration_defect |
 | `MAP.TYPE_COMPATIBLE` | Legacy type ≠ target type (asset→expense) | high | migration_defect |
-| `MAP.SUBTYPE_COMPATIBLE` | Control-account subtypes mixed (contra_asset→accounts_receivable, cash→non-cash) | high | migration_defect |
+| `MAP.SUBTYPE_COMPATIBLE` | Control-account subtypes mixed (contra_asset→accounts_receivable, cash→non-cash). Control subtypes: cash, accounts receivable, accounts payable, contra-asset, accumulated depreciation. Suspense is not one ([0003](decisions/0003-deterministic-engine.md) E-09) | high | migration_defect |
 
 **General ledger**
 
@@ -92,7 +92,7 @@ class ExceptionDraft:
 | `GL.ACCOUNT_EXISTS` | Line account not in legacy CoA | critical | \|Σ lines on missing account\| |
 | `GL.DATE_IN_WINDOW` | Entry date outside `[history_start, cutover]` | critical | \|entry debit total\| |
 | `GL.PERIOD_MATCHES_DATE` | Posting period ≠ fiscal period of entry date | medium (high if crosses fiscal year) | \|entry debit total\| |
-| `GL.DUPLICATE_ENTRY` | Two entries with same date, same line signature (account, amount multiset), not a reversal pair | high | \|debit total of duplicate\| |
+| `GL.DUPLICATE_ENTRY` | Two **manual** entries with same date, same line signature (account, amount multiset), not a reversal pair. Module postings are covered by the document-level duplicate rules ([0003](decisions/0003-deterministic-engine.md) E-07) | high | \|debit total of duplicate\| |
 | `GL.CONTROL_ACCOUNT_DIRECT_POST` | Manual (`source_module=manual`) lines to AR/AP control accounts without a party | medium | \|line\| |
 
 **AR / AP / payments** (AR shown; AP rules mirror with `bill`/vendor)
@@ -106,7 +106,7 @@ class ExceptionDraft:
 | `AR.OVERAPPLIED_DOCUMENT` | Σ applications > document total | high | source_anomaly |
 | `AR.OPEN_AMOUNT_CONSISTENT` | `total − Σ applications (≤ cutover) ≠ open_amount_at_cutover` | high | migration_defect |
 | `AP.DUPLICATE_BILL` | Same party cluster + normalized vendor reference, or same cluster + amount + date within N days | high | source_anomaly |
-| `PAY.DUPLICATE_PAYMENT` | Two disbursements to same cluster applied to duplicate-flagged bills, or same amount within N days referencing the same vendor reference | high | source_anomaly |
+| `PAY.DUPLICATE_PAYMENT` | Two payments (either direction) in the same party cluster with the same functional amount that apply to the same document, or to documents flagged as duplicates by `AP.DUPLICATE_BILL` ([0003](decisions/0003-deterministic-engine.md) E-08) | high | source_anomaly |
 | `PAY.UNAPPLIED_CASH` | Receipt with unapplied amount at cutover | low | source_anomaly |
 
 `AP.DUPLICATE_BILL` and `PAY.DUPLICATE_PAYMENT` operate on **party clusters**, so an approved entity merge can reveal new duplicates on rerun — intentionally.
@@ -229,7 +229,7 @@ All arithmetic is exact `Decimal`. Tolerance compares exact unexplained differen
 
 **R2 inherits R1 differences.** R2's right side is built from staged GL detail bucketed by derived period, the same basis as R1's right side, and both left sides come from the control TB. So every R1 discrepancy on a mapped legacy account also appears in R2 on its target account, for the same periods and with the same sign. R2 additionally detects mapping-level problems such as the `unmapped` bucket. This follows from the definitions; nothing is special-cased (SC-02).
 | **R5.CASH_VS_BANK** | completeness | Staged GL cash account balance | Bank statement ending balance at cutover | bank account | cutover | 0.00 unexplained | `outstanding_checks`, `deposits_in_transit`, `bank_only_activity` |
-| **R6.ACTIVITY_TOTALS** | completeness | Source GL rows (incl. quarantined count) | Staged journal lines | period: count, Σ debits, Σ credits | each period | exact counts, 0.00 | — |
+| **R6.ACTIVITY_TOTALS** | completeness | Source GL rows, including quarantined records reconstructed provisionally through the approved column mapping | Staged journal lines | posting period as exported: count, Σ debits, Σ credits | each period | exact counts, 0.00 | — |
 
 **Period basis.** R1 compares the control TB (which the legacy system reports by *posting period*) against detail bucketed by **derived period from entry date**, because the target ERP derives period from date (decision D-09). Posting-period/date disagreements therefore surface as R1 discrepancies in two adjacent periods that net to zero cumulatively, plus a `GL.PERIOD_MATCHES_DATE` exception. This is deliberate: it shows exactly how comparatives will differ after migration.
 

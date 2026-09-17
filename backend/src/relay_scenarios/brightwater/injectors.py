@@ -271,9 +271,8 @@ def ds06_duplicate_customer(universe: LegacyUniverse) -> None:
     _require(
         k.GREEN_VALLEY_DUPLICATE not in universe.customers, "duplicate customer already exists"
     )
-    used = {p.tax_id_last4 for p in universe.customers.values()}
-    tax = next(f"{n:04d}" for n in range(5306, 10000) if f"{n:04d}" not in used)
     original = universe.customers[k.GREEN_VALLEY]
+    tax = original.tax_id_last4  # same legal entity, entered again by another clerk
     universe.customers[k.GREEN_VALLEY_DUPLICATE] = Party(
         party_type=PartyType.CUSTOMER,
         code=k.GREEN_VALLEY_DUPLICATE,

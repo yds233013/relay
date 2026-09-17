@@ -149,6 +149,15 @@ demo-verify: ## EVALUATION ONLY: verify fixtures against the golden manifest
 demo-manifest: ## EVALUATION ONLY: print the golden manifest (reveals expected answers)
 	$(UV) relay-eval show-manifest
 
+# ------------------------------------------------------------------------------------ engine
+
+.PHONY: engine-run engine-perf
+engine-run: ## Run the deterministic engine over the Brightwater fixtures (Run #1) and print gates and findings
+	$(UV) relay engine run --migration ../fixtures/demo/brightwater --mapping-set ../fixtures/demo/brightwater_config/column_mapping_set_v1.json
+
+engine-perf: ## Measure the engine on a synthetic clean 250,000-line migration (about a minute)
+	$(UV) relay-demo perf-engine --lines 250000
+
 # ------------------------------------------------------------------------------------ build & verify
 
 .PHONY: build build-web compose-config compose-build check clean

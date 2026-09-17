@@ -54,6 +54,9 @@ CONTROL_SUBTYPES = frozenset(
     }
 )
 
+# Separate customer accounts of one legal entity legitimately share a tax id (documented design).
+SAME_LEGAL_ENTITY_ACCOUNTS = frozenset({"C-0107", "C-0154", "C-0198"})
+
 type Check = Callable[[LegacyUniverse], list[str]]
 
 
@@ -434,8 +437,15 @@ def check_mapping(universe: LegacyUniverse) -> list[str]:
 def check_parties(universe: LegacyUniverse) -> list[str]:
     problems = []
     for collection in (universe.customers, universe.vendors):
-        taxes = Counter(p.tax_id_last4 for p in collection.values() if p.tax_id_last4)
-        problems += [f"tax id suffix {t} shared by {n} parties" for t, n in taxes.items() if n > 1]
+        by_tax: dict[str, list[str]] = defaultdict(list)
+        for party in collection.values():
+            if party.tax_id_last4:
+                by_tax[party.tax_id_last4].append(party.code)
+        problems += [
+            f"tax id suffix {t} shared by {codes}"
+            for t, codes in by_tax.items()
+            if len(codes) > 1 and set(codes) - SAME_LEGAL_ENTITY_ACCOUNTS
+        ]
         names = Counter(p.name.casefold() for p in collection.values())
         problems += [f"party name {n} used {c} times" for n, c in names.items() if c > 1]
     active_documents = {d.party_code for d in universe.invoices.values()} | {

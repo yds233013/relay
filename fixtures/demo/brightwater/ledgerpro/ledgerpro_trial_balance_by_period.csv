@@ -1,12 +1,12 @@
 Account,Description,Period Ending,Debit,Credit
 1000,Petty Cash,12/31/2025,400.00,
-1010,Operating Account - First Cascade 4471,12/31/2025,"471,385.08",
+1010,Operating Account - First Cascade 4471,12/31/2025,"478,939.84",
 1015,Payroll Account - First Cascade 4488,12/31/2025,"5,000.00",
 1020,Money Market - First Cascade 4490,12/31/2025,"250,000.00",
 1030,Savings - Umpqua (closed),12/31/2025,0.00,
 1100,Undeposited Funds,12/31/2025,0.00,
 1110,Returned Checks,12/31/2025,0.00,
-1200,Accounts Receivable,12/31/2025,"1,772,345.16",
+1200,Accounts Receivable,12/31/2025,"1,768,954.25",
 1205,Allowance for Doubtful Accounts,12/31/2025,,"35,000.00"
 1215,Employee Advances,12/31/2025,0.00,
 1250,Other Receivables,12/31/2025,"3,150.00",
@@ -44,7 +44,7 @@ Account,Description,Period Ending,Debit,Credit
 2800,Due to Shareholder,12/31/2025,0.00,
 3000,Common Stock,12/31/2025,,"50,000.00"
 3100,Additional Paid-In Capital,12/31/2025,,"150,000.00"
-3900,Retained Earnings,12/31/2025,,"3,293,027.23"
+3900,Retained Earnings,12/31/2025,,"3,297,191.08"
 3950,Shareholder Distributions,12/31/2025,0.00,
 4000,Sales - Wholesale Grocery,12/31/2025,0.00,
 4010,Sales - Foodservice,12/31/2025,0.00,
@@ -132,18 +132,18 @@ Account,Description,Period Ending,Debit,Credit
 7900,Other Expense,12/31/2025,0.00,
 8000,Owner Draw (old),12/31/2025,0.00,
 1000,Petty Cash,01/31/2026,400.00,
-1010,Operating Account - First Cascade 4471,01/31/2026,"819,050.69",
+1010,Operating Account - First Cascade 4471,01/31/2026,"820,998.94",
 1015,Payroll Account - First Cascade 4488,01/31/2026,"5,000.00",
 1020,Money Market - First Cascade 4490,01/31/2026,"250,000.00",
 1030,Savings - Umpqua (closed),01/31/2026,0.00,
 1100,Undeposited Funds,01/31/2026,0.00,
 1110,Returned Checks,01/31/2026,0.00,
-1200,Accounts Receivable,01/31/2026,"1,744,002.81",
+1200,Accounts Receivable,01/31/2026,"1,742,054.56",
 1205,Allowance for Doubtful Accounts,01/31/2026,,"35,000.00"
 1215,Employee Advances,01/31/2026,0.00,
 1250,Other Receivables,01/31/2026,"3,150.00",
 1260,Notes Receivable,01/31/2026,0.00,
-1300,Inventory - Finished Goods,01/31/2026,"1,632,349.01",
+1300,Inventory - Finished Goods,01/31/2026,"1,635,262.21",
 1310,Inventory in Transit,01/31/2026,0.00,
 1320,Inventory - Samples,01/31/2026,0.00,
 1400,Prepaid Insurance,01/31/2026,"36,025.00",
@@ -176,17 +176,17 @@ Account,Description,Period Ending,Debit,Credit
 2800,Due to Shareholder,01/31/2026,0.00,
 3000,Common Stock,01/31/2026,,"50,000.00"
 3100,Additional Paid-In Capital,01/31/2026,,"150,000.00"
-3900,Retained Earnings,01/31/2026,,"3,293,027.23"
+3900,Retained Earnings,01/31/2026,,"3,297,191.08"
 3950,Shareholder Distributions,01/31/2026,0.00,
 4000,Sales - Wholesale Grocery,01/31/2026,,"1,649,544.47"
-4010,Sales - Foodservice,01/31/2026,,"167,708.77"
+4010,Sales - Foodservice,01/31/2026,,"163,544.92"
 4100,Sales - Export,01/31/2026,,"27,217.86"
 4200,Freight Income,01/31/2026,0.00,
 4300,Rebate Income,01/31/2026,0.00,
 4400,Miscellaneous Income,01/31/2026,0.00,
 4900,Sales Discounts,01/31/2026,0.00,
 4950,Returns & Allowances,01/31/2026,0.00,
-5000,Cost of Goods Sold,01/31/2026,"1,342,036.88",
+5000,Cost of Goods Sold,01/31/2026,"1,339,123.68",
 5010,Inventory Adjustments,01/31/2026,0.00,
 5020,Purchase Price Variance,01/31/2026,0.00,
 5030,Samples & Demos,01/31/2026,0.00,
@@ -275,7 +275,7 @@ Account,Description,Period Ending,Debit,Credit
 1215,Employee Advances,02/28/2026,0.00,
 1250,Other Receivables,02/28/2026,"3,150.00",
 1260,Notes Receivable,02/28/2026,0.00,
-1300,Inventory - Finished Goods,02/28/2026,"1,790,618.52",
+1300,Inventory - Finished Goods,02/28/2026,"1,793,407.46",
 1310,Inventory in Transit,02/28/2026,0.00,
 1320,Inventory - Samples,02/28/2026,0.00,
 1400,Prepaid Insurance,02/28/2026,"32,750.00",
@@ -308,17 +308,17 @@ Account,Description,Period Ending,Debit,Credit
 2800,Due to Shareholder,02/28/2026,0.00,
 3000,Common Stock,02/28/2026,,"50,000.00"
 3100,Additional Paid-In Capital,02/28/2026,,"150,000.00"
-3900,Retained Earnings,02/28/2026,,"3,293,027.23"
+3900,Retained Earnings,02/28/2026,,"3,297,191.08"
 3950,Shareholder Distributions,02/28/2026,0.00,
 4000,Sales - Wholesale Grocery,02/28/2026,,"3,107,819.42"
-4010,Sales - Foodservice,02/28/2026,,"287,378.68"
+4010,Sales - Foodservice,02/28/2026,,"283,214.83"
 4100,Sales - Export,02/28/2026,,"46,644.81"
 4200,Freight Income,02/28/2026,0.00,
 4300,Rebate Income,02/28/2026,0.00,
 4400,Miscellaneous Income,02/28/2026,0.00,
 4900,Sales Discounts,02/28/2026,0.00,
 4950,Returns & Allowances,02/28/2026,0.00,
-5000,Cost of Goods Sold,02/28/2026,"2,497,126.04",
+5000,Cost of Goods Sold,02/28/2026,"2,494,337.10",
 5010,Inventory Adjustments,02/28/2026,0.00,
 5020,Purchase Price Variance,02/28/2026,0.00,
 5030,Samples & Demos,02/28/2026,0.00,
@@ -407,7 +407,7 @@ Account,Description,Period Ending,Debit,Credit
 1215,Employee Advances,03/31/2026,0.00,
 1250,Other Receivables,03/31/2026,"3,150.00",
 1260,Notes Receivable,03/31/2026,0.00,
-1300,Inventory - Finished Goods,03/31/2026,"1,871,257.05",
+1300,Inventory - Finished Goods,03/31/2026,"1,874,045.99",
 1310,Inventory in Transit,03/31/2026,0.00,
 1320,Inventory - Samples,03/31/2026,0.00,
 1400,Prepaid Insurance,03/31/2026,"29,475.00",
@@ -440,17 +440,17 @@ Account,Description,Period Ending,Debit,Credit
 2800,Due to Shareholder,03/31/2026,0.00,
 3000,Common Stock,03/31/2026,,"50,000.00"
 3100,Additional Paid-In Capital,03/31/2026,,"150,000.00"
-3900,Retained Earnings,03/31/2026,,"3,293,027.23"
+3900,Retained Earnings,03/31/2026,,"3,297,191.08"
 3950,Shareholder Distributions,03/31/2026,0.00,
 4000,Sales - Wholesale Grocery,03/31/2026,,"4,842,217.40"
-4010,Sales - Foodservice,03/31/2026,,"480,487.14"
+4010,Sales - Foodservice,03/31/2026,,"476,323.29"
 4100,Sales - Export,03/31/2026,,"78,182.12"
 4200,Freight Income,03/31/2026,0.00,
 4300,Rebate Income,03/31/2026,0.00,
 4400,Miscellaneous Income,03/31/2026,0.00,
 4900,Sales Discounts,03/31/2026,0.00,
 4950,Returns & Allowances,03/31/2026,0.00,
-5000,Cost of Goods Sold,03/31/2026,"3,937,775.17",
+5000,Cost of Goods Sold,03/31/2026,"3,934,986.23",
 5010,Inventory Adjustments,03/31/2026,0.00,
 5020,Purchase Price Variance,03/31/2026,0.00,
 5030,Samples & Demos,03/31/2026,0.00,
@@ -539,7 +539,7 @@ Account,Description,Period Ending,Debit,Credit
 1215,Employee Advances,04/30/2026,0.00,
 1250,Other Receivables,04/30/2026,"3,150.00",
 1260,Notes Receivable,04/30/2026,0.00,
-1300,Inventory - Finished Goods,04/30/2026,"2,014,356.83",
+1300,Inventory - Finished Goods,04/30/2026,"2,017,145.77",
 1310,Inventory in Transit,04/30/2026,0.00,
 1320,Inventory - Samples,04/30/2026,0.00,
 1400,Prepaid Insurance,04/30/2026,"26,200.00",
@@ -572,17 +572,17 @@ Account,Description,Period Ending,Debit,Credit
 2800,Due to Shareholder,04/30/2026,0.00,
 3000,Common Stock,04/30/2026,,"50,000.00"
 3100,Additional Paid-In Capital,04/30/2026,,"150,000.00"
-3900,Retained Earnings,04/30/2026,,"3,293,027.23"
+3900,Retained Earnings,04/30/2026,,"3,297,191.08"
 3950,Shareholder Distributions,04/30/2026,0.00,
 4000,Sales - Wholesale Grocery,04/30/2026,,"6,425,399.68"
-4010,Sales - Foodservice,04/30/2026,,"638,804.30"
+4010,Sales - Foodservice,04/30/2026,,"634,640.45"
 4100,Sales - Export,04/30/2026,,"102,532.84"
 4200,Freight Income,04/30/2026,0.00,
 4300,Rebate Income,04/30/2026,0.00,
 4400,Miscellaneous Income,04/30/2026,0.00,
 4900,Sales Discounts,04/30/2026,0.00,
 4950,Returns & Allowances,04/30/2026,0.00,
-5000,Cost of Goods Sold,04/30/2026,"5,215,222.51",
+5000,Cost of Goods Sold,04/30/2026,"5,212,433.57",
 5010,Inventory Adjustments,04/30/2026,0.00,
 5020,Purchase Price Variance,04/30/2026,0.00,
 5030,Samples & Demos,04/30/2026,0.00,
@@ -671,7 +671,7 @@ Account,Description,Period Ending,Debit,Credit
 1215,Employee Advances,05/31/2026,0.00,
 1250,Other Receivables,05/31/2026,"3,150.00",
 1260,Notes Receivable,05/31/2026,0.00,
-1300,Inventory - Finished Goods,05/31/2026,"2,001,913.40",
+1300,Inventory - Finished Goods,05/31/2026,"2,004,702.34",
 1310,Inventory in Transit,05/31/2026,0.00,
 1320,Inventory - Samples,05/31/2026,0.00,
 1400,Prepaid Insurance,05/31/2026,"22,925.00",
@@ -704,17 +704,17 @@ Account,Description,Period Ending,Debit,Credit
 2800,Due to Shareholder,05/31/2026,0.00,
 3000,Common Stock,05/31/2026,,"50,000.00"
 3100,Additional Paid-In Capital,05/31/2026,,"150,000.00"
-3900,Retained Earnings,05/31/2026,,"3,293,027.23"
+3900,Retained Earnings,05/31/2026,,"3,297,191.08"
 3950,Shareholder Distributions,05/31/2026,0.00,
 4000,Sales - Wholesale Grocery,05/31/2026,,"8,096,053.22"
-4010,Sales - Foodservice,05/31/2026,,"769,578.74"
+4010,Sales - Foodservice,05/31/2026,,"765,414.89"
 4100,Sales - Export,05/31/2026,,"137,486.72"
 4200,Freight Income,05/31/2026,0.00,
 4300,Rebate Income,05/31/2026,0.00,
 4400,Miscellaneous Income,05/31/2026,0.00,
 4900,Sales Discounts,05/31/2026,0.00,
 4950,Returns & Allowances,05/31/2026,0.00,
-5000,Cost of Goods Sold,05/31/2026,"6,546,585.60",
+5000,Cost of Goods Sold,05/31/2026,"6,543,796.66",
 5010,Inventory Adjustments,05/31/2026,0.00,
 5020,Purchase Price Variance,05/31/2026,0.00,
 5030,Samples & Demos,05/31/2026,0.00,
@@ -803,7 +803,7 @@ Account,Description,Period Ending,Debit,Credit
 1215,Employee Advances,06/30/2026,0.00,
 1250,Other Receivables,06/30/2026,"3,150.00",
 1260,Notes Receivable,06/30/2026,0.00,
-1300,Inventory - Finished Goods,06/30/2026,"1,915,427.96",
+1300,Inventory - Finished Goods,06/30/2026,"1,918,216.90",
 1310,Inventory in Transit,06/30/2026,0.00,
 1320,Inventory - Samples,06/30/2026,0.00,
 1400,Prepaid Insurance,06/30/2026,"19,650.00",
@@ -836,17 +836,17 @@ Account,Description,Period Ending,Debit,Credit
 2800,Due to Shareholder,06/30/2026,0.00,
 3000,Common Stock,06/30/2026,,"50,000.00"
 3100,Additional Paid-In Capital,06/30/2026,,"150,000.00"
-3900,Retained Earnings,06/30/2026,,"3,293,027.23"
+3900,Retained Earnings,06/30/2026,,"3,297,191.08"
 3950,Shareholder Distributions,06/30/2026,0.00,
 4000,Sales - Wholesale Grocery,06/30/2026,,"9,878,923.41"
-4010,Sales - Foodservice,06/30/2026,,"891,778.49"
+4010,Sales - Foodservice,06/30/2026,,"887,614.64"
 4100,Sales - Export,06/30/2026,,"170,497.53"
 4200,Freight Income,06/30/2026,0.00,
 4300,Rebate Income,06/30/2026,0.00,
 4400,Miscellaneous Income,06/30/2026,0.00,
 4900,Sales Discounts,06/30/2026,0.00,
 4950,Returns & Allowances,06/30/2026,0.00,
-5000,Cost of Goods Sold,06/30/2026,"7,952,071.91",
+5000,Cost of Goods Sold,06/30/2026,"7,949,282.97",
 5010,Inventory Adjustments,06/30/2026,0.00,
 5020,Purchase Price Variance,06/30/2026,0.00,
 5030,Samples & Demos,06/30/2026,0.00,

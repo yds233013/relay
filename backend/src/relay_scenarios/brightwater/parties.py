@@ -897,6 +897,8 @@ def build_customers(rng: ScenarioRng) -> list[CustomerProfile]:
 
     # ---------------------------------------------------------------- documented customers
     anchor_rng = rng.child("anchors")
+    # One legal entity (Green Valley Co-op) with separate customer accounts: shared tax id.
+    green_valley_tax = tax.take()
     profiles.append(
         CustomerProfile(
             _customer(
@@ -904,7 +906,7 @@ def build_customers(rng: ScenarioRng) -> list[CustomerProfile]:
                 name="Green Valley Co-op",
                 address=("1220 SE Hawthorne Blvd", "Portland", "OR", "97214"),
                 email="ap@greenvalley.coop",
-                tax=tax.take(),
+                tax=green_valley_tax,
                 terms=30,
                 created_on=date(2014, 5, 12),
             ),
@@ -920,7 +922,7 @@ def build_customers(rng: ScenarioRng) -> list[CustomerProfile]:
                 name="GREEN VALLEY COOP #2",
                 address=("7815 N Lombard St", "Portland", "OR", "97203"),
                 email="store2.accounts@greenvalley.coop",
-                tax=tax.take(),
+                tax=green_valley_tax,
                 terms=30,
                 created_on=date(2021, 8, 3),
             ),

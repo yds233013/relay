@@ -33,15 +33,17 @@ Canonical documents (read the relevant one before working in an area):
 Implemented milestones (see `docs/progress.md` for status, commits and verification):
 - **M0**: backend and web foundations, financial/date/timestamp primitives (`backend/src/relay/core/`), Alembic baseline, Docker Compose, Makefile, CI.
 - **M1**: canonical accounting model (`relay.canonical`), deterministic Brightwater generator (`relay_scenarios`), source fixtures (`fixtures/demo/brightwater/`), hand-authored golden manifest (`evaluation/brightwater/`), evaluation verifier (`relay_evaluation`).
+- **M2**: pure deterministic engine: CSV ingestion with quarantine (`relay.ingestion`), declarative column mapping (`relay.mapping`), normalization, rules, reconciliations R1–R6, entity candidates, readiness gates and fingerprints (`relay.engine`); `relay engine run`; engine-vs-manifest comparison (`relay_evaluation.brightwater.engine_compare`); synthetic volume generator (`relay_scenarios.volume`). Decisions: `docs/decisions/0003-deterministic-engine.md`.
 
-Relay product features (ingestion, rules engine, reconciliation engine, issues, approvals, readiness, audit, AI) are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
+Persistence, APIs for engine results, issues lifecycle across runs, approvals, audit, UI and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
-- `backend/src/relay/`: **runtime** package (`core`, `canonical`, `api`, and later engine/product modules)
+- `backend/src/relay/`: **runtime** package (`core`, `canonical`, `ingestion`, `mapping`, `engine`, `api`, `cli.py`)
 - `backend/src/relay_scenarios/`: **demo/evaluation-only** scenario generators (they know which issues they plant)
 - `backend/src/relay_evaluation/`: **evaluation-only** golden-manifest loader, reference oracle, verifier
 - `backend/migrations/` (Alembic), `backend/tests/{unit,integration,scenario}`
 - `fixtures/demo/brightwater/`: generated source-style files Relay ingests (no answers inside)
+- `fixtures/demo/brightwater_config/`: the approved column mapping set for those files (configuration, no answers)
 - `evaluation/brightwater/golden_manifest.toml`: hand-authored ground truth (never read by runtime code)
 - `web/`: Next.js app (`src/app`, `src/lib`)
   - `web/AGENTS.md` and `web/CLAUDE.md` are generated and re-created by `next dev`. They only point to the Next.js 16 docs bundled in `node_modules/next/dist/docs/`. Read those docs before writing Next.js code; every rule in this file still applies inside `web/`.
@@ -81,6 +83,8 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make demo-check` | Committed fixtures equal a fresh generation byte for byte |
 | `make demo-verify` | **Evaluation only**: verify fixtures against the golden manifest |
 | `make demo-manifest` | **Evaluation only**: print the golden manifest |
+| `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
+| `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
 | `make clean` | Remove caches and build output |
 
 Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY_DB_HOST_PORT`, `RELAY_API_HOST_PORT` and `RELAY_WEB_HOST_PORT` in the environment or `.env`.
@@ -89,7 +93,6 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| `uv run relay engine run --fixtures … --config …` | Run pure engine from files | M2 |
 | `uv run relay worker` (+ `worker` Compose service) | Job worker | M3 |
 | `uv run relay demo seed` | Seed Brightwater "day 9" state | M3 |
 | `uv run relay verify-audit --migration <id>` | Verify audit hash chain | M3 |
