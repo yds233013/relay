@@ -64,6 +64,18 @@ Related: [security-and-correctness.md](security-and-correctness.md) · [demo-sce
 - AI tools: executed in `READ ONLY` transaction (attempted write raises); tool cannot access another migration's records.
 - Authorization: each role against each mutating endpoint (table-driven).
 - Dev identity refused when `RELAY_ENV=production`.
+- Adversarial (`test_adversarial.py`): work belonging to another migration, repeated and replayed
+  actions, amounts at the edge of `NUMERIC(20,4)`, a worker that dies mid-job, unknown job kinds and
+  references to records that do not exist.
+- Optimistic concurrency is a `version` field in the request body with `409` on conflict, not
+  `If-Match`/`412` (see [traceability.md](traceability.md) GV-08).
+
+**Ordering.** `test_governance.py`, `test_issue_workflow.py`, `test_brightwater_persisted.py`,
+`test_readiness.py` and `test_ai.py` each tell one story against a module-scoped seeded migration,
+and their tests mutate it in order: approvals, runs, dispositions, sign-off. That is deliberate —
+it exercises the product the way a real project moves — but it means a single test selected with
+`-k` will usually fail on its own. Run a whole module. `test_database.py` creates a database of its
+own for migration round trips, so downgrades cannot touch what other modules seeded.
 
 ### 2.5 Contract tests
 

@@ -21,9 +21,25 @@ def migrations(session: Session) -> list[tuple[Migration, Company]]:
     ]
 
 
+def migration_with_company(
+    session: Session, migration_id: uuid.UUID
+) -> tuple[Migration, Company] | None:
+    return (
+        session.execute(
+            select(Migration, Company)
+            .join(Company, Company.id == Migration.company_id)
+            .where(Migration.id == migration_id)
+        )
+        .tuples()
+        .first()
+    )
+
+
 def datasets_for(session: Session, migration_id: uuid.UUID) -> list[Dataset]:
     return list(
         session.scalars(
-            select(Dataset).where(Dataset.migration_id == migration_id).order_by(Dataset.name)
+            select(Dataset)
+            .where(Dataset.migration_id == migration_id)
+            .order_by(Dataset.dataset_type, Dataset.as_of_date, Dataset.name)
         )
     )

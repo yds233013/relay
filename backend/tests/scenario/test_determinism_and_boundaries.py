@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import pathlib
 import re
 import subprocess
 
@@ -176,13 +177,42 @@ FORBIDDEN_RUNTIME_TEXT = [
 ]
 
 
+def _scanned_files() -> list[pathlib.Path]:
+    """Everything that ships as product: the runtime package, its migrations, and the web app.
+
+    Not just ``*.py``: a JSON, SQL or TypeScript file could carry the same knowledge, and the web
+    app is as much the product as the engine is.
+    """
+    roots = [RUNTIME_SRC, BACKEND / "migrations", REPO_ROOT / "web" / "src"]
+    suffixes = {".py", ".ts", ".tsx", ".js", ".jsx", ".json", ".sql", ".toml", ".yaml", ".yml"}
+    return sorted(
+        path
+        for root in roots
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.suffix in suffixes
+        and "__pycache__" not in path.parts
+        and "node_modules" not in path.parts
+        # Generated from the API's own schema; it names endpoints, never scenario data.
+        and path.name not in {"openapi.json", "schema.d.ts"}
+    )
+
+
+def test_the_boundary_scan_covers_the_whole_product() -> None:
+    scanned = {str(path.relative_to(REPO_ROOT)) for path in _scanned_files()}
+    assert len(scanned) > 150
+    assert any(p.startswith("backend/src/relay/engine/") for p in scanned)
+    assert any(p.startswith("backend/migrations/") for p in scanned)
+    assert any(p.startswith("web/src/app/") for p in scanned)
+
+
 def test_runtime_code_has_no_scenario_specific_knowledge() -> None:
     offenders: list[tuple[str, str]] = []
-    for path in sorted(RUNTIME_SRC.rglob("*.py")):
+    for path in _scanned_files():
         text = path.read_text(encoding="utf-8")
         for pattern in FORBIDDEN_RUNTIME_TEXT:
             offenders.extend(
-                (str(path.relative_to(BACKEND)), match.group(0))
+                (str(path.relative_to(REPO_ROOT)), match.group(0))
                 for match in re.finditer(pattern, text, re.IGNORECASE)
             )
     assert offenders == []

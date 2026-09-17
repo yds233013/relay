@@ -657,6 +657,30 @@ def test_an_approval_that_applies_a_change_never_deadlocks_with_a_running_pipeli
             f"/api/v1/change-requests/{change['id']}/approve", json={}, headers=headers(PRIYA)
         )
 
+    def _await_lock_contention(engine: Engine, pipeline_key: int, audit_key: int) -> None:
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            with engine.connect() as watcher:
+                waiting = watcher.execute(
+                    text(
+                        "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'"
+                        " AND ((classid::bigint << 32) | objid::bigint)::bigint = :pipeline"
+                        " AND NOT granted"
+                    ),
+                    {"pipeline": pipeline_key},
+                ).scalar_one()
+                held = watcher.execute(
+                    text(
+                        "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'"
+                        " AND ((classid::bigint << 32) | objid::bigint)::bigint = :audit"
+                    ),
+                    {"audit": audit_key},
+                ).scalar_one()
+            if waiting or held:
+                return
+            time.sleep(0.05)
+        raise AssertionError("the approval never reached the pipeline or audit lock")
+
     pipeline_key = advisory_lock_key("pipeline", migration_id)
     audit_key = advisory_lock_key("audit", migration_id)
     with engine.connect() as worker:
@@ -664,7 +688,9 @@ def test_an_approval_that_applies_a_change_never_deadlocks_with_a_running_pipeli
         worker.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": pipeline_key})
         thread = threading.Thread(target=approve)
         thread.start()
-        time.sleep(1.0)  # the approval is now waiting (fixed) or holding the audit lock (bug)
+        # Wait until the approval is actually blocked on the pipeline lock (fixed) or has taken the
+        # audit lock (the bug). Sleeping instead would pass vacuously on a slow machine.
+        _await_lock_contention(engine, pipeline_key, audit_key)
         worker.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": audit_key})
         worker.commit()
     thread.join(timeout=30)

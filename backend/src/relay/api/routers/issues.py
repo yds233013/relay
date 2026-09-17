@@ -31,6 +31,7 @@ from relay.changes.models import Disposition, EntityDecision
 from relay.core.actor import Actor
 from relay.identity import service as identity
 from relay.identity.permissions import Permission
+from relay.issues import read_model as issues_read
 from relay.issues import workflow
 from relay.issues.models import Issue
 from relay.pipeline import overrides as run_evidence
@@ -138,11 +139,7 @@ def add_comment(
 def list_links(issue_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -> list[IssueLinkOut]:
     workflow.get_issue(session, issue_id)
     links = []
-    for link in workflow.links_for(session, issue_id):
-        other_id = link.to_issue_id if link.from_issue_id == issue_id else link.from_issue_id
-        other = session.get(Issue, other_id)
-        if other is None:
-            continue
+    for link, other in issues_read.links_for(session, issue_id):
         links.append(
             IssueLinkOut(
                 id=link.id,

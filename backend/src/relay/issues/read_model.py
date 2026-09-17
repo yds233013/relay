@@ -76,10 +76,17 @@ def links_for(session: Session, issue_id: uuid.UUID) -> list[tuple[IssueLink, Is
         .where(or_(IssueLink.from_issue_id == issue_id, IssueLink.to_issue_id == issue_id))
         .order_by(IssueLink.created_at, IssueLink.id)
     ).all()
+    other_ids = {
+        (link.to_issue_id if link.from_issue_id == issue_id else link.from_issue_id)
+        for link in rows
+    }
+    others = {
+        issue.id: issue for issue in session.scalars(select(Issue).where(Issue.id.in_(other_ids)))
+    }
     linked = []
     for link in rows:
-        other = session.get(
-            Issue, link.to_issue_id if link.from_issue_id == issue_id else link.from_issue_id
+        other = others.get(
+            link.to_issue_id if link.from_issue_id == issue_id else link.from_issue_id
         )
         if other is not None:
             linked.append((link, other))

@@ -136,7 +136,15 @@ def run_once(context: WorkerContext) -> bool:
             "code": exc.code if isinstance(exc, RelayError) else "job.unexpected_error",
             "detail": exc.detail if isinstance(exc, RelayError) else type(exc).__name__,
         }
-        _log.warning("job_failed", job_id=str(job_id), kind=kind.value, error_code=error["code"])
+        # An unexpected exception carries no code and no detail worth storing (SEC-14), so the
+        # traceback has to reach the log or the failure is undebuggable.
+        _log.warning(
+            "job_failed",
+            job_id=str(job_id),
+            kind=kind.value,
+            error_code=error["code"],
+            exc_info=not isinstance(exc, RelayError),
+        )
         with session_scope(context.session_factory) as session:
             job = session.get(Job, job_id, with_for_update=True)
             final = not transient or (job is not None and job.attempts >= job.max_attempts)

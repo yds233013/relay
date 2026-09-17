@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import dataclasses
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from relay.canonical.enums import PartyType
@@ -81,25 +83,46 @@ class RunConfiguration:
         )
 
 
+def _by_id[Row](
+    session: Session, model: type[Row], ids: Iterable[uuid.UUID | None]
+) -> dict[uuid.UUID, Row]:
+    wanted = [i for i in ids if i is not None]
+    if not wanted:
+        return {}
+    rows = session.scalars(select(model).where(model.id.in_(wanted)))  # type: ignore[attr-defined]
+    return {row.id: row for row in rows}  # type: ignore[attr-defined]
+
+
 def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfiguration:
     migration = workspace.get_migration(session, migration_id)
+    # Every dataset's import, file, mapping set and source system in a handful of queries: the
+    # portfolio asks for this per migration, and a per-dataset walk made that a hundred round trips.
+    datasets = list(workspace.datasets_for(session, migration.id))
+    imports_by_id = _by_id(session, Import, [d.active_import_id for d in datasets])
+    files_by_id = _by_id(session, StoredFile, [i.stored_file_id for i in imports_by_id.values()])
+    systems_by_id = _by_id(session, SourceSystem, [d.source_system_id for d in datasets])
+    approved_by_dataset = mapping_sets.approved_sets(session, [d.id for d in datasets])
+    configs = mapping_sets.engine_configs(
+        session,
+        [
+            (approved_by_dataset[d.id], d.dataset_type)
+            for d in datasets
+            if d.id in approved_by_dataset
+        ],
+    )
     states = []
-    for dataset in workspace.datasets_for(session, migration.id):
-        active = session.get(Import, dataset.active_import_id) if dataset.active_import_id else None
-        stored = session.get(StoredFile, active.stored_file_id) if active else None
-        approved = mapping_sets.approved_set(session, dataset.id)
-        system = session.get(SourceSystem, dataset.source_system_id)
+    for dataset in datasets:
+        active = imports_by_id.get(dataset.active_import_id) if dataset.active_import_id else None
+        stored = files_by_id.get(active.stored_file_id) if active else None
+        approved = approved_by_dataset.get(dataset.id)
+        system = systems_by_id.get(dataset.source_system_id)
         states.append(
             DatasetState(
                 dataset=dataset,
                 active_import=active,
                 stored_file=stored,
                 mapping_set_id=approved.id if approved else None,
-                mapping_config=(
-                    mapping_sets.engine_config(session, approved, dataset.dataset_type)
-                    if approved
-                    else None
-                ),
+                mapping_config=configs.get(approved.id) if approved else None,
                 source_system=system.name if system else "",
             )
         )

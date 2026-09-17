@@ -115,10 +115,11 @@ def list_migrations(
 
 @router.get("/migrations/{migration_id}")
 def get_migration(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -> MigrationOut:
-    for migration, company in workspace_read.migrations(session):
-        if migration.id == migration_id:
-            return migration_out(migration, company.name)
-    raise ResourceNotFoundError("migration not found")
+    found = workspace_read.migration_with_company(session, migration_id)
+    if found is None:
+        raise ResourceNotFoundError("migration not found")
+    migration, company = found
+    return migration_out(migration, company.name)
 
 
 @router.get("/migrations/{migration_id}/overview")

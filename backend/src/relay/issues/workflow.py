@@ -11,7 +11,7 @@ import uuid
 from collections.abc import Iterable
 from typing import ClassVar, Final
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from relay.audit import service as audit
@@ -24,7 +24,6 @@ from relay.issues.models import (
     OPEN_STATUSES,
     Issue,
     IssueComment,
-    IssueLink,
     IssueSource,
     IssueStatus,
 )
@@ -216,16 +215,6 @@ def comments_for(session: Session, issue_id: uuid.UUID) -> list[IssueComment]:
             select(IssueComment)
             .where(IssueComment.issue_id == issue_id)
             .order_by(IssueComment.created_at, IssueComment.id)
-        )
-    )
-
-
-def links_for(session: Session, issue_id: uuid.UUID) -> list[IssueLink]:
-    return list(
-        session.scalars(
-            select(IssueLink)
-            .where(or_(IssueLink.from_issue_id == issue_id, IssueLink.to_issue_id == issue_id))
-            .order_by(IssueLink.created_at, IssueLink.id)
         )
     )
 

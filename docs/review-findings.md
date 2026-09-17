@@ -142,3 +142,83 @@ Already covered before this pass, re-verified: duplicate and modified uploads (`
 stale approvals (`test_governance.py`), malicious instruction-like document text
 (`DATA.INSTRUCTION_LIKE_TEXT`, the AI injection eval), malformed CSVs, duplicate jobs, and the
 false-positive traps in the Brightwater scenario (`tests/scenario/test_traps_and_manifest.py`).
+
+---
+
+## Pass 3 — anti-cheating audit
+
+Searched the whole product — `backend/src/relay`, `backend/migrations` and `web/src` — for scenario
+identifiers (`DS-`, `TN-`), Brightwater record ids and party names, the known defect amounts, imports
+of the generator or evaluation packages, reads of `evaluation/` or `fixtures/`, and branching on file
+names, dataset names or company names. Also re-examined every tunable in `engine/policy.py` and the
+entity-resolution weights for values that only make sense for the demo.
+
+**Result: the runtime is clean.** Every scenario-dependent value arrives as data (`migration.json`,
+the approved mapping set, the policy version); dataset types and column-header synonyms are generic
+ERP vocabulary; the zero reconciliation tolerances cannot be tuned to make a demo pass, only to make
+it stricter; and no score auto-merges anything — a candidate is a proposal a person decides.
+
+Two capability limits are honest narrowness rather than cheating, and are stated here because a
+reader should not mistake them for generality: the profiler recognises three date shapes
+(`MM/DD/YYYY`, `YYYY-MM-DD`, `MM/YYYY`), and amount suggestions assume `,` grouping with `(…)`
+negatives. Anything else produces "choose the format" rather than a guess, and the operator maps it
+by hand — which is what the governed mapping workflow is for.
+
+### What the guard tests missed, and now cover
+
+The boundary scan read `backend/src/relay/**/*.py` only. It now scans the runtime package, the
+Alembic migrations **and** `web/src`, across every product file type (`.py`, `.ts`, `.tsx`, `.json`,
+`.sql`, `.toml`, `.yaml`), with a companion test asserting the scan actually reaches all three roots
+so it cannot quietly become vacuous. The generated OpenAPI schema and client types are excluded by
+name: they describe endpoints, never data.
+
+Extending it immediately found two Brightwater amounts (`-1184.62`, `-29060.00`) used as formatting
+examples in `web/src/lib/format.test.ts` — harmless, but exactly the kind of drift the rule exists to
+stop. They are now neutral numbers.
+
+The scan cannot catch *semantic* tuning — a threshold moved to make one reconciliation pass, a rule
+quietly skipped for a shape only Brightwater has. The defence against that is the hand-authored
+golden manifest and the engine-versus-manifest comparison, not a regular expression.
+
+---
+
+## Pass 4 — code quality
+
+### Fixed
+
+| Finding | What was done |
+|---|---|
+| **A dead 145-line `drilldown` in `engine/reconciliation.py`** duplicated the live persisted drill-down in `pipeline/read_model.py`, and nothing referenced it. Two implementations of the same R1–R4 contributor logic can only diverge | Deleted, with its `__all__` entry |
+| **`GET /migrations` recomputed each migration's full input configuration**, and `load_configuration` walked datasets one at a time (three `session.get` calls each, plus a mapping-set query and its columns) | Batched: imports, stored files, source systems and approved mapping sets are each one query, and every mapping set's columns come back together. Measured on the seeded demo (2 migrations, 16 datasets each): **444 ms → 184 ms** for the portfolio read |
+| **`GET /migrations/{id}` scanned every migration** and filtered in Python for a primary-key lookup | One query by id |
+| **Dead code**: `pipeline.read_model.staged_by_document`, `engine.pipeline.total_exposure`, `core.currency.known_currency_codes` | Deleted |
+| **`links_for` existed twice**, and the issues router re-implemented the per-row lookup a third time as an N+1 | One read-model function, resolving the linked issues in a single query |
+| **`datasets_for` returned different orders** in the service and the read model, and one of the consumers is an AI that cites evidence | Both order by dataset type, as-of date, then name |
+| **A failed job's traceback was lost**: an unexpected exception stored only its class name (correct, SEC-14) and logged no message | The log carries `exc_info` for non-`RelayError` failures; the stored detail is unchanged |
+| **A lock-ordering regression test slept for one second** and assumed the approval had reached the lock — on a slow machine it would pass without testing anything | It now polls `pg_locks` until the approval is provably waiting, and fails if it never gets there |
+
+### Recorded, not changed
+
+- **"Exception" and "finding" both name the deterministic rule output** (`RuleException`,
+  `exception_count`, `/exceptions`, but `counts["findings"]` and "Findings" in the UI), while
+  `Finding` is separately the AI investigation output with its own table. The vocabulary should be
+  one word per concept, but renaming crosses the published API surface, so it is a deliberate
+  decision for a later change rather than a drive-by.
+- **Change request payloads are typed per kind and then erased** to `Any` at the dispatch table and
+  `dict[str, Any]` at the API, so the UI hand-casts through `Record<string, unknown>`. Making `Kind`
+  generic in its payload would recover the backend half cheaply; the OpenAPI half is a larger call.
+- **`mapped_records` skips a row whose transform fails.** Checked rather than assumed: a legacy
+  account missing from the drafted mapping set surfaces as `MAP.ACCOUNT_UNMAPPED` (critical) and
+  fails G3, so the consequence is reported by another control rather than lost.
+- **A blob is written before its transaction commits**, so a rolled-back upload can orphan a file.
+  Content-addressed storage makes that harmless (a re-upload reuses the key) and the spool directory
+  is cleaned on failure.
+- Module-scoped integration stories mutate shared state in order; that is deliberate and is now
+  documented in [testing.md](testing.md#24-integration-tests-backendtestsintegration-postgres).
+
+### Checked and found in good shape
+
+One `session.commit()` in the entire runtime (inside `session_scope`); no writes or enqueues in any
+read model or GET handler; no `cast(`, no bare `except`, and every broad `except` justified inline
+(cleanup that re-raises, or FC-10's errored stages); no `any`, `@ts-ignore` or `eslint-disable`
+anywhere in `web/src`; no unused dependencies in either lockfile.

@@ -8,7 +8,6 @@ records, and every staged record traces to a source row (import, row number, phy
 from __future__ import annotations
 
 import uuid
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -609,17 +608,6 @@ def readiness_for_run(
     )
     gates.sort(key=lambda g: int(g.gate_id[1:]))
     return evaluation, gates
-
-
-def staged_by_document(
-    session: Session, run_id: uuid.UUID, document_number: str
-) -> dict[str, list[dict[str, Any]]]:
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for record in session.scalars(
-        _staged(run_id).where(StagedRecord.document_number == document_number)
-    ):
-        grouped[record.record_type].append(record_view(record))
-    return dict(grouped)
 
 
 def latest_exception(session: Session, issue: Issue) -> RuleExceptionRow | None:

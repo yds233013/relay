@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar, Final
 
 from sqlalchemy import func, select
@@ -184,6 +184,45 @@ def approved_set(session: Session, dataset_id: uuid.UUID) -> ColumnMappingSet | 
             ColumnMappingSet.status == MappingSetStatus.APPROVED.value,
         )
     ).first()
+
+
+def approved_sets(
+    session: Session, dataset_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, ColumnMappingSet]:
+    """The approved set of each dataset, in one query (the pipeline asks for all at once)."""
+    if not dataset_ids:
+        return {}
+    rows = session.scalars(
+        select(ColumnMappingSet).where(
+            ColumnMappingSet.dataset_id.in_(dataset_ids),
+            ColumnMappingSet.status == MappingSetStatus.APPROVED.value,
+        )
+    )
+    return {row.dataset_id: row for row in rows}
+
+
+def engine_configs(
+    session: Session, sets: Sequence[tuple[ColumnMappingSet, str]]
+) -> dict[uuid.UUID, dict[str, Any]]:
+    """``engine_config`` for several mapping sets, reading every column mapping in one query."""
+    if not sets:
+        return {}
+    fields: dict[uuid.UUID, dict[str, Any]] = {mapping_set.id: {} for mapping_set, _ in sets}
+    mappings = session.scalars(
+        select(ColumnMapping)
+        .where(ColumnMapping.mapping_set_id.in_(list(fields)))
+        .order_by(ColumnMapping.target_field)
+    )
+    for mapping in mappings:
+        fields[mapping.mapping_set_id][mapping.target_field] = mapping.transform
+    return {
+        mapping_set.id: {
+            "dataset_type": dataset_type,
+            "fields": fields[mapping_set.id],
+            "exclude_rows_where_blank": list(mapping_set.exclude_rows_where_blank),
+        }
+        for mapping_set, dataset_type in sets
+    }
 
 
 def engine_config(
