@@ -62,9 +62,8 @@ from relay.mapping_sets import accounts, suggest
 from relay.mapping_sets import service as column_sets
 from relay.mapping_sets.models import AccountMappingSet, ColumnMappingSet
 from relay.mapping_sets.service import InvalidMappingError, MappingSetStateError
-from relay.pipeline import overrides as override_resolver
-from relay.pipeline import service as pipeline
-from relay.pipeline.models import PipelineRun, RunTrigger
+from relay.pipeline import approvals
+from relay.pipeline.models import PipelineRun
 from relay.profiling.domain import DatasetProfile
 from relay.workspace import service as workspace
 
@@ -371,42 +370,20 @@ def create_change_request(
     clock: ClockDep,
 ) -> ChangeRequestOut:
     """Create a draft. Record overrides name the record; the server resolves the current value."""
-    migration = workspace.get_migration(session, migration_id)
+    workspace.get_migration(session, migration_id)
     try:
         kind = ChangeRequestKind(body.kind)
     except ValueError as exc:
         raise InvalidInputError(f"unknown change request kind {body.kind}") from exc
-    if kind is ChangeRequestKind.RECORD_OVERRIDE:
-        if body.payload is not None or (body.field_override is None) == (
-            body.quarantine_repair is None
-        ):
-            raise InvalidInputError(
-                "a record override needs exactly one of field_override or quarantine_repair"
-            )
-        if body.field_override is not None:
-            payload = override_resolver.field_override_payload(
-                session, migration_id=migration_id, **body.field_override.model_dump()
-            )
-        else:
-            assert body.quarantine_repair is not None  # noqa: S101 - narrowed by the check above
-            payload = override_resolver.quarantine_repair_payload(
-                session, migration_id=migration_id, **body.quarantine_repair.model_dump()
-            )
-    else:
-        if body.payload is None or body.field_override or body.quarantine_repair:
-            raise InvalidInputError(f"{kind.value} change requests take a payload")
-        payload = body.payload
-        if kind is ChangeRequestKind.ENTITY_DECISION:
-            override_resolver.check_decision_parties(
-                session, migration_id=migration_id, payload=payload
-            )
-    change = changes.create_draft(
+    change = approvals.create(
         session,
         actor=actor,
-        migration=migration,
+        migration_id=migration_id,
         kind=kind,
         title=body.title,
-        payload=payload,
+        payload=body.payload,
+        field_override=body.field_override.model_dump() if body.field_override else None,
+        quarantine_repair=body.quarantine_repair.model_dump() if body.quarantine_repair else None,
         evidence_refs=list(body.evidence_refs),
         clock=clock,
     )
@@ -525,7 +502,7 @@ def submit_change_request(
     clock: ClockDep,
 ) -> ChangeRequestOut:
     change = changes.get_change_request(session, change_id)
-    changes.submit(
+    approvals.submit(
         session, actor=actor, change=change, justification=body.justification, clock=clock
     )
     return change_request_out(session, change)
@@ -540,25 +517,12 @@ def _review(
     clock: Any,
 ) -> ReviewOutcomeOut:
     change = changes.get_change_request(session, change_id)
-    # An approval may apply the change and request a run: take the pipeline lock before the audit
-    # writes of the review, in the same order as the worker.
-    pipeline.lock_migration(session, change.migration_id)
-    changes.review(
+    outcome = approvals.review(
         session, actor=actor, change=change, decision=decision, comment=comment, clock=clock
     )
-    run_id = None
-    if change.status == ChangeRequestStatus.APPLIED.value:
-        # Applying a change alters the run inputs, so a run is requested in the same transaction.
-        outcome = pipeline.request_run(
-            session,
-            actor=actor,
-            migration_id=change.migration_id,
-            trigger=RunTrigger.CHANGE_REQUEST_APPLIED,
-            change_request_id=change.id,
-            clock=clock,
-        )
-        run_id = outcome.run.id
-    return ReviewOutcomeOut(change_request=change_request_out(session, change), run_id=run_id)
+    return ReviewOutcomeOut(
+        change_request=change_request_out(session, outcome.change), run_id=outcome.run_id
+    )
 
 
 @router.post("/change-requests/{change_id}/approve")
@@ -581,7 +545,7 @@ def withdraw_change_request(
     change_id: uuid.UUID, body: WithdrawIn, actor: ActorDep, session: SessionDep, clock: ClockDep
 ) -> ChangeRequestOut:
     change = changes.get_change_request(session, change_id)
-    changes.withdraw(session, actor=actor, change=change, reason=body.reason, clock=clock)
+    approvals.withdraw(session, actor=actor, change=change, reason=body.reason, clock=clock)
     return change_request_out(session, change)
 
 

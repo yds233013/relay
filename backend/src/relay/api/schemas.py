@@ -213,15 +213,53 @@ class GateOut(Schema):
     evidence: list[str]
     evidence_links: list[EvidenceLinkOut]
     waiver_id: str | None
+    waivable: bool = False
+    scope: dict[str, str] | None = None
+
+
+class PolicyOut(Schema):
+    version: int
+    policy: dict[str, Any]
+    change_request_id: uuid.UUID | None
+    created_at: datetime
+
+
+class WaiverOut(Schema):
+    id: uuid.UUID
+    gate_id: str
+    status: str
+    reason: str
+    scope: dict[str, str]
+    run_id: uuid.UUID
+    change_request_id: uuid.UUID
+    created_at: datetime
+
+
+class SignoffOut(Schema):
+    id: uuid.UUID
+    run_id: uuid.UUID
+    run_fingerprint: str
+    status: str
+    change_request_id: uuid.UUID
+    invalidated_by_fingerprint: str | None
+    created_at: datetime
 
 
 class ReadinessOut(Schema):
     run_id: uuid.UUID | None
+    run_sequence: int | None = None
+    run_fingerprint: str | None = None
+    current_fingerprint: str | None = None
     run_is_current: bool
     overall: str
     unresolved_exposure: str | None
     currency: str
     gates: list[GateOut]
+    migration_status: str = ""
+    evaluation_sequence: int | None = None
+    evaluated_at: datetime | None = None
+    waivers: list[WaiverOut] = []
+    signoffs: list[SignoffOut] = []
 
 
 class IssueOut(Schema):

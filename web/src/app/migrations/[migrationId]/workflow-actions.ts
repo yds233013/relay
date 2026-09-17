@@ -235,3 +235,57 @@ export async function createDataset(formData: FormData): Promise<void> {
   }
   redirect(withMessage(page, "notice", "Dataset added."));
 }
+
+export async function proposeWaiver(formData: FormData): Promise<void> {
+  const migrationId = id(formData, "migrationId");
+  const gateId = text(formData, "gateId");
+  const back = `/migrations/${migrationId}/readiness`;
+  let changeId: string;
+  try {
+    changeId = await draftAndSubmit(
+      migrationId,
+      { kind: "gate_waiver", title: `Waive ${gateId}`, payload: { gate_id: gateId } },
+      text(formData, "justification"),
+    );
+  } catch (error) {
+    redirect(withMessage(back, "error", messageOf(error)));
+  }
+  redirect(`/migrations/${migrationId}/change-requests/${changeId}`);
+}
+
+export async function proposeSignoff(formData: FormData): Promise<void> {
+  const migrationId = id(formData, "migrationId");
+  const back = `/migrations/${migrationId}/readiness`;
+  let changeId: string;
+  try {
+    changeId = await draftAndSubmit(
+      migrationId,
+      { kind: "readiness_signoff", title: "Go-live sign-off", payload: {} },
+      text(formData, "justification"),
+    );
+  } catch (error) {
+    redirect(withMessage(back, "error", messageOf(error)));
+  }
+  redirect(`/migrations/${migrationId}/change-requests/${changeId}`);
+}
+
+export async function proposePolicyChange(formData: FormData): Promise<void> {
+  const migrationId = id(formData, "migrationId");
+  const key = text(formData, "key");
+  const back = `/migrations/${migrationId}/settings`;
+  let changeId: string;
+  try {
+    changeId = await draftAndSubmit(
+      migrationId,
+      {
+        kind: "policy_change",
+        title: `Change ${key.replaceAll("_", " ")}`,
+        payload: { changes: { [key]: text(formData, "value").trim() } },
+      },
+      text(formData, "justification"),
+    );
+  } catch (error) {
+    redirect(withMessage(back, "error", messageOf(error)));
+  }
+  redirect(`/migrations/${migrationId}/change-requests/${changeId}`);
+}

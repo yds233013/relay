@@ -40,8 +40,9 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 - **M4**: web evidence workspace (Next.js Server Components over the API): portfolio, overview with evidence links, data, runs with diff, validation, reconciliation with drill-down, record inspector, issues, readiness, audit log; Playwright E2E-1 with axe. Decisions: `docs/decisions/0005-web-evidence-workspace.md`.
 - **M5**: governed changes: account mapping sets (replace the mapping file's pairs in runs), column mapping suggestions and preview, change request kinds `column_mapping_set`, `account_mapping_set`, `record_override`, `policy_change`, `revert` with SoD, staleness and atomic apply plus run request; Mappings, Approvals, change request, Overrides pages; E2E-2. Decisions: `docs/decisions/0006-governed-changes.md`. E2E tests change demo state: `make demo-reset` before rerunning.
 - **M6**: issue workflow (owner, status, comments, links, history, manual issues), `entity_decision` and multi-issue `disposition` kinds, `revert` for every overlay, re-imports with committed unfiltered re-exports (`fixtures/demo/brightwater_reexport/`), new migration and setup pages; E2E-3, E2E-4, E2E-8. Decisions: `docs/decisions/0007-issue-workflow-and-decisions.md`.
+- **M7**: scope-bound gate waivers that lapse, fingerprint-bound readiness sign-off with invalidation, readiness re-evaluation jobs, shared change request orchestration (`relay.pipeline.approvals`), `relay-demo fast-forward --to before-signoff`, Readiness and Settings pages; E2E-5. Decisions: `docs/decisions/0008-readiness-waivers-signoff.md`.
 
-Gate waivers, readiness sign-off and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
+AI is built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
 - `backend/src/relay/`: **runtime** package. Pure: `core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`. Database: `audit`, `identity`, `workspace`, `jobs`, `imports`, `mapping_sets`, `changes`, `issues`, `pipeline`. Entry points: `api`, `worker.py`, `cli.py`. Layers are enforced by import-linter (see `backend/pyproject.toml`).
@@ -95,6 +96,7 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make openapi` | Regenerate `web/src/lib/api/openapi.json`; `tests/unit/test_openapi.py` fails on drift. Then `cd web && npm run api:types` regenerates `schema.d.ts` (a web test fails on drift) |
 | `make test-e2e` | Playwright end-to-end tests against a freshly seeded stack (`make up`, then `make demo-seed` or `make demo-reset`); uses the locally installed Chrome. The tests change demo state |
 | `make demo-reset` | **Destroys** the local Compose database, recreates it, migrates and seeds Brightwater again |
+| `make demo-fast-forward` | With the stack up and seeded: apply the documented resolutions as the seeded users so only sign-off remains (`relay-demo fast-forward --to before-signoff`) |
 | `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
 | `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
 | `make clean` | Remove caches and build output |
@@ -105,7 +107,6 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| `uv run relay demo fast-forward --to=before-signoff` | Apply scripted resolutions | M7 |
 | `make eval-ai` | Live-model evals (manual, needs key) | M8 |
 
 ---

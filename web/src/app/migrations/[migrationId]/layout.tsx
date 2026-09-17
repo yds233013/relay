@@ -16,6 +16,7 @@ const SECTIONS = [
   ["/overrides", "Overrides"],
   ["/readiness", "Readiness"],
   ["/audit", "Audit log"],
+  ["/settings", "Settings"],
 ] as const;
 
 export default async function MigrationLayout(props: LayoutProps<"/migrations/[migrationId]">) {

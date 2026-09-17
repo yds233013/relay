@@ -383,3 +383,35 @@ See 0007. Readiness is not re-evaluated between runs; no survivorship per field;
 ### Next
 
 M7: readiness gates, waivers and sign-off.
+
+---
+
+## M7 — Readiness gates, waivers, sign-off
+
+Status: **Complete** (commit `feat: add readiness waivers and sign-off`). Decisions: [decisions/0008-readiness-waivers-signoff.md](decisions/0008-readiness-waivers-signoff.md).
+
+### Built
+
+- **Engine**: gate scopes for waivable gates; scope-bound waivers that lapse; gate set version 2.
+- **Schema** (Alembic `0005_readiness`): `gate_waivers`, `readiness_signoffs`, repeated readiness evaluations per run with a trigger, gate scopes, the `evaluate_readiness` job kind.
+- **Change request kinds** `gate_waiver` and `readiness_signoff`, resolved from the current run; revert for waivers; sign-off invalidation; waiver lapse; migration status `signed_off`.
+- **Pipeline**: readiness re-evaluation job; shared change request orchestration (`relay.pipeline.approvals`) used by the API, the seed and the fast-forward tool.
+- **Demo**: `relay-demo fast-forward --to before-signoff`, `make demo-fast-forward`.
+- **API/Web**: readiness with scopes, waivers, sign-offs, migration status and evaluation details; Readiness page with waiver proposals and sign-off request; policy endpoint and Settings page.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Playwright on a freshly seeded stack | 9 of 9, including **E2E-5**: fast-forward (skipping steps earlier specs already applied) → sign-off by lead and controller → READY, migration signed off → policy change through Settings → new run → sign-off invalidated, not ready |
+| API (`test_readiness.py`, 5 tests) | fast-forward reaches "only G12 fails", exposure 0.00, and is idempotent; sign-off refused while another change is pending; sign-off makes the migration ready on the same run (evaluation sequence > 1); reverting two dispositions invalidates the sign-off (audited) and fails G8; waivers refused for gates that are not failing; G8 waiver applies; dispositioning one waived item lapses the waiver (audited) |
+| Engine scenario test | a scope-bound waiver survives the DS-01 merge (new fingerprint, same ledger scope) and lapses after the DS-08 correction (waived R1 amounts change); non-waivable gates never waive |
+| `make check` | 654 unit and scenario tests, 89 integration tests (230 s, including readiness re-evaluation jobs), 37 web tests, 115/115 manifest checks |
+
+### Known limitations and debt
+
+See 0008: no waiver expiry; readiness re-evaluation reruns the engine; approvals wait for a running pipeline.
+
+### Next
+
+M8: the AI investigation layer.

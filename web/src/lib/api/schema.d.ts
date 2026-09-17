@@ -679,6 +679,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/migrations/{migration_id}/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current Policy
+         * @description The policy in effect; changing it is a ``policy_change`` change request.
+         */
+        get: operations["current_policy_api_v1_migrations__migration_id__policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/migrations/{migration_id}/readiness": {
         parameters: {
             query?: never;
@@ -1793,6 +1813,10 @@ export interface components {
             gate_id: string;
             /** Observed */
             observed: string;
+            /** Scope */
+            scope?: {
+                [key: string]: string;
+            } | null;
             /** Status */
             status: string;
             /** Summary */
@@ -1801,6 +1825,11 @@ export interface components {
             threshold: string;
             /** Title */
             title: string;
+            /**
+             * Waivable
+             * @default false
+             */
+            waivable: boolean;
             /** Waiver Id */
             waiver_id: string | null;
         };
@@ -2263,6 +2292,22 @@ export interface components {
             /** Open Documents */
             open_documents: number;
         };
+        /** PolicyOut */
+        PolicyOut: {
+            /** Change Request Id */
+            change_request_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Policy */
+            policy: {
+                [key: string]: unknown;
+            };
+            /** Version */
+            version: number;
+        };
         /** PreviewRowOut */
         PreviewRowOut: {
             /** Errors */
@@ -2326,16 +2371,41 @@ export interface components {
         ReadinessOut: {
             /** Currency */
             currency: string;
+            /** Current Fingerprint */
+            current_fingerprint?: string | null;
+            /** Evaluated At */
+            evaluated_at?: string | null;
+            /** Evaluation Sequence */
+            evaluation_sequence?: number | null;
             /** Gates */
             gates: components["schemas"]["GateOut"][];
+            /**
+             * Migration Status
+             * @default
+             */
+            migration_status: string;
             /** Overall */
             overall: string;
+            /** Run Fingerprint */
+            run_fingerprint?: string | null;
             /** Run Id */
             run_id: string | null;
             /** Run Is Current */
             run_is_current: boolean;
+            /** Run Sequence */
+            run_sequence?: number | null;
+            /**
+             * Signoffs
+             * @default []
+             */
+            signoffs: components["schemas"]["SignoffOut"][];
             /** Unresolved Exposure */
             unresolved_exposure: string | null;
+            /**
+             * Waivers
+             * @default []
+             */
+            waivers: components["schemas"]["WaiverOut"][];
         };
         /** ReadinessResponse */
         ReadinessResponse: {
@@ -2621,6 +2691,35 @@ export interface components {
             /** Type Compatible */
             type_compatible: boolean | null;
         };
+        /** SignoffOut */
+        SignoffOut: {
+            /**
+             * Change Request Id
+             * Format: uuid
+             */
+            change_request_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invalidated By Fingerprint */
+            invalidated_by_fingerprint: string | null;
+            /** Run Fingerprint */
+            run_fingerprint: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Status */
+            status: string;
+        };
         /** SourceRowOut */
         SourceRowOut: {
             /** Line End */
@@ -2737,6 +2836,39 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** WaiverOut */
+        WaiverOut: {
+            /**
+             * Change Request Id
+             * Format: uuid
+             */
+            change_request_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Gate Id */
+            gate_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Scope */
+            scope: {
+                [key: string]: string;
+            };
+            /** Status */
+            status: string;
         };
         /** WithdrawIn */
         WithdrawIn: {
@@ -4370,6 +4502,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_policy_api_v1_migrations__migration_id__policy_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
                 };
             };
             /** @description Validation Error */

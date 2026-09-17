@@ -87,8 +87,10 @@ class GateWaiver:
     id: str
     gate_id: str
     run_fingerprint: str
-    """A waiver applies only to the run whose input fingerprint it was approved against."""
+    """The input fingerprint of the run the waiver was approved against (for the record)."""
     reason: str
+    scope: Mapping[str, str] = field(default_factory=dict)
+    """The gate's scope when approved; the waiver applies while the gate's scope is identical."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,7 +180,13 @@ def parse_overlays(raw: Mapping[str, Any]) -> Overlays:
                 for d in _items(raw, "dispositions")
             ),
             gate_waivers=tuple(
-                GateWaiver(w["id"], w["gate_id"], w["run_fingerprint"], w["reason"])
+                GateWaiver(
+                    w["id"],
+                    w["gate_id"],
+                    w["run_fingerprint"],
+                    w["reason"],
+                    dict(w.get("scope", {})),
+                )
                 for w in _items(raw, "gate_waivers")
             ),
             signoffs=tuple(Signoff(s["id"], s["run_fingerprint"]) for s in _items(raw, "signoffs")),

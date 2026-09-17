@@ -194,17 +194,45 @@ def test_signoff_for_another_fingerprint_does_not_count(
     assert readiness.failing() == ["G12"]
 
 
-def test_waivers_apply_only_to_waivable_gates_on_the_bound_run(run1: EngineResult) -> None:
+def test_waivers_cover_waivable_gates_while_their_scope_is_unchanged(
+    run1: EngineResult, run1_scenario: Scenario
+) -> None:
+    """governance.md §4.3: bound to the gate's scope, not to one fingerprint; lapse on change."""
+    before = evaluate_readiness(run1, Overlays(), Policy(), FACTS)
+    g6_scope = before.gate("G6").scope
+    g7_scope = before.gate("G7").scope
+    assert g6_scope
+    assert g7_scope
+    changed = {**g7_scope, next(iter(g7_scope)): "0.01"}
     waivers = (
-        GateWaiver("W-G6", "G6", run1.input_fingerprint, "reviewed"),
-        GateWaiver("W-G5", "G5", run1.input_fingerprint, "not waivable"),
-        GateWaiver("W-G7-OLD", "G7", "0" * 64, "other run"),
+        GateWaiver("W-G6", "G6", run1.input_fingerprint, "reviewed", g6_scope),
+        GateWaiver("W-G5", "G5", run1.input_fingerprint, "not waivable", {"x": "1"}),
+        GateWaiver("W-G7-CHANGED", "G7", run1.input_fingerprint, "amount changed", changed),
     )
     readiness = evaluate_readiness(run1, Overlays(gate_waivers=waivers), Policy(), FACTS)
     assert readiness.gate("G6").status is GateStatus.WAIVED
+    assert readiness.gate("G6").waiver_id == "W-G6"
     assert readiness.gate("G5").status is GateStatus.FAIL
     assert readiness.gate("G7").status is GateStatus.FAIL
     assert readiness.gate("G12").status is GateStatus.FAIL
+
+    inputs = resolution.inputs_for(run1_scenario.files)
+    # A change that does not touch the ledger reconciliations keeps the G6 waiver valid.
+    merged_overlays = Overlays(entity_decisions=(resolution.DS01_MERGE,), gate_waivers=waivers)
+    merged = run_engine(inputs, merged_overlays)
+    assert merged.input_fingerprint != run1.input_fingerprint
+    assert (
+        evaluate_readiness(merged, merged_overlays, Policy(), FACTS).gate("G6").status
+        is GateStatus.WAIVED
+    )
+    # Correcting a backdated entry changes waived R1 and R2 amounts: the waiver lapses.
+    ds08 = next(o for o in resolution.corrections(run1).record_overrides if o.id == "RO-DS08")
+    corrected_overlays = Overlays(record_overrides=(ds08,), gate_waivers=waivers)
+    corrected = run_engine(inputs, corrected_overlays)
+    assert (
+        evaluate_readiness(corrected, corrected_overlays, Policy(), FACTS).gate("G6").status
+        is GateStatus.FAIL
+    )
 
 
 def test_a_wrong_merge_of_the_distinct_store_is_visible(run1_scenario: Scenario) -> None:

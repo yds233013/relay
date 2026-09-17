@@ -291,4 +291,4 @@ reconciliations:
 9. **Audit log** filtered to account 1205 mapping: who, when, why, evidence, before/after, approvers; run hash-chain verify. (45 s)
 10. **Readiness** after scripted fast-forward of the remaining fixes → sign-off → READY; then change a mapping → sign-off invalidated. (45 s)
 
-A `relay demo fast-forward --to=before-signoff` command (planned) applies the remaining scripted resolutions as the seeded users so the walkthrough fits in ten minutes without faking state.
+`make demo-fast-forward` (`relay-demo fast-forward --to before-signoff`) applies the remaining scripted resolutions as the seeded users so the walkthrough fits in ten minutes without faking state.

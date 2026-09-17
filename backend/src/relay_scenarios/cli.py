@@ -18,13 +18,14 @@ from pathlib import Path
 
 from relay.canonical.enums import PaymentDirection
 from relay.core.config import get_settings
-from relay.core.db import create_db_engine, create_session_factory
+from relay.core.db import create_db_engine, create_session_factory, session_scope
 from relay.core.logging import configure_logging
 from relay.engine.inputs import build_inputs
 from relay.engine.pipeline import run_engine
 from relay.imports.blob_store import LocalBlobStore
 from relay.imports.service import ImportLimits
 from relay_scenarios.brightwater.constants import DEFAULT_SEED
+from relay_scenarios.brightwater.fast_forward import brightwater_migration, fast_forward
 from relay_scenarios.brightwater.scenario import (
     CHECKSUM_FILE,
     Scenario,
@@ -65,6 +66,26 @@ def seed_database(fixtures: Path, mapping_set: Path) -> int:
     sys.stdout.write(
         f"Seeded Brightwater (fictional): migration {result.migration_id}, run {result.run_id}\n"
         "Users: " + ", ".join(sorted(result.users)) + "\n"
+    )
+    return 0
+
+
+def fast_forward_database() -> int:
+    settings = get_settings()
+    configure_logging("WARNING", settings.log_format)
+    factory = create_session_factory(create_db_engine(settings))
+    with session_scope(factory) as session:
+        migration_id = brightwater_migration(session)
+    result = fast_forward(
+        factory,
+        LocalBlobStore(settings.storage_dir),
+        ImportLimits(settings.max_upload_bytes, settings.max_rows_per_import),
+        migration_id=migration_id,
+    )
+    sys.stdout.write(
+        f"Fast-forwarded Brightwater (fictional) {result.migration_id} to before sign-off\n"
+        + "".join(f"  applied: {step}\n" for step in result.applied)
+        + f"  failing gates: {', '.join(result.failing_gates)}\n"
     )
     return 0
 
@@ -169,7 +190,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     seed_parser.add_argument("--fixtures", type=Path, default=DEFAULT_OUT)
     seed_parser.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
+    forward = sub.add_parser(
+        "fast-forward",
+        help="apply the documented resolutions as the seeded users (demo walkthrough step 10)",
+    )
+    forward.add_argument("--to", choices=["before-signoff"], required=True)
     args = parser.parse_args(argv)
+
+    if args.command == "fast-forward":
+        return fast_forward_database()
 
     if args.command == "seed":
         return seed_database(args.fixtures, args.mapping_set)

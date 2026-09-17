@@ -307,6 +307,31 @@ def _mark_if_stale(
     return True
 
 
+def mark_stale(
+    session: Session,
+    *,
+    actor: Actor,
+    change: ChangeRequest,
+    current: dict[str, Any],
+    clock: Clock | None = None,
+) -> None:
+    """Record that a submitted request no longer matches state checked outside this module."""
+    if change.status != ChangeRequestStatus.SUBMITTED.value:
+        raise ChangeRequestStateError("only submitted change requests become stale")
+    _transition(
+        session,
+        actor=actor,
+        change=change,
+        status=ChangeRequestStatus.STALE,
+        action="change_request.stale",
+        extra_before={"payload": change.payload},
+        extra_after={"current": current},
+        clock=clock,
+    )
+    _release(session, change, ChangeRequestStatus.STALE)
+    session.flush()
+
+
 def sweep_stale(
     session: Session, *, actor: Actor, migration_id: uuid.UUID, clock: Clock | None = None
 ) -> list[ChangeRequest]:

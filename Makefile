@@ -138,11 +138,12 @@ smoke: ## Verify a running stack end to end: the web status page shows API and d
 	@echo "smoke: web -> api -> database OK"
 
 test-e2e: ## Playwright end-to-end tests against a freshly seeded stack (`make up`, then `make demo-seed` or `make demo-reset`); uses local Chrome
-	cd web && E2E_BASE_URL=http://127.0.0.1:$(RELAY_WEB_HOST_PORT) E2E_API_URL=http://127.0.0.1:$(RELAY_API_HOST_PORT) npx playwright test
+	cd web && E2E_BASE_URL=http://127.0.0.1:$(RELAY_WEB_HOST_PORT) E2E_API_URL=http://127.0.0.1:$(RELAY_API_HOST_PORT) \
+		E2E_FAST_FORWARD="cd $(CURDIR) && $(MAKE) --no-print-directory demo-fast-forward" npx playwright test
 
 # ------------------------------------------------------------------------------------ demo data
 
-.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-seed-host verify-audit
+.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-fast-forward demo-seed-host verify-audit
 demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
 	$(UV) relay-demo generate
 
@@ -157,6 +158,9 @@ demo-reset: ## DESTROYS the local Compose database, recreates it, and seeds Brig
 	docker compose run --rm migrate
 	docker compose up -d --wait api worker
 	$(MAKE) demo-seed
+
+demo-fast-forward: ## Apply the documented resolutions to the seeded Brightwater stack as the seeded users (demo step 10); needs `make up` and a seed
+	docker compose run --rm --no-deps api relay-demo fast-forward --to before-signoff
 
 demo-seed-host: db-migrate ## Load Brightwater into the local database with host-run processes (stop the Compose worker first)
 	$(UV) env $(BACKEND_DB_ENV) relay-demo seed

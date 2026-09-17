@@ -590,7 +590,9 @@ def readiness_for_run(
     session: Session, run_id: uuid.UUID
 ) -> tuple[ReadinessEvaluationRow, list[GateResultRow]] | None:
     evaluation = session.scalars(
-        select(ReadinessEvaluationRow).where(ReadinessEvaluationRow.run_id == run_id)
+        select(ReadinessEvaluationRow)
+        .where(ReadinessEvaluationRow.run_id == run_id)
+        .order_by(ReadinessEvaluationRow.sequence.desc())
     ).first()
     if evaluation is None:
         return None

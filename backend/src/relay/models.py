@@ -12,6 +12,8 @@ from relay.changes.models import (
     ChangeRequest,
     Disposition,
     EntityDecision,
+    GateWaiver,
+    ReadinessSignoff,
     RecordOverride,
 )
 from relay.core.db import Base
@@ -56,6 +58,7 @@ __all__ = [
     "EntityCandidateRow",
     "EntityDecision",
     "GateResultRow",
+    "GateWaiver",
     "Import",
     "Issue",
     "IssueComment",
@@ -67,6 +70,7 @@ __all__ = [
     "PolicyVersion",
     "QuarantinedRow",
     "ReadinessEvaluationRow",
+    "ReadinessSignoff",
     "ReconciliationLineRow",
     "ReconciliationResultRow",
     "ReconcilingItemRow",

@@ -20,6 +20,7 @@ class JobKind(StrEnum):
     PARSE_IMPORT = "parse_import"
     PROFILE_IMPORT = "profile_import"
     RUN_PIPELINE = "run_pipeline"
+    EVALUATE_READINESS = "evaluate_readiness"
 
 
 class JobStatus(StrEnum):

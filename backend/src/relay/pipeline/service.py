@@ -18,6 +18,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 
 from relay.audit import service as audit
+from relay.changes import kinds as change_kinds
 from relay.changes import service as changes
 from relay.core.actor import Actor
 from relay.core.clock import Clock, SystemClock
@@ -41,6 +42,7 @@ from relay.pipeline.inputs import RunConfiguration, load_configuration, load_eng
 from relay.pipeline.models import (
     CandidateStatus,
     EntityCandidateRow,
+    EvaluationTrigger,
     GateResultRow,
     PipelineRun,
     ReadinessEvaluationRow,
@@ -56,6 +58,12 @@ from relay.pipeline.models import (
 )
 from relay.pipeline.staging import staged_rows
 from relay.workspace.models import Migration
+
+
+class ReadinessReproductionError(RelayError):
+    code: ClassVar[str] = "readiness.reproduction_failed"
+    title: ClassVar[str] = "The engine did not reproduce the run's results"
+    http_status: ClassVar[int] = 500
 
 
 class PipelineRunNotFoundError(RelayError):
@@ -93,6 +101,13 @@ def request_run(
 ) -> RunRequest:
     lock_migration(session, migration_id)
     configuration = load_configuration(session, migration_id)
+    change_kinds.invalidate_signoffs(
+        session,
+        actor=actor,
+        migration_id=migration_id,
+        current_fingerprint=configuration.fingerprint,
+        clock=clock,
+    )
     existing = session.scalars(
         select(PipelineRun)
         .where(
@@ -199,15 +214,14 @@ def execute_run(
         clock=clock,
     )
     timings["issues_ms"] = (time.perf_counter_ns() - mark) // 1_000_000
-    facts = GovernanceFacts(
-        required_datasets=configuration.required_dataset_types,
-        column_mapping_sets_approved=configuration.all_mapped,
-        account_mapping_set_approved=configuration.account_mapping_set_id is not None,
-        current_fingerprint=None,
-        pending_change_requests=changes.pending_count(session, run.migration_id),
+    readiness = _evaluate_and_record(
+        session,
+        run=run,
+        configuration=configuration,
+        result=result,
+        trigger=EvaluationTrigger.RUN,
+        clock=clock,
     )
-    readiness = evaluate_readiness(result, configuration.overlays, configuration.policy, facts)
-    _persist_readiness(session, run, configuration, readiness, facts)
     run.status = RunStatus.SUCCEEDED.value
     run.result_fingerprint = result.result_fingerprint
     run.finished_at = (clock or SystemClock()).now()
@@ -506,16 +520,73 @@ def _issue_seeds(result: EngineResult, exception_ids: dict[str, uuid.UUID]) -> d
     }
 
 
+def _evaluate_and_record(
+    session: Session,
+    *,
+    run: PipelineRun,
+    configuration: RunConfiguration,
+    result: EngineResult,
+    trigger: EvaluationTrigger,
+    clock: Clock | None,
+) -> Readiness:
+    """Evaluate readiness for a current run, persist it, lapse waivers, invalidate sign-offs."""
+    facts = GovernanceFacts(
+        required_datasets=configuration.required_dataset_types,
+        column_mapping_sets_approved=configuration.all_mapped,
+        account_mapping_set_approved=configuration.account_mapping_set_id is not None,
+        current_fingerprint=None,
+        pending_change_requests=changes.pending_count(session, run.migration_id),
+    )
+    readiness = evaluate_readiness(result, configuration.overlays, configuration.policy, facts)
+    _persist_readiness(
+        session,
+        run=run,
+        configuration=configuration,
+        readiness=readiness,
+        facts=facts,
+        trigger=trigger,
+    )
+    system = Actor.system()
+    change_kinds.invalidate_signoffs(
+        session,
+        actor=system,
+        migration_id=run.migration_id,
+        current_fingerprint=run.fingerprint,
+        clock=clock,
+    )
+    change_kinds.lapse_waivers(
+        session,
+        actor=system,
+        migration_id=run.migration_id,
+        applied_waiver_ids={g.waiver_id for g in readiness.gates if g.waiver_id},
+        run_id=run.id,
+        clock=clock,
+    )
+    return readiness
+
+
 def _persist_readiness(
     session: Session,
+    *,
     run: PipelineRun,
     configuration: RunConfiguration,
     readiness: Readiness,
     facts: GovernanceFacts,
+    trigger: EvaluationTrigger,
 ) -> None:
+    sequence = (
+        session.scalar(
+            select(func.max(ReadinessEvaluationRow.sequence)).where(
+                ReadinessEvaluationRow.run_id == run.id
+            )
+        )
+        or 0
+    ) + 1
     evaluation = ReadinessEvaluationRow(
         id=uuid7(),
         run_id=run.id,
+        sequence=sequence,
+        trigger=trigger.value,
         policy_version=configuration.policy_version,
         overall="ready" if readiness.ready else "not_ready",
         unresolved_exposure=readiness.unresolved_exposure,
@@ -544,7 +615,79 @@ def _persist_readiness(
                 "summary": gate.summary,
                 "evidence": list(gate.evidence),
                 "waiver_id": gate.waiver_id,
+                "scope": dict(gate.scope) if gate.scope is not None else None,
             }
             for gate in readiness.gates
         ],
     )
+
+
+def request_readiness_evaluation(
+    session: Session, *, migration_id: uuid.UUID, clock: Clock | None = None
+) -> None:
+    """Queue a readiness re-evaluation after a governance change that keeps the fingerprint."""
+    jobs.enqueue(
+        session, JobKind.EVALUATE_READINESS, {"migration_id": str(migration_id)}, clock=clock
+    )
+
+
+def reevaluate_readiness(
+    session: Session, *, migration_id: uuid.UUID, blob_store: BlobStore, clock: Clock | None = None
+) -> ReadinessEvaluationRow | None:
+    """Job handler: evaluate readiness again for the current run with the current governance.
+
+    The engine runs again on the run's inputs (it is deterministic) and must reproduce the run's
+    result fingerprint; nothing but readiness is persisted. Returns ``None`` when no succeeded run
+    is current, in which case the migration's readiness is stale anyway (G4).
+    """
+    lock_migration(session, migration_id)
+    configuration = load_configuration(session, migration_id)
+    change_kinds.invalidate_signoffs(
+        session,
+        actor=Actor.system(),
+        migration_id=migration_id,
+        current_fingerprint=configuration.fingerprint,
+        clock=clock,
+    )
+    run = session.scalars(
+        select(PipelineRun)
+        .where(
+            PipelineRun.migration_id == migration_id,
+            PipelineRun.fingerprint == configuration.fingerprint,
+            PipelineRun.status == RunStatus.SUCCEEDED.value,
+        )
+        .order_by(PipelineRun.sequence.desc())
+    ).first()
+    if run is None:
+        return None
+    inputs = load_engine_inputs(configuration, blob_store)
+    result = run_engine(inputs, configuration.overlays, configuration.policy)
+    if result.result_fingerprint != run.result_fingerprint:
+        raise ReadinessReproductionError(
+            f"run {run.sequence} did not reproduce its result fingerprint"
+        )
+    readiness = _evaluate_and_record(
+        session,
+        run=run,
+        configuration=configuration,
+        result=result,
+        trigger=EvaluationTrigger.GOVERNANCE,
+        clock=clock,
+    )
+    evaluation = session.scalars(
+        select(ReadinessEvaluationRow)
+        .where(ReadinessEvaluationRow.run_id == run.id)
+        .order_by(ReadinessEvaluationRow.sequence.desc())
+    ).first()
+    audit.record(
+        session,
+        actor=Actor.system(),
+        action="readiness.evaluated",
+        entity_type="pipeline_run",
+        entity_id=run.id,
+        migration_id=migration_id,
+        before={"trigger": EvaluationTrigger.GOVERNANCE.value},
+        after={"ready": readiness.ready, "failing_gates": readiness.failing()},
+        clock=clock,
+    )
+    return evaluation

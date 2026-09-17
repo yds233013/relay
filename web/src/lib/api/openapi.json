@@ -2458,6 +2458,20 @@
             "title": "Observed",
             "type": "string"
           },
+          "scope": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -2473,6 +2487,11 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "waivable": {
+            "default": false,
+            "title": "Waivable",
+            "type": "boolean"
           },
           "waiver_id": {
             "anyOf": [
@@ -3788,6 +3807,45 @@
         "title": "PartyOut",
         "type": "object"
       },
+      "PolicyOut": {
+        "additionalProperties": false,
+        "properties": {
+          "change_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Request Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "policy": {
+            "additionalProperties": true,
+            "title": "Policy",
+            "type": "object"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "policy",
+          "change_request_id",
+          "created_at"
+        ],
+        "title": "PolicyOut",
+        "type": "object"
+      },
       "PreviewRowOut": {
         "additionalProperties": false,
         "properties": {
@@ -3935,6 +3993,40 @@
             "title": "Currency",
             "type": "string"
           },
+          "current_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Fingerprint"
+          },
+          "evaluated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluated At"
+          },
+          "evaluation_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Sequence"
+          },
           "gates": {
             "items": {
               "$ref": "#/components/schemas/GateOut"
@@ -3942,9 +4034,25 @@
             "title": "Gates",
             "type": "array"
           },
+          "migration_status": {
+            "default": "",
+            "title": "Migration Status",
+            "type": "string"
+          },
           "overall": {
             "title": "Overall",
             "type": "string"
+          },
+          "run_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Fingerprint"
           },
           "run_id": {
             "anyOf": [
@@ -3962,6 +4070,25 @@
             "title": "Run Is Current",
             "type": "boolean"
           },
+          "run_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Sequence"
+          },
+          "signoffs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SignoffOut"
+            },
+            "title": "Signoffs",
+            "type": "array"
+          },
           "unresolved_exposure": {
             "anyOf": [
               {
@@ -3972,6 +4099,14 @@
               }
             ],
             "title": "Unresolved Exposure"
+          },
+          "waivers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/WaiverOut"
+            },
+            "title": "Waivers",
+            "type": "array"
           }
         },
         "required": [
@@ -4745,6 +4880,61 @@
         "title": "SignalsOut",
         "type": "object"
       },
+      "SignoffOut": {
+        "additionalProperties": false,
+        "properties": {
+          "change_request_id": {
+            "format": "uuid",
+            "title": "Change Request Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invalidated_by_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalidated By Fingerprint"
+          },
+          "run_fingerprint": {
+            "title": "Run Fingerprint",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "run_id",
+          "run_fingerprint",
+          "status",
+          "change_request_id",
+          "invalidated_by_fingerprint",
+          "created_at"
+        ],
+        "title": "SignoffOut",
+        "type": "object"
+      },
       "SourceRowOut": {
         "additionalProperties": false,
         "properties": {
@@ -5131,6 +5321,62 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "WaiverOut": {
+        "additionalProperties": false,
+        "properties": {
+          "change_request_id": {
+            "format": "uuid",
+            "title": "Change Request Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "gate_id": {
+            "title": "Gate Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "scope": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Scope",
+            "type": "object"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "gate_id",
+          "status",
+          "reason",
+          "scope",
+          "run_id",
+          "change_request_id",
+          "created_at"
+        ],
+        "title": "WaiverOut",
         "type": "object"
       },
       "WithdrawIn": {
@@ -8424,6 +8670,67 @@
         "summary": "Request Pipeline Run",
         "tags": [
           "runs"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/policy": {
+      "get": {
+        "description": "The policy in effect; changing it is a ``policy_change`` change request.",
+        "operationId": "current_policy_api_v1_migrations__migration_id__policy_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Current Policy",
+        "tags": [
+          "workspace"
         ]
       }
     },

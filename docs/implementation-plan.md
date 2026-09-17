@@ -1,6 +1,6 @@
 # Relay — Implementation Plan
 
-Status: **M0 to M6 implemented.** Progress log and current status: [progress.md](progress.md).
+Status: **M0 to M7 implemented.** Progress log and current status: [progress.md](progress.md).
 
 Related: all docs in this folder.
 

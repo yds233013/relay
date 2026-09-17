@@ -6,18 +6,20 @@ approval state of mapping sets, pending change requests, whether the result is c
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import dataclasses
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import StrEnum
 from typing import Final
 
 from relay.engine.exceptions import RuleException, Severity
-from relay.engine.overlays import Overlays
+from relay.engine.overlays import GateWaiver, Overlays
 from relay.engine.pipeline import EngineResult
 from relay.engine.policy import Policy
 
-GATE_SET_VERSION: Final = 1
+GATE_SET_VERSION: Final = 2
+"""2: waivers apply while the gate scope is unchanged, across fingerprints (governance §4.3)."""
 MAX_EVIDENCE: Final = 1000
 """Evidence references stored per gate; the count of findings is always in ``observed``."""
 WAIVABLE: Final = frozenset({"G6", "G7", "G8", "G9"})
@@ -50,6 +52,8 @@ class GateResult:
     summary: str
     evidence: tuple[str, ...] = ()
     waiver_id: str | None = None
+    scope: Mapping[str, str] | None = None
+    """For waivable gates: what a waiver of this gate's current failure would cover."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +119,7 @@ def _gate(  # noqa: PLR0917 - gate rows read like the governance table
     threshold: str,
     summary: str,
     evidence: Iterable[str] = (),
+    scope: Mapping[str, str] | None = None,
 ) -> GateResult:
     return GateResult(
         gate_id,
@@ -124,6 +129,24 @@ def _gate(  # noqa: PLR0917 - gate rows read like the governance table
         threshold,
         summary,
         tuple(sorted(evidence))[:MAX_EVIDENCE],
+        scope=None if ok else scope,
+    )
+
+
+def waiver_applies(waiver: GateWaiver, gate: GateResult) -> bool:
+    """A waiver covers a failing waivable gate while the gate's scope equals the approved scope.
+
+    The scope names every discrepancy with its unexplained amount (or the cash and exposure
+    figures), so a waiver survives unrelated input changes and lapses when a waived amount
+    changes or a new discrepancy appears. Missing reconciliations can never be waived.
+    """
+    return (
+        gate.gate_id == waiver.gate_id
+        and gate.gate_id in WAIVABLE
+        and gate.status is GateStatus.FAIL
+        and gate.scope is not None
+        and not any(key.startswith("not_applicable:") for key in gate.scope)
+        and dict(gate.scope) == dict(waiver.scope)
     )
 
 
@@ -208,21 +231,25 @@ def evaluate_readiness(
     def recon_gate(
         gate_id: str, title: str, recon_ids: tuple[str, ...], summary: str
     ) -> GateResult:
-        lines = [
-            f"{rid}:{dict(line.grain)}"
+        discrepancies = {
+            f"{rid}:{dict(line.grain)}": str(line.unexplained)
             for rid in recon_ids
             if rid in recon
             for line in recon[rid].discrepancies()
-        ]
+        }
         not_applicable = [rid for rid in recon_ids if rid not in recon or not recon[rid].applicable]
         return _gate(
             gate_id,
             title,
-            not lines and not not_applicable,
-            f"{len(lines)} discrepancy lines",
+            not discrepancies and not not_applicable,
+            f"{len(discrepancies)} discrepancy lines",
             "0",
             summary,
-            [*lines, *(f"not_applicable:{rid}" for rid in not_applicable)],
+            [*discrepancies, *(f"not_applicable:{rid}" for rid in not_applicable)],
+            scope={
+                **discrepancies,
+                **{f"not_applicable:{rid}": "not_applicable" for rid in not_applicable},
+            },
         )
 
     gates.append(
@@ -259,6 +286,11 @@ def evaluate_readiness(
             f"≤ {policy.cash_unexplained_tolerance}, 0 open",
             "Cash ties to the bank with only documented timing items",
             [e.fingerprint for e in bank_open],
+            scope={
+                "unexplained": str(unexplained) if unexplained is not None else "not_applicable",
+                **{f"open:{e.fingerprint}": str(e.amount_at_risk) for e in bank_open},
+                **({"not_applicable:R5": "not_applicable"} if unexplained is None else {}),
+            },
         )
     )
     exposure = unresolved_exposure(unresolved)
@@ -270,6 +302,7 @@ def evaluate_readiness(
             exposure,
             f"≤ {policy.max_unresolved_exposure}",
             "Unresolved amount at risk is within policy",
+            scope={"exposure": str(exposure)},
         )
     )
     strong = [
@@ -300,26 +333,13 @@ def evaluate_readiness(
         )
     )
 
-    waivers = {
-        w.gate_id: w
-        for w in overlays.gate_waivers
-        if w.run_fingerprint == result.input_fingerprint and w.gate_id in WAIVABLE
-    }
-    gates = [
-        GateResult(
-            g.gate_id,
-            g.title,
-            GateStatus.WAIVED,
-            g.observed,
-            g.threshold,
-            g.summary,
-            g.evidence,
-            waivers[g.gate_id].id,
-        )
-        if g.status is GateStatus.FAIL and g.gate_id in waivers
-        else g
-        for g in gates
-    ]
+    def waived(gate: GateResult) -> GateResult:
+        waiver = next((w for w in overlays.gate_waivers if waiver_applies(w, gate)), None)
+        if waiver is None:
+            return gate
+        return dataclasses.replace(gate, status=GateStatus.WAIVED, waiver_id=waiver.id)
+
+    gates = [waived(g) for g in gates]
     prior_ok = all(g.status is not GateStatus.FAIL for g in gates)
     signed = [s for s in overlays.signoffs if s.run_fingerprint == result.input_fingerprint]
     gates.append(

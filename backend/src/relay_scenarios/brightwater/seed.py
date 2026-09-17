@@ -18,7 +18,6 @@ from typing import Any, Final
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from relay.changes import service as changes
 from relay.changes.models import (
     ApprovalDecision,
     ChangeRequest,
@@ -36,6 +35,7 @@ from relay.imports.blob_store import BlobStore
 from relay.imports.models import Import, ImportStatus
 from relay.mapping_sets import accounts as account_sets
 from relay.mapping_sets import service as mapping_sets
+from relay.pipeline import approvals
 from relay.pipeline import service as pipeline
 from relay.pipeline.models import PipelineRun
 from relay.worker import WorkerContext, drain
@@ -201,15 +201,15 @@ def seed(
             mapping_set = mapping_sets.create_draft(
                 session, actor=specialist, dataset=dataset, config=file_config
             )
-            change = changes.create_draft(
+            change = approvals.create(
                 session,
                 actor=specialist,
-                migration=workspace.get_migration(session, migration_id),
+                migration_id=migration_id,
                 kind=ChangeRequestKind.COLUMN_MAPPING_SET,
                 title=f"Column mapping for {dataset.name}",
                 payload={"mapping_set_id": str(mapping_set.id)},
             )
-            changes.submit(
+            approvals.submit(
                 session,
                 actor=specialist,
                 change=change,
@@ -218,15 +218,15 @@ def seed(
             change_id = change.id
         with session_scope(session_factory) as session:
             reviewer = _actor(session, daniel, Permission.REVIEW_CHANGE_REQUEST)
-            reviewed = changes.review(
+            reviewed = approvals.review(
                 session,
                 actor=reviewer,
                 change=session.get_one(ChangeRequest, change_id),
                 decision=ApprovalDecision.APPROVE,
                 comment="Approved.",
             )
-            if reviewed.status != ChangeRequestStatus.APPLIED.value:
-                raise RuntimeError(f"mapping change request ended as {reviewed.status}")
+            if reviewed.change.status != ChangeRequestStatus.APPLIED.value:
+                raise RuntimeError(f"mapping change request ended as {reviewed.change.status}")
 
     controller = PEOPLE[2][0]
     with session_scope(session_factory) as session:
@@ -235,15 +235,15 @@ def seed(
         account_set = account_sets.create_draft(
             session, actor=specialist, migration_id=migration_id, base="import", changes=[]
         )
-        change = changes.create_draft(
+        change = approvals.create(
             session,
             actor=specialist,
-            migration=workspace.get_migration(session, migration_id),
+            migration_id=migration_id,
             kind=ChangeRequestKind.ACCOUNT_MAPPING_SET,
             title="Account mapping from the implementation mapping file",
             payload={"mapping_set_id": str(account_set.id)},
         )
-        changes.submit(
+        approvals.submit(
             session,
             actor=specialist,
             change=change,
@@ -253,7 +253,7 @@ def seed(
     for reviewer_email in (daniel, controller):
         with session_scope(session_factory) as session:
             reviewer = _actor(session, reviewer_email, Permission.REVIEW_CHANGE_REQUEST)
-            changes.review(
+            approvals.review(
                 session,
                 actor=reviewer,
                 change=session.get_one(ChangeRequest, change_id),

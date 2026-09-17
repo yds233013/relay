@@ -7,6 +7,7 @@ so staged-record lineage (import, row, lines) points at the rows users can brows
 
 from __future__ import annotations
 
+import dataclasses
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -21,9 +22,11 @@ from relay.engine.inputs import BankAccountLink, ConversionPlan, DatasetSpec, Mi
 from relay.engine.overlays import (
     Disposition,
     EntityDecision,
+    GateWaiver,
     Overlays,
     QuarantineRepair,
     RecordOverride,
+    Signoff,
 )
 from relay.engine.pipeline import engine_versions, input_fingerprint
 from relay.engine.policy import Policy
@@ -102,7 +105,7 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
         )
     policy_row = workspace.current_policy(session, migration.id)
     policy = workspace.policy_from_document(policy_row.policy)
-    # Gate waivers and sign-offs arrive with their kinds in M7.
+    # Waivers and sign-offs are not part of the fingerprint (Overlays.identity).
     overlays = _overlays(session, migration.id)
     approved_accounts = account_sets.approved_set(session, migration.id)
     governed = (
@@ -142,6 +145,21 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
         "versions": engine_versions(),
         "gate_set": gate_set_version(),
     }
+    fingerprint = content_fingerprint(components)
+    # Sign-offs are recorded against Relay's run fingerprint; the engine checks them against its
+    # own input fingerprint. Neither fingerprint depends on sign-offs, so translating is safe.
+    overlays = dataclasses.replace(
+        overlays,
+        signoffs=tuple(
+            Signoff(
+                id=s.id,
+                run_fingerprint=engine_fp
+                if s.run_fingerprint == fingerprint
+                else s.run_fingerprint,
+            )
+            for s in overlays.signoffs
+        ),
+    )
     return RunConfiguration(
         migration=migration,
         datasets=tuple(states),
@@ -150,13 +168,13 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
         overlays=overlays,
         account_mapping_set_id=approved_accounts.id if approved_accounts else None,
         governed_account_mapping=governed,
-        fingerprint=content_fingerprint(components),
+        fingerprint=fingerprint,
         components=components,
     )
 
 
 def _overlays(session: Session, migration_id: uuid.UUID) -> Overlays:
-    """Active overrides, repairs, entity decisions and dispositions, in approval order."""
+    """Every active overlay, in approval order."""
     overrides = []
     repairs = []
     for row in change_kinds.active_overrides(session, migration_id):
@@ -196,11 +214,27 @@ def _overlays(session: Session, migration_id: uuid.UUID) -> Overlays:
         Disposition(id=str(row.id), fingerprint=row.fingerprint, kind=row.kind, reason=row.reason)
         for row in change_kinds.active_dispositions(session, migration_id)
     )
+    waivers = tuple(
+        GateWaiver(
+            id=str(row.id),
+            gate_id=row.gate_id,
+            run_fingerprint=row.run_fingerprint,
+            reason=row.reason,
+            scope={str(k): str(v) for k, v in row.scope.items()},
+        )
+        for row in change_kinds.active_waivers(session, migration_id)
+    )
+    signoffs = tuple(
+        Signoff(id=str(row.id), run_fingerprint=row.run_fingerprint)
+        for row in change_kinds.active_signoffs(session, migration_id)
+    )
     return Overlays(
         record_overrides=tuple(overrides),
         quarantine_repairs=tuple(repairs),
         entity_decisions=decisions,
         dispositions=dispositions,
+        gate_waivers=waivers,
+        signoffs=signoffs,
     )
 
 

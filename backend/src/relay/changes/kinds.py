@@ -40,9 +40,13 @@ from relay.changes.models import (
     ChangeRequestStatus,
     Disposition,
     EntityDecision,
+    GateWaiver,
     OverlayStatus,
     OverrideTarget,
+    ReadinessSignoff,
     RecordOverride,
+    SignoffStatus,
+    WaiverStatus,
 )
 from relay.core.actor import Actor
 from relay.core.clock import Clock
@@ -59,7 +63,7 @@ from relay.mapping_sets import accounts
 from relay.mapping_sets import service as column_sets
 from relay.mapping_sets.models import AccountMappingSet, ColumnMappingSet, MappingSetStatus
 from relay.workspace import service as workspace
-from relay.workspace.models import Dataset, PolicyVersion
+from relay.workspace.models import Dataset, MigrationStatus, PolicyVersion
 
 MAX_REPLACEMENT_TEXT: Final = 65_536
 MAX_LISTED_CHANGES: Final = 500
@@ -947,12 +951,286 @@ def _disposition_apply(
         )
 
 
+# ---------------------------------------------------------------------------- readiness waivers
+WAIVABLE_GATES: Final = frozenset({"G6", "G7", "G8", "G9"})
+
+
+class GateWaiverPayload(_Payload):
+    """Resolved from the current run's readiness evaluation by ``relay.pipeline.readiness``."""
+
+    gate_id: str
+    run_id: uuid.UUID
+    run_fingerprint: str
+    evaluation_id: uuid.UUID
+    scope: dict[str, str] = Field(min_length=1)
+
+
+def active_waivers(session: Session, migration_id: uuid.UUID) -> list[GateWaiver]:
+    return list(
+        session.scalars(
+            select(GateWaiver)
+            .where(
+                GateWaiver.migration_id == migration_id,
+                GateWaiver.status == WaiverStatus.ACTIVE.value,
+            )
+            .order_by(GateWaiver.created_at, GateWaiver.id)
+        )
+    )
+
+
+def _waiver_check(session: Session, migration_id: uuid.UUID, payload: GateWaiverPayload) -> None:
+    if payload.gate_id not in WAIVABLE_GATES:
+        raise InvalidInputError(f"{payload.gate_id} cannot be waived")
+    if any(key.startswith("not_applicable:") for key in payload.scope):
+        raise InvalidInputError("a reconciliation that could not run cannot be waived")
+    if any(
+        w.gate_id == payload.gate_id and w.scope == payload.scope
+        for w in active_waivers(session, migration_id)
+    ):
+        raise ChangeRequestPreconditionError("an active waiver already covers this gate")
+
+
+def _waiver_prepare(
+    session: Session, change: ChangeRequest, payload: GateWaiverPayload
+) -> Prepared:
+    _waiver_check(session, change.migration_id, payload)
+    return Prepared(
+        before={"gate_id": payload.gate_id, "status": "fail"},
+        after={"gate_id": payload.gate_id, "status": "waived"},
+        impact={
+            "gate_id": payload.gate_id,
+            "run_id": str(payload.run_id),
+            "scope": payload.scope,
+            "lapses_when": "any waived amount changes or a discrepancy appears or disappears",
+        },
+        required_approvals=required_approvals(ChangeRequestKind.GATE_WAIVER),
+    )
+
+
+def _waiver_versions(
+    session: Session, change: ChangeRequest, payload: GateWaiverPayload
+) -> Versions:
+    active = [
+        str(w.id)
+        for w in active_waivers(session, change.migration_id)
+        if w.gate_id == payload.gate_id
+    ]
+    return {f"gate_waivers:{payload.gate_id}": ",".join(active) or None}
+
+
+def _waiver_apply(
+    session: Session,
+    actor: Actor,
+    change: ChangeRequest,
+    payload: GateWaiverPayload,
+    clock: Clock | None,
+) -> None:
+    row = GateWaiver(
+        id=uuid7(clock),
+        migration_id=change.migration_id,
+        gate_id=payload.gate_id,
+        run_id=payload.run_id,
+        run_fingerprint=payload.run_fingerprint,
+        scope=payload.scope,
+        reason=change.justification,
+        change_request_id=change.id,
+        status=WaiverStatus.ACTIVE.value,
+        version=1,
+    )
+    session.add(row)
+    session.flush()
+    audit.record(
+        session,
+        actor=actor,
+        action="gate_waiver.activated",
+        entity_type="gate_waiver",
+        entity_id=row.id,
+        migration_id=change.migration_id,
+        change_request_id=change.id,
+        before={"status": None},
+        after={"gate_id": row.gate_id, "scope": row.scope, "status": row.status},
+        reason=change.justification,
+        clock=clock,
+    )
+
+
+# --------------------------------------------------------------------------- readiness sign-off
+class SignoffPayload(_Payload):
+    """Resolved by ``relay.pipeline.readiness``: G1-G11 pass or are waived on this current run."""
+
+    run_id: uuid.UUID
+    run_fingerprint: str
+    evaluation_id: uuid.UUID
+
+
+def active_signoffs(session: Session, migration_id: uuid.UUID) -> list[ReadinessSignoff]:
+    return list(
+        session.scalars(
+            select(ReadinessSignoff)
+            .where(
+                ReadinessSignoff.migration_id == migration_id,
+                ReadinessSignoff.status == SignoffStatus.ACTIVE.value,
+            )
+            .order_by(ReadinessSignoff.created_at, ReadinessSignoff.id)
+        )
+    )
+
+
+def _signoff_check(session: Session, migration_id: uuid.UUID, payload: SignoffPayload) -> None:
+    if any(
+        s.run_fingerprint == payload.run_fingerprint for s in active_signoffs(session, migration_id)
+    ):
+        raise ChangeRequestPreconditionError("this run is already signed off")
+
+
+def _signoff_prepare(session: Session, change: ChangeRequest, payload: SignoffPayload) -> Prepared:
+    _signoff_check(session, change.migration_id, payload)
+    migration = workspace.get_migration(session, change.migration_id)
+    return Prepared(
+        before={"migration_status": migration.status, "run_fingerprint": payload.run_fingerprint},
+        after={"migration_status": "signed_off", "run_fingerprint": payload.run_fingerprint},
+        impact={
+            "run_id": str(payload.run_id),
+            "evaluation_id": str(payload.evaluation_id),
+            "invalidated_by": "any later change to the run inputs",
+        },
+        required_approvals=required_approvals(ChangeRequestKind.READINESS_SIGNOFF),
+    )
+
+
+def _signoff_versions(session: Session, change: ChangeRequest, _: SignoffPayload) -> Versions:
+    active = [str(s.id) for s in active_signoffs(session, change.migration_id)]
+    return {"readiness_signoffs": ",".join(active) or None}
+
+
+def _signoff_apply(
+    session: Session,
+    actor: Actor,
+    change: ChangeRequest,
+    payload: SignoffPayload,
+    clock: Clock | None,
+) -> None:
+    row = ReadinessSignoff(
+        id=uuid7(clock),
+        migration_id=change.migration_id,
+        run_id=payload.run_id,
+        run_fingerprint=payload.run_fingerprint,
+        readiness_evaluation_id=payload.evaluation_id,
+        change_request_id=change.id,
+        status=SignoffStatus.ACTIVE.value,
+        version=1,
+    )
+    session.add(row)
+    session.flush()
+    audit.record(
+        session,
+        actor=actor,
+        action="readiness.signed_off",
+        entity_type="readiness_signoff",
+        entity_id=row.id,
+        migration_id=change.migration_id,
+        change_request_id=change.id,
+        before={"status": None},
+        after={"run_id": row.run_id, "run_fingerprint": row.run_fingerprint, "status": row.status},
+        reason=change.justification,
+        clock=clock,
+    )
+    workspace.set_migration_status(
+        session,
+        actor=actor,
+        migration=workspace.get_migration(session, change.migration_id),
+        status=MigrationStatus.SIGNED_OFF,
+        reason="readiness sign-off applied",
+        change_request_id=change.id,
+    )
+
+
+def invalidate_signoffs(
+    session: Session,
+    *,
+    actor: Actor,
+    migration_id: uuid.UUID,
+    current_fingerprint: str,
+    clock: Clock | None = None,
+) -> int:
+    """governance.md §4.2: any change to the inputs invalidates a sign-off (audited)."""
+    invalidated = 0
+    for signoff in active_signoffs(session, migration_id):
+        if signoff.run_fingerprint == current_fingerprint:
+            continue
+        signoff.status = SignoffStatus.INVALIDATED.value
+        signoff.invalidated_by_fingerprint = current_fingerprint
+        signoff.version += 1
+        session.flush()
+        audit.record(
+            session,
+            actor=actor,
+            action="readiness.signoff_invalidated",
+            entity_type="readiness_signoff",
+            entity_id=signoff.id,
+            migration_id=migration_id,
+            before={
+                "status": SignoffStatus.ACTIVE.value,
+                "run_fingerprint": signoff.run_fingerprint,
+            },
+            after={"status": signoff.status, "current_fingerprint": current_fingerprint},
+            reason="the migration's inputs changed after sign-off",
+            clock=clock,
+        )
+        invalidated += 1
+    if invalidated and not active_signoffs(session, migration_id):
+        workspace.set_migration_status(
+            session,
+            actor=actor,
+            migration=workspace.get_migration(session, migration_id),
+            status=MigrationStatus.IN_PROGRESS,
+            reason="sign-off invalidated by an input change",
+        )
+    return invalidated
+
+
+def lapse_waivers(
+    session: Session,
+    *,
+    actor: Actor,
+    migration_id: uuid.UUID,
+    applied_waiver_ids: set[str],
+    run_id: uuid.UUID,
+    clock: Clock | None = None,
+) -> int:
+    """Active waivers the current evaluation did not apply have lapsed (audited)."""
+    lapsed = 0
+    for waiver in active_waivers(session, migration_id):
+        if str(waiver.id) in applied_waiver_ids:
+            continue
+        waiver.status = WaiverStatus.LAPSED.value
+        waiver.lapsed_run_id = run_id
+        waiver.version += 1
+        session.flush()
+        audit.record(
+            session,
+            actor=actor,
+            action="gate_waiver.lapsed",
+            entity_type="gate_waiver",
+            entity_id=waiver.id,
+            migration_id=migration_id,
+            before={"status": WaiverStatus.ACTIVE.value, "scope": waiver.scope},
+            after={"status": waiver.status, "run_id": run_id},
+            reason="the waived gate's discrepancies or amounts changed",
+            clock=clock,
+        )
+        lapsed += 1
+    return lapsed
+
+
 # ------------------------------------------------------------------------------------ reverts
-RevertTarget = Literal["record_override", "entity_decision", "disposition"]
-_REVERTABLE: Final[dict[str, type[RecordOverride] | type[EntityDecision] | type[Disposition]]] = {
+RevertTarget = Literal["record_override", "entity_decision", "disposition", "gate_waiver"]
+type Revertable = RecordOverride | EntityDecision | Disposition | GateWaiver
+_REVERTABLE: Final[dict[str, type[Revertable]]] = {
     "record_override": RecordOverride,
     "entity_decision": EntityDecision,
     "disposition": Disposition,
+    "gate_waiver": GateWaiver,
 }
 
 
@@ -971,9 +1249,9 @@ class RevertPayload(_Payload):
 
 def _revert_target(
     session: Session, payload: RevertPayload, *, for_update: bool = False
-) -> RecordOverride | EntityDecision | Disposition:
+) -> Revertable:
     target = session.get(_REVERTABLE[payload.target], payload.target_id, with_for_update=for_update)
-    if not isinstance(target, RecordOverride | EntityDecision | Disposition):
+    if not isinstance(target, RecordOverride | EntityDecision | Disposition | GateWaiver):
         raise InvalidInputError(f"{payload.target.replace('_', ' ')} does not exist")
     return target
 
@@ -986,7 +1264,7 @@ def _revert_check(session: Session, migration_id: uuid.UUID, payload: RevertPayl
         raise ChangeRequestPreconditionError("only an active overlay can be reverted")
 
 
-def _describe_target(target: RecordOverride | EntityDecision | Disposition) -> dict[str, Any]:
+def _describe_target(target: Revertable) -> dict[str, Any]:
     if isinstance(target, RecordOverride):
         return {
             "natural_key": target.natural_key,
@@ -1001,6 +1279,8 @@ def _describe_target(target: RecordOverride | EntityDecision | Disposition) -> d
             "members": target.members,
             "survivor": target.survivor,
         }
+    if isinstance(target, GateWaiver):
+        return {"gate_id": target.gate_id, "scope": target.scope}
     return {"issue_id": str(target.issue_id), "kind": target.kind, "amount": str(target.amount)}
 
 
@@ -1019,6 +1299,8 @@ def _revert_prepare(session: Session, change: ChangeRequest, payload: RevertPayl
         impact.update(natural_key=target.natural_key, restores=target.expected_current_value)
     elif isinstance(target, Disposition):
         impact.update(issue_id=str(target.issue_id), reopens_issue=True)
+    elif isinstance(target, GateWaiver):
+        impact.update(gate_id=target.gate_id)
     else:
         impact.update(members=target.members)
     return Prepared(
@@ -1092,6 +1374,12 @@ KINDS: Final[dict[ChangeRequestKind, Kind]] = {
         DispositionPayload, _disposition_check, _disposition_prepare, _disposition_versions,
         _disposition_apply,
     ),
+    ChangeRequestKind.GATE_WAIVER: Kind(
+        GateWaiverPayload, _waiver_check, _waiver_prepare, _waiver_versions, _waiver_apply
+    ),
+    ChangeRequestKind.READINESS_SIGNOFF: Kind(
+        SignoffPayload, _signoff_check, _signoff_prepare, _signoff_versions, _signoff_apply
+    ),
     ChangeRequestKind.REVERT: Kind(
         RevertPayload, _revert_check, _revert_prepare, _revert_versions, _revert_apply
     ),
@@ -1107,5 +1395,25 @@ def active_overrides(session: Session, migration_id: uuid.UUID) -> list[RecordOv
                 RecordOverride.status == OverlayStatus.ACTIVE.value,
             )
             .order_by(RecordOverride.created_at, RecordOverride.id)
+        )
+    )
+
+
+def waivers(session: Session, migration_id: uuid.UUID) -> list[GateWaiver]:
+    return list(
+        session.scalars(
+            select(GateWaiver)
+            .where(GateWaiver.migration_id == migration_id)
+            .order_by(GateWaiver.created_at.desc(), GateWaiver.id)
+        )
+    )
+
+
+def signoffs(session: Session, migration_id: uuid.UUID) -> list[ReadinessSignoff]:
+    return list(
+        session.scalars(
+            select(ReadinessSignoff)
+            .where(ReadinessSignoff.migration_id == migration_id)
+            .order_by(ReadinessSignoff.created_at.desc(), ReadinessSignoff.id)
         )
     )

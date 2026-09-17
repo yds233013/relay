@@ -297,3 +297,33 @@ def source_systems_for(session: Session, migration_id: uuid.UUID) -> list[Source
             .order_by(SourceSystem.created_at, SourceSystem.id)
         )
     )
+
+
+def set_migration_status(
+    session: Session,
+    *,
+    actor: Actor,
+    migration: Migration,
+    status: MigrationStatus,
+    reason: str,
+    change_request_id: uuid.UUID | None = None,
+) -> None:
+    """Record a status transition (for example ``signed_off`` and back to ``in_progress``)."""
+    if migration.status == status.value:
+        return
+    before = migration.status
+    migration.status = status.value
+    migration.version += 1
+    session.flush()
+    audit.record(
+        session,
+        actor=actor,
+        action="migration.status_changed",
+        entity_type="migration",
+        entity_id=migration.id,
+        migration_id=migration.id,
+        change_request_id=change_request_id,
+        before={"status": before},
+        after={"status": status.value},
+        reason=reason,
+    )

@@ -26,15 +26,20 @@ from relay.api.schemas import (
     MigrationSummaryOut,
     OverviewOut,
     Page,
+    PolicyOut,
     ReadinessOut,
+    SignoffOut,
     StageOut,
     UserOut,
+    WaiverOut,
     amount_text,
 )
 from relay.audit import read_model as audit_read
 from relay.audit import service as audit
 from relay.audit.models import AuditEvent
+from relay.changes import kinds as governance_read
 from relay.core.currency import Currency
+from relay.engine.readiness import WAIVABLE
 from relay.identity import service as identity
 from relay.issues import read_model as issues_read
 from relay.issues.models import Issue
@@ -182,6 +187,19 @@ def list_datasets(
     ]
 
 
+@router.get("/migrations/{migration_id}/policy")
+def current_policy(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -> PolicyOut:
+    """The policy in effect; changing it is a ``policy_change`` change request."""
+    workspace.get_migration(session, migration_id)
+    row = workspace.current_policy(session, migration_id)
+    return PolicyOut(
+        version=row.version,
+        policy=row.policy,
+        change_request_id=row.change_request_id,
+        created_at=row.created_at,
+    )
+
+
 @router.get("/migrations/{migration_id}/readiness")
 def readiness(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -> ReadinessOut:
     """Readiness of the latest successful run, marked stale when inputs have changed since."""
@@ -189,23 +207,61 @@ def readiness(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -
     currency = migration.functional_currency
     run = runs_read.latest_succeeded_run(session, migration_id)
     stored = runs_read.readiness_for_run(session, run.id) if run else None
+    current_fingerprint = pipeline.current_fingerprint(session, migration_id).fingerprint
+    waivers = [
+        WaiverOut(
+            id=w.id,
+            gate_id=w.gate_id,
+            status=w.status,
+            reason=w.reason,
+            scope={str(k): str(v) for k, v in w.scope.items()},
+            run_id=w.run_id,
+            change_request_id=w.change_request_id,
+            created_at=w.created_at,
+        )
+        for w in governance_read.waivers(session, migration_id)
+    ]
+    signoffs = [
+        SignoffOut(
+            id=s.id,
+            run_id=s.run_id,
+            run_fingerprint=s.run_fingerprint,
+            status=s.status,
+            change_request_id=s.change_request_id,
+            invalidated_by_fingerprint=s.invalidated_by_fingerprint,
+            created_at=s.created_at,
+        )
+        for s in governance_read.signoffs(session, migration_id)
+    ]
     if run is None or stored is None:
         return ReadinessOut(
             run_id=None,
+            current_fingerprint=current_fingerprint,
             run_is_current=False,
             overall="stale",
             unresolved_exposure=None,
             currency=currency.code,
             gates=[],
+            migration_status=migration.status,
+            waivers=waivers,
+            signoffs=signoffs,
         )
     evaluation, gates = stored
-    current = pipeline.current_fingerprint(session, migration_id).fingerprint == run.fingerprint
+    current = current_fingerprint == run.fingerprint
     return ReadinessOut(
         run_id=run.id,
+        run_sequence=run.sequence,
+        run_fingerprint=run.fingerprint,
+        current_fingerprint=current_fingerprint,
         run_is_current=current,
         overall=evaluation.overall if current else "stale",
         unresolved_exposure=amount_text(evaluation.unresolved_exposure, currency),
         currency=currency.code,
+        migration_status=migration.status,
+        evaluation_sequence=evaluation.sequence,
+        evaluated_at=evaluation.evaluated_at,
+        waivers=waivers,
+        signoffs=signoffs,
         gates=[
             GateOut(
                 gate_id=g.gate_id,
@@ -222,6 +278,8 @@ def readiness(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -
                     )
                 ],
                 waiver_id=g.waiver_id,
+                waivable=g.gate_id in WAIVABLE,
+                scope={str(k): str(v) for k, v in g.scope.items()} if g.scope else None,
             )
             for g in gates
         ],

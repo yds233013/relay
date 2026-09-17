@@ -2,7 +2,7 @@
 
 **Migration operations for ERP implementations: prove the data is right before go-live.**
 
-> **Status:** milestones M0 to M6 are implemented: foundation; canonical model and the Brightwater demo scenario; the deterministic validation and reconciliation engine; persistence, imports, pipeline runs, audit and the read API; the web evidence workspace; governed mappings, change requests, approvals and record overrides; issue workflow, entity decisions, dispositions, re-imports and new migrations. See [docs/progress.md](docs/progress.md) for exactly what exists.
+> **Status:** milestones M0 to M7 are implemented: foundation; canonical model and the Brightwater demo scenario; the deterministic validation and reconciliation engine; persistence, imports, pipeline runs, audit and the read API; the web evidence workspace; governed mappings, change requests, approvals and record overrides; issue workflow, entity decisions, dispositions, re-imports and new migrations; readiness waivers and sign-off. See [docs/progress.md](docs/progress.md) for exactly what exists.
 
 ---
 

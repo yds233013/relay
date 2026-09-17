@@ -222,3 +222,70 @@ class Disposition(Base):
     status: Mapped[str] = mapped_column(Text, nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = created_at()
+
+
+class WaiverStatus(StrEnum):
+    ACTIVE = "active"
+    LAPSED = "lapsed"
+    """The waived gate's scope changed: an amount changed or a discrepancy appeared or went away."""
+    REVERTED = "reverted"
+
+
+class GateWaiver(Base):
+    """An approved waiver of a waivable readiness gate (governance.md §4.3)."""
+
+    __tablename__ = "gate_waivers"
+    __table_args__ = (
+        check_in("status", "status", WaiverStatus),
+        Index("ix_gate_waivers_migration_status", "migration_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    migration_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("migrations.id"), nullable=False)
+    gate_id: Mapped[str] = mapped_column(Text, nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_runs.id"), nullable=False)
+    run_fingerprint: Mapped[str] = mapped_column(Text, nullable=False)
+    # {evidence key: amount} of the gate when the waiver was requested.
+    scope: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    change_request_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("change_requests.id"), nullable=False
+    )
+    reverted_by_cr_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("change_requests.id"))
+    lapsed_run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("pipeline_runs.id"))
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = created_at()
+
+
+class SignoffStatus(StrEnum):
+    ACTIVE = "active"
+    INVALIDATED = "invalidated"
+    """The migration's inputs changed after sign-off."""
+    REVERTED = "reverted"
+
+
+class ReadinessSignoff(Base):
+    """Lead and controller approval of go-live on one exact run fingerprint (G12)."""
+
+    __tablename__ = "readiness_signoffs"
+    __table_args__ = (
+        check_in("status", "status", SignoffStatus),
+        Index("ix_readiness_signoffs_migration_status", "migration_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    migration_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("migrations.id"), nullable=False)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_runs.id"), nullable=False)
+    run_fingerprint: Mapped[str] = mapped_column(Text, nullable=False)
+    readiness_evaluation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("readiness_evaluations.id"), nullable=False
+    )
+    change_request_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("change_requests.id"), nullable=False
+    )
+    invalidated_by_fingerprint: Mapped[str | None] = mapped_column(Text)
+    reverted_by_cr_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("change_requests.id"))
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = created_at()

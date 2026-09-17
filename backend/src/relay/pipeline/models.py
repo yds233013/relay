@@ -38,6 +38,11 @@ class RunStatus(StrEnum):
     FAILED = "failed"
 
 
+class EvaluationTrigger(StrEnum):
+    RUN = "run"
+    GOVERNANCE = "governance"
+
+
 class RunTrigger(StrEnum):
     MANUAL = "manual"
     CHANGE_REQUEST_APPLIED = "change_request_applied"
@@ -251,11 +256,16 @@ class EntityCandidateRow(Base):
 
 class ReadinessEvaluationRow(Base):
     __tablename__ = "readiness_evaluations"
+    __table_args__ = (
+        UniqueConstraint("run_id", "sequence"),
+        check_in("trigger", "trigger", EvaluationTrigger),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    run_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("pipeline_runs.id"), nullable=False, unique=True
-    )
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pipeline_runs.id"), nullable=False)
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    """1 when the run executed; later evaluations follow governance changes on the same run."""
+    trigger: Mapped[str] = mapped_column(Text, nullable=False, default="run")
     policy_version: Mapped[int] = mapped_column(Integer, nullable=False)
     overall: Mapped[str] = mapped_column(Text, nullable=False)
     unresolved_exposure: Mapped[Decimal] = mapped_column(AmountType(), nullable=False)
@@ -282,3 +292,5 @@ class GateResultRow(Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     evidence: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
     waiver_id: Mapped[str | None] = mapped_column(Text)
+    # For failing waivable gates: {evidence key: amount} a waiver would cover.
+    scope: Mapped[dict[str, Any] | None] = mapped_column(JSONB)

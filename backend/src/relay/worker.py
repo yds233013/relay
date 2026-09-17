@@ -62,9 +62,19 @@ def _run_pipeline(session: Session, context: WorkerContext, payload: dict[str, A
     )
 
 
+def _evaluate_readiness(session: Session, context: WorkerContext, payload: dict[str, Any]) -> None:
+    pipeline.reevaluate_readiness(
+        session,
+        migration_id=uuid.UUID(payload["migration_id"]),
+        blob_store=context.blob_store,
+        clock=context.clock,
+    )
+
+
 HANDLERS: dict[JobKind, Handler] = {
     JobKind.PARSE_IMPORT: _parse_import,
     JobKind.RUN_PIPELINE: _run_pipeline,
+    JobKind.EVALUATE_READINESS: _evaluate_readiness,
 }
 
 
