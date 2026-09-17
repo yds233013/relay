@@ -99,6 +99,21 @@ def test_valid_production_settings() -> None:
     assert settings.env is Environment.PRODUCTION
 
 
+def test_dev_identity_defaults_by_environment_and_is_refused_in_production() -> None:
+    assert Settings(database_url=LOCAL_URL).dev_identity_active  # type: ignore[arg-type]
+    production = Settings(
+        env="production",  # type: ignore[arg-type]
+        database_url="postgresql+psycopg://relay:Xk2-long-random@db/relay",  # type: ignore[arg-type]
+    )
+    assert not production.dev_identity_active
+    with pytest.raises(ValidationError, match="development identity"):
+        Settings(
+            env="production",  # type: ignore[arg-type]
+            database_url="postgresql+psycopg://relay:Xk2-long-random@db/relay",  # type: ignore[arg-type]
+            dev_identity_enabled=True,
+        )
+
+
 def test_settings_are_immutable() -> None:
     settings = Settings(database_url=LOCAL_URL)  # type: ignore[arg-type]
     with pytest.raises(ValidationError):

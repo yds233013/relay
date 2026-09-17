@@ -11,6 +11,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 
+import relay.models  # noqa: F401 - registers every table on Base.metadata
 from relay.core.config import get_settings
 from relay.core.db import Base
 

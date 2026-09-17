@@ -3,10 +3,10 @@
 #   db       PostgreSQL 16
 #   migrate  one-shot: alembic upgrade head, then exits
 #   api      FastAPI (relay.api.app)
+#   worker   PostgreSQL-backed job worker (imports, pipeline runs)
 #   web      Next.js
 #
-# There is intentionally no worker service yet: the Postgres-backed job worker is built in M3
-# (docs/implementation-plan.md). All ports bind to 127.0.0.1 only.
+# api and worker share the content-addressed blob volume. All ports bind to 127.0.0.1 only.
 #
 # Credentials below are local-development defaults, not secrets. Override them in .env
 # (see .env.example). The application refuses to start in production with the default password.
@@ -60,6 +60,29 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    volumes:
+      - relay-blobs:/data/blobs
+    restart: unless-stopped
+
+  worker:
+    image: relay-backend:local
+    pull_policy: never
+    command: ["relay", "worker"]
+    environment:
+      <<: *backend-env
+      RELAY_WORKER_HEARTBEAT_FILE: /tmp/relay-worker-heartbeat
+    volumes:
+      - relay-blobs:/data/blobs
+    healthcheck:
+      # Healthy while the worker loop keeps touching its heartbeat file (at least every poll).
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time() - os.path.getmtime('/tmp/relay-worker-heartbeat') < 60 else 1)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 15s
+      retries: 3
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   web:
@@ -77,3 +100,4 @@ services:
 
 volumes:
   relay-db:
+  relay-blobs:

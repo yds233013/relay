@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -43,6 +44,16 @@ class Settings(BaseSettings):
     db_connect_timeout_seconds: int = Field(default=5, ge=1, le=60)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
+    storage_dir: Path = Path("/data/blobs")
+    max_upload_bytes: int = Field(default=52_428_800, ge=1024, le=1_073_741_824)
+    max_rows_per_import: int = Field(default=500_000, ge=1, le=2_000_000)
+    dev_identity_enabled: bool | None = Field(
+        default=None,
+        description=(
+            "Accept the X-Relay-User development header. Defaults to on in local and test, off "
+            "otherwise; enabling it in production is refused (SEC-11)."
+        ),
+    )
 
     @field_validator("database_url")
     @classmethod
@@ -64,7 +75,15 @@ class Settings(BaseSettings):
             password = urlsplit(self.database_url.get_secret_value()).password or ""
             if not password or _LOCAL_DEV_PASSWORD_MARKER in password:
                 raise ValueError("production requires a real database password")
+            if self.dev_identity_enabled:
+                raise ValueError("the development identity header cannot be enabled in production")
         return self
+
+    @property
+    def dev_identity_active(self) -> bool:
+        if self.dev_identity_enabled is None:
+            return self.env in {Environment.LOCAL, Environment.TEST}
+        return self.dev_identity_enabled and self.env is not Environment.PRODUCTION
 
 
 @lru_cache(maxsize=1)

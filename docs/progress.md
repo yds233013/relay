@@ -211,3 +211,49 @@ The plan's target (< 60 s at 250k lines) is met on this machine. A cProfile run 
 ### Next
 
 M3: persistence of imports, runs, findings and issues; jobs; audit hash chain; read APIs.
+
+---
+
+## M3 — Persistence, ingestion, runs, audit
+
+Status: **Complete** (commit `feat: add migration persistence and pipeline`). Decisions: [decisions/0004-persistence-and-pipeline.md](decisions/0004-persistence-and-pipeline.md).
+
+### Built
+
+- **Schema** (Alembic `0002_persistence`, 29 tables): identity, workspace (companies, migrations with conversion plans, source systems, datasets, policy versions), imports (stored files, imports, append-only source and quarantined rows, profiles), column mapping sets, change requests and approvals, pipeline results (runs, rule runs, exceptions, reconciliation results, lines and items, entity candidates, readiness evaluations, gate results, staged records), issues and occurrences, hash-chained audit events, jobs. Triggers: append-only (UPDATE, DELETE, TRUNCATE) on source rows, quarantined rows and audit events; segregation of duties on approvals.
+- **Services**: audit writer and chain verification; content-addressed blob store; uploads (size limit, extension and content sniffing, file name sanitizing, idempotency, supersession, audited activation); parse job with profiling; column mapping drafts; change request core with the `column_mapping_set` applier; pipeline request (idempotent on fingerprint) and execution (engine over verified import bytes, `COPY` persistence, issue synchronization, readiness); PostgreSQL job queue with `SKIP LOCKED`; `relay worker`.
+- **Read models and API** (28 paths, dev identity only in local/test): me, dev users, migrations, datasets, readiness, issues, audit events and verification, entity candidates, imports (upload, rows, quarantine, profile), pipeline runs and fingerprint, rule runs, exceptions, reconciliations, lines, drill-down (R1/R2 by account, R3/R4 by document with lineage, R5 reconciling items, R6 quarantine), records with source rows, rule catalog. OpenAPI committed at `web/src/lib/api/openapi.json` with a drift test.
+- **Commands**: `relay worker`, `relay verify-audit`, `relay-demo seed`; `make worker`, `make demo-seed` (inside Compose), `make demo-seed-host`, `make verify-audit`, `make openapi`. Compose runs a `worker` service with a heartbeat healthcheck, sharing a blob volume with the API.
+- **Evaluation**: `relay_evaluation.brightwater.persisted` rebuilds a comparable result from database rows only.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Persisted Run #1 (database rows only) vs golden manifest | 89 / 89 |
+| Persisted failing gates | G1, G3, G5, G6, G7, G8, G9, G10, G12 (= manifest) |
+| R3 `C-0233` drill-down | `INV-10877` `left_only`, lineage to the GL export row `JE-AR-10877` |
+| Audit chains after seeding | valid (migration and platform); tampering detected at the exact sequence |
+| Append-only triggers, self-approval trigger, SKIP LOCKED, idempotent uploads and runs, inputs-changed failure, upload limits, path traversal, production refusal of dev identity | integration tests pass |
+| Compose stack (db, migrate, api, worker, web) | `make up` healthy, `make smoke` OK, `make demo-seed` inside Compose; API readiness, R3 drill-down, record lineage and audit verification checked over HTTP and with `relay verify-audit` in the worker container |
+| `make check` | passed: 631 backend unit and scenario tests, 59 integration tests, 22 web tests, 4 import contracts, 115/115 manifest facts |
+
+### Measured
+
+Day-9 Brightwater seed on the development machine (Apple M2, local Compose PostgreSQL): about 6 s end to end. Pipeline run: load 0.08 s, engine 1.07 s, persistence 1.5 s (24,472 staged records, 65 findings, 1,704 reconciliation lines), issues 0.37 s, total 3.1 s. Before switching to `COPY`, persistence took 10.1 s.
+
+### Changed from the plan, and why
+
+See decisions P-01 to P-18. The most visible: one semi-typed staged records table; uploads as request bodies; account mapping remains an imported dataset until M5; no overlay tables until their change request kinds exist; the demo seed is `relay-demo seed` (demo tooling may not live in the runtime CLI, D-15).
+
+### Known limitations and debt
+
+- Upload bodies are buffered in memory (bounded by the upload limit) before spooling.
+- Long pipeline runs do not heartbeat (P-18).
+- Readiness is not re-evaluated when governance state changes between runs (P-14).
+- Run retention and pruning (architecture §4.4) are not implemented.
+- Local development databases seeded more than once contain one migration per seed (the seed does not deduplicate migrations).
+
+### Next
+
+M4: web shell and evidence views over this API.

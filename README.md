@@ -2,7 +2,7 @@
 
 **Migration operations for ERP implementations: prove the data is right before go-live.**
 
-> **Status:** M0 (foundation), M1 (canonical model and the Brightwater demo scenario) and M2 (the deterministic validation and reconciliation engine) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
+> **Status:** M0 (foundation), M1 (canonical model and the Brightwater demo scenario) M2 (the deterministic validation and reconciliation engine) and M3 (persistence, imports, pipeline runs, audit and the read API) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
 
 ---
 
@@ -80,6 +80,26 @@ make engine-run
 ```
 
 On Brightwater Run #1 the engine's findings and reconciliation discrepancies match the hand-authored golden manifest exactly. The documented resolutions reach "all gates pass except sign-off". The engine has no Brightwater-specific code: the same rules give zero findings on a synthetic clean company, and each rule is tested there with a planted defect and a legitimate look-alike.
+
+## Persistence, pipeline runs and audit (M3)
+
+Imports keep every raw row immutable, with file and line lineage. Pipeline runs are idempotent on an input fingerprint and persist staged records, findings, reconciliations and readiness in one transaction. Every governed change writes a hash-chained audit event in the same transaction.
+
+Start the stack, load Brightwater at the "day 9" state (imports, approved column mappings through change requests, Run #1), then verify the audit chains:
+
+```bash
+make up
+```
+
+```bash
+make demo-seed
+```
+
+```bash
+make verify-audit
+```
+
+The API documents itself at http://127.0.0.1:8000/api/v1/docs. Development identity: send `X-Relay-User: maya.chen@relay.example` (seeded users only; refused outside local and test).
 
 Measure throughput on a synthetic clean 250,000-line migration:
 

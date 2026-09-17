@@ -1,4 +1,4 @@
-# Relay backend image (API; later also the worker). Local development / CI only in M0.
+# Relay backend image (API and job worker). Local development / CI only.
 # Base images are pinned by digest (SEC-31). Update tag and digest together.
 
 FROM ghcr.io/astral-sh/uv:0.12.5@sha256:e85be844203885286c60ffad8a858d48afb6c5a5c237ca0e67f12e74b8f174b1 AS uv
@@ -16,7 +16,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY --from=uv /uv /usr/local/bin/uv
 
 RUN groupadd --system --gid 10001 relay \
-    && useradd --system --uid 10001 --gid relay --home-dir /app --no-create-home relay
+    && useradd --system --uid 10001 --gid relay --home-dir /app --no-create-home relay \
+    && mkdir -p /data/blobs && chown relay:relay /data/blobs && chmod 700 /data/blobs
 
 WORKDIR /app
 

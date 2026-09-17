@@ -8,14 +8,14 @@ code.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from decimal import Decimal
-from typing import Any
+from typing import Any, Protocol
 
+from relay.engine.entities import Candidate
 from relay.engine.exceptions import RuleException, Severity
-from relay.engine.pipeline import EngineResult
 from relay.engine.policy import Policy
-from relay.engine.reconciliation import ReconLine
+from relay.engine.reconciliation import ReconLine, ReconResult
 from relay_evaluation.brightwater.fixtures import Table, read_table
 from relay_evaluation.brightwater.manifest import ExpectedIssue, Manifest
 from relay_evaluation.brightwater.verify import VerificationReport
@@ -26,6 +26,19 @@ VENDORS = "ledgerpro/ledgerpro_vendors.csv"
 _DIRECTION = {"Receipt": "received", "Bill Payment": "disbursed"}
 
 Predicate = Callable[[RuleException], bool]
+
+
+class ResultLike(Protocol):
+    """What the comparison reads: an in-memory engine result or one rebuilt from the database."""
+
+    @property
+    def exceptions(self) -> Sequence[RuleException]: ...
+
+    @property
+    def reconciliations(self) -> Sequence[ReconResult]: ...
+
+    @property
+    def candidates(self) -> Sequence[Candidate]: ...
 
 
 class _Resolver:
@@ -141,7 +154,7 @@ def _line_value(line: ReconLine, name: str) -> object:
 
 
 def compare_reconciliations(
-    report: VerificationReport, resolver: _Resolver, result: EngineResult, manifest: Manifest
+    report: VerificationReport, resolver: _Resolver, result: ResultLike, manifest: Manifest
 ) -> None:
     actual: dict[tuple[str, tuple[tuple[str, str], ...]], ReconLine] = {}
     by_id = {r.recon_id: r for r in result.reconciliations}
@@ -215,7 +228,7 @@ def compare_reconciliations(
 
 
 def compare_candidates(
-    report: VerificationReport, result: EngineResult, manifest: Manifest, policy: Policy
+    report: VerificationReport, result: ResultLike, manifest: Manifest, policy: Policy
 ) -> None:
     actual = {(c.party_type.value, tuple(sorted(c.members))): c for c in result.candidates}
     expected_keys = set()
@@ -238,7 +251,7 @@ def compare_candidates(
 def compare_traps(
     report: VerificationReport,
     resolver: _Resolver,
-    result: EngineResult,
+    result: ResultLike,
     manifest: Manifest,
     policy: Policy,
     *,
@@ -282,7 +295,7 @@ def compare_traps(
 
 
 def compare_run1(
-    result: EngineResult, files: dict[str, bytes], manifest: Manifest, policy: Policy | None = None
+    result: ResultLike, files: dict[str, bytes], manifest: Manifest, policy: Policy | None = None
 ) -> VerificationReport:
     """Run #1: exact issues, reconciliation discrepancies, candidates and trap silence."""
     policy = policy or Policy()
@@ -302,7 +315,7 @@ def expected_after_resolution(manifest: Manifest) -> list[tuple[str, ExpectedIss
 
 def check_issues_present(
     report: VerificationReport,
-    result: EngineResult,
+    result: ResultLike,
     files: dict[str, bytes],
     expected: Iterable[tuple[str, ExpectedIssue]],
     label: str,

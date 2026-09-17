@@ -1,6 +1,6 @@
 # Relay — Data & Domain Model
 
-Status: **Planned.** Table and column names here are the target for the first Alembic migrations. Changes must update this document.
+Status: **Implemented in M3 with documented deviations** ([decisions/0004-persistence-and-pipeline.md](decisions/0004-persistence-and-pipeline.md)): one semi-typed `staged_records` table instead of per-type staged tables, policy versions under workspace, overlay tables deferred to M5–M7. Changes must update this document.
 
 Related: [architecture.md](architecture.md) · [governance.md](governance.md) · [security-and-correctness.md](security-and-correctness.md)
 

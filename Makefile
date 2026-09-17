@@ -23,7 +23,7 @@ export RELAY_DB_PASSWORD RELAY_DB_HOST_PORT RELAY_API_HOST_PORT RELAY_WEB_HOST_P
 
 UV := cd backend && uv run --locked
 NPM := cd web && npm
-BACKEND_DB_ENV := RELAY_ENV=local RELAY_DATABASE_URL='$(HOST_DATABASE_URL)'
+BACKEND_DB_ENV := RELAY_ENV=local RELAY_DATABASE_URL='$(HOST_DATABASE_URL)' RELAY_STORAGE_DIR=.data/blobs
 
 .PHONY: help
 help: ## List available targets
@@ -100,7 +100,7 @@ db-revision: ## Create an empty migration: make db-revision m="add imports table
 
 # ------------------------------------------------------------------------------------ run
 
-.PHONY: dev dev-api dev-web up down logs smoke
+.PHONY: dev dev-api dev-web worker up down logs smoke
 dev: db-migrate ## Run API (reload) and web (next dev) on the host against Compose PostgreSQL
 	@trap 'kill 0' EXIT INT TERM; \
 		$(MAKE) dev-api & \
@@ -111,6 +111,9 @@ dev-api: ## Run only the API with auto-reload (expects migrated database)
 	$(UV) env $(BACKEND_DB_ENV) RELAY_LOG_FORMAT=console \
 		uvicorn relay.api.app:create_app --factory --reload --no-access-log \
 		--host 127.0.0.1 --port $(RELAY_API_HOST_PORT)
+
+worker: ## Run the job worker on the host (imports, pipeline runs) against Compose PostgreSQL
+	$(UV) env $(BACKEND_DB_ENV) RELAY_LOG_FORMAT=console relay worker
 
 dev-web: ## Run only the web dev server
 	cd web && RELAY_API_URL=http://127.0.0.1:$(RELAY_API_HOST_PORT) \
@@ -136,9 +139,20 @@ smoke: ## Verify a running stack end to end: web page shows API and database hea
 
 # ------------------------------------------------------------------------------------ demo data
 
-.PHONY: demo-data demo-check demo-verify demo-manifest
+.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-seed-host verify-audit
 demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
 	$(UV) relay-demo generate
+
+demo-seed: ## Load Brightwater into the running Compose stack (day-9 state) through the services; run `make up` first
+	docker compose run --rm --no-deps -v "$(CURDIR)/fixtures:/fixtures:ro" api \
+		relay-demo seed --fixtures /fixtures/demo/brightwater \
+		--mapping-set /fixtures/demo/brightwater_config/column_mapping_set_v1.json
+
+demo-seed-host: db-migrate ## Load Brightwater into the local database with host-run processes (stop the Compose worker first)
+	$(UV) env $(BACKEND_DB_ENV) relay-demo seed
+
+verify-audit: ## Verify every audit hash chain in the local database
+	$(UV) env $(BACKEND_DB_ENV) relay verify-audit
 
 demo-check: ## Verify committed Brightwater fixtures match a fresh generation byte for byte
 	$(UV) relay-demo check
@@ -151,9 +165,12 @@ demo-manifest: ## EVALUATION ONLY: print the golden manifest (reveals expected a
 
 # ------------------------------------------------------------------------------------ engine
 
-.PHONY: engine-run engine-perf
+.PHONY: engine-run engine-perf openapi
 engine-run: ## Run the deterministic engine over the Brightwater fixtures (Run #1) and print gates and findings
 	$(UV) relay engine run --migration ../fixtures/demo/brightwater --mapping-set ../fixtures/demo/brightwater_config/column_mapping_set_v1.json
+
+openapi: ## Regenerate web/src/lib/api/openapi.json from the API (a unit test fails on drift)
+	$(UV) python -m relay.api.openapi
 
 engine-perf: ## Measure the engine on a synthetic clean 250,000-line migration (about a minute)
 	$(UV) relay-demo perf-engine --lines 250000

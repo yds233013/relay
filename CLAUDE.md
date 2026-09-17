@@ -35,10 +35,12 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 - **M1**: canonical accounting model (`relay.canonical`), deterministic Brightwater generator (`relay_scenarios`), source fixtures (`fixtures/demo/brightwater/`), hand-authored golden manifest (`evaluation/brightwater/`), evaluation verifier (`relay_evaluation`).
 - **M2**: pure deterministic engine: CSV ingestion with quarantine (`relay.ingestion`), declarative column mapping (`relay.mapping`), normalization, rules, reconciliations R1–R6, entity candidates, readiness gates and fingerprints (`relay.engine`); `relay engine run`; engine-vs-manifest comparison (`relay_evaluation.brightwater.engine_compare`); synthetic volume generator (`relay_scenarios.volume`). Decisions: `docs/decisions/0003-deterministic-engine.md`.
 
-Persistence, APIs for engine results, issues lifecycle across runs, approvals, audit, UI and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
+- **M3**: persistence (Alembic `0002_persistence`), imports with append-only source rows, column mapping sets, change request core, pipeline runs persisted in one transaction, issue synchronization, hash-chained audit, PostgreSQL job queue and `relay worker`, read API (dev identity), `relay-demo seed`. Decisions: `docs/decisions/0004-persistence-and-pipeline.md`.
+
+The web UI, governed overlays (overrides, entity decisions, dispositions, waivers, sign-offs), the remaining change request kinds and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
-- `backend/src/relay/`: **runtime** package (`core`, `canonical`, `ingestion`, `mapping`, `engine`, `api`, `cli.py`)
+- `backend/src/relay/`: **runtime** package. Pure: `core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`. Database: `audit`, `identity`, `workspace`, `jobs`, `imports`, `mapping_sets`, `changes`, `issues`, `pipeline`. Entry points: `api`, `worker.py`, `cli.py`. Layers are enforced by import-linter (see `backend/pyproject.toml`).
 - `backend/src/relay_scenarios/`: **demo/evaluation-only** scenario generators (they know which issues they plant)
 - `backend/src/relay_evaluation/`: **evaluation-only** golden-manifest loader, reference oracle, verifier
 - `backend/migrations/` (Alembic), `backend/tests/{unit,integration,scenario}`
@@ -75,14 +77,18 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make db-downgrade` | `alembic downgrade -1` |
 | `make db-current` | Show current revision |
 | `make db-revision m="message"` | New Alembic revision (post-write hook runs ruff on it) |
-| `make up` / `make down` | Build and start the full stack and wait for health / stop it (volume kept) |
+| `make up` / `make down` | Build and start the full stack (db, migrate, api, worker, web) and wait for health / stop it (volumes kept) |
 | `make smoke` | Against a running stack: API health, readiness, and web page showing both healthy with migrations at head |
-| `make dev` | API (uvicorn `--reload`) + web (`next dev`) on the host, Compose Postgres; `make dev-api`, `make dev-web` run one each |
+| `make dev` | API (uvicorn `--reload`) + web (`next dev`) on the host, Compose Postgres; `make dev-api`, `make dev-web` run one each. Host-run backend processes store blobs in `backend/.data/blobs` |
 | `make logs` | Follow Compose logs |
 | `make demo-data` | Regenerate Brightwater fixtures (`relay-demo generate`) and print a summary without answers |
 | `make demo-check` | Committed fixtures equal a fresh generation byte for byte |
 | `make demo-verify` | **Evaluation only**: verify fixtures against the golden manifest |
 | `make demo-manifest` | **Evaluation only**: print the golden manifest |
+| `make demo-seed` | With the stack up (`make up`): load Brightwater at the day-9 state through the services, inside Compose so the worker shares blob storage. `make demo-seed-host` does the same with host-run processes (stop the Compose worker first) |
+| `make worker` | Run the job worker on the host (`relay worker`; `relay worker --once` drains and exits) |
+| `make verify-audit` | Recompute every audit hash chain (`relay verify-audit [--migration ID]`) |
+| `make openapi` | Regenerate `web/src/lib/api/openapi.json`; `tests/unit/test_openapi.py` fails on drift |
 | `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
 | `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
 | `make clean` | Remove caches and build output |
@@ -93,10 +99,7 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| `uv run relay worker` (+ `worker` Compose service) | Job worker | M3 |
-| `uv run relay demo seed` | Seed Brightwater "day 9" state | M3 |
-| `uv run relay verify-audit --migration <id>` | Verify audit hash chain | M3 |
-| `make openapi` | Regenerate OpenAPI + TS client | M3 |
+| TypeScript client generated from `openapi.json` | Typed web API client | M4 |
 | `make test-e2e` | Playwright against compose | M4 |
 | `uv run relay demo fast-forward --to=before-signoff` | Apply scripted resolutions | M7 |
 | `make eval-ai` | Live-model evals (manual, needs key) | M8 |

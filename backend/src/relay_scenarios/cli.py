@@ -17,8 +17,13 @@ from collections import Counter
 from pathlib import Path
 
 from relay.canonical.enums import PaymentDirection
+from relay.core.config import get_settings
+from relay.core.db import create_db_engine, create_session_factory
+from relay.core.logging import configure_logging
 from relay.engine.inputs import build_inputs
 from relay.engine.pipeline import run_engine
+from relay.imports.blob_store import LocalBlobStore
+from relay.imports.service import ImportLimits
 from relay_scenarios.brightwater.constants import DEFAULT_SEED
 from relay_scenarios.brightwater.scenario import (
     CHECKSUM_FILE,
@@ -27,6 +32,7 @@ from relay_scenarios.brightwater.scenario import (
     checksum_manifest,
     write_fixtures,
 )
+from relay_scenarios.brightwater.seed import seed
 from relay_scenarios.volume import build_volume_migration, export_volume_migration
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -40,6 +46,24 @@ def _peak_rss_mib() -> float:
     usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     # macOS reports bytes, Linux reports kibibytes.
     return usage / (1024 * 1024) if sys.platform == "darwin" else usage / 1024
+
+
+def seed_database(fixtures: Path, mapping_set: Path) -> int:
+    settings = get_settings()
+    configure_logging("WARNING", settings.log_format)
+    factory = create_session_factory(create_db_engine(settings))
+    result = seed(
+        factory,
+        LocalBlobStore(settings.storage_dir),
+        ImportLimits(settings.max_upload_bytes, settings.max_rows_per_import),
+        fixtures,
+        mapping_set,
+    )
+    sys.stdout.write(
+        f"Seeded Brightwater (fictional): migration {result.migration_id}, run {result.run_id}\n"
+        "Users: " + ", ".join(sorted(result.users)) + "\n"
+    )
+    return 0
 
 
 def perf_engine(lines: int, mapping_set_path: Path) -> int:
@@ -129,7 +153,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     perf.add_argument("--lines", type=int, default=250_000)
     perf.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
+    seed_parser = sub.add_parser(
+        "seed",
+        help="load Brightwater into the database named by RELAY_DATABASE_URL (day-9 state)",
+    )
+    seed_parser.add_argument("--fixtures", type=Path, default=DEFAULT_OUT)
+    seed_parser.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
     args = parser.parse_args(argv)
+
+    if args.command == "seed":
+        return seed_database(args.fixtures, args.mapping_set)
 
     if args.command == "perf-engine":
         return perf_engine(args.lines, args.mapping_set)

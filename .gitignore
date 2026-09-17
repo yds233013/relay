@@ -49,3 +49,6 @@ tmp/
 .DS_Store
 .idea/
 .vscode/
+
+# Local blob storage for host-run API and worker
+backend/.data/

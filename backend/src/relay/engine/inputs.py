@@ -49,6 +49,7 @@ class DatasetSpec:
     source_system: str
     encoding: str
     as_of: date | None
+    delimiter: str = ","
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +105,7 @@ def build_inputs(
                 source_system=item.get("source_system", ""),
                 encoding=item.get("encoding", "utf-8"),
                 as_of=parse_iso_business_date(item["as_of"]) if item.get("as_of") else None,
+                delimiter=item.get("delimiter", ","),
             )
         )
     links = tuple(

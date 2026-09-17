@@ -34,6 +34,12 @@ class InvalidInputError(RelayError, ValueError):
     http_status: ClassVar[int] = 422
 
 
+class NotFoundError(RelayError):
+    code: ClassVar[str] = "resource.not_found"
+    title: ClassVar[str] = "Not found"
+    http_status: ClassVar[int] = 404
+
+
 class ConfigurationError(RelayError):
     code: ClassVar[str] = "configuration.invalid"
     title: ClassVar[str] = "Invalid configuration"

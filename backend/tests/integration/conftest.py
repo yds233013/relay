@@ -68,3 +68,16 @@ def engine(settings: Settings) -> Iterator[Engine]:
         yield db_engine
     finally:
         db_engine.dispose()
+
+
+@pytest.fixture(scope="session")
+def migrated(database_url: str) -> str:
+    """The test database upgraded to the head revision (other tests may downgrade; re-upgrade)."""
+    from alembic import command  # noqa: PLC0415 - fixture-local import
+
+    from relay.core.db import alembic_config  # noqa: PLC0415
+
+    config = alembic_config(database_url)
+    config.attributes["configure_logger"] = False
+    command.upgrade(config, "head")
+    return database_url

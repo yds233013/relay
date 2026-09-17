@@ -27,7 +27,16 @@ FINANCIAL_PATHS = [
     SRC / "reconciliation",
     SRC / "readiness",
     SRC / "issues",
+    SRC / "engine",
+    SRC / "imports",
+    SRC / "mapping_sets",
+    SRC / "ingestion",
 ]
+
+# Non-financial float use, each with its reason.
+EXEMPT = {
+    SRC / "engine" / "entities.py": "name/address similarity ratios from difflib are not amounts",
+}
 
 REQUIRED_NOW = FINANCIAL_PATHS[:4]
 
@@ -38,7 +47,7 @@ def _python_files() -> list[Path]:
         if path.is_file():
             files.append(path)
         elif path.is_dir():
-            files.extend(sorted(path.rglob("*.py")))
+            files.extend(p for p in sorted(path.rglob("*.py")) if p not in EXEMPT)
     return files
 
 

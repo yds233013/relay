@@ -576,10 +576,10 @@ def r5_cash_vs_bank(
 
 # ======================================================================================= R6
 def _reconstruct_amount(
-    table: RawTable, row: QuarantinedRow, fields: dict[str, FieldMapping]
+    table: RawTable, row: QuarantinedRow, fields: dict[str, FieldMapping], delimiter: str
 ) -> tuple[str, Decimal] | None:
     """Period and signed amount of a quarantined GL record, or None when it cannot be read."""
-    record = reconstruct_quarantined(table, row)
+    record = reconstruct_quarantined(table, row, delimiter=delimiter)
     if record is None or "posting_period" not in fields or "functional_amount" not in fields:
         return None
     try:
@@ -617,8 +617,8 @@ def r6_activity_totals(snapshot: RunSnapshot) -> ReconResult:
         table = snapshot.raw_tables[file_name]
         mapping = snapshot.dataset_mappings[file_name]
         fields = {f.target: f for f in mapping.fields}
-        for _, row in snapshot.quarantined[file_name]:
-            reconstructed = _reconstruct_amount(table, row, fields)
+        for spec, row in snapshot.quarantined[file_name]:
+            reconstructed = _reconstruct_amount(table, row, fields, spec.delimiter)
             if reconstructed is None:
                 unreconstructable += 1
                 continue

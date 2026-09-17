@@ -173,7 +173,12 @@ class _Normalizer:
         if config.get("dataset_type") != spec.dataset_type:
             raise MappingConfigError(f"column mapping for {spec.file} is for another dataset type")
         try:
-            table = read_csv(spec.file, self.inputs.files[spec.file], encoding=spec.encoding)
+            table = read_csv(
+                spec.file,
+                self.inputs.files[spec.file],
+                encoding=spec.encoding,
+                delimiter=spec.delimiter,
+            )
         except SourceFileError as exc:
             self._norm(
                 "NORM.UNREADABLE_FILE",
@@ -204,7 +209,14 @@ class _Normalizer:
                 line_end=row.line_end,
             )
             if repair is not None:
-                repaired_rows.append((repair_quarantined(table, repair.replacement_text), location))
+                repaired_rows.append(
+                    (
+                        repair_quarantined(
+                            table, repair.replacement_text, delimiter=spec.delimiter
+                        ),
+                        location,
+                    )
+                )
                 self.snapshot.applied_overrides.append(repair.id)
                 continue
             remaining.append((spec, row))
