@@ -13,14 +13,17 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from relay.changes import kinds as change_kinds
+from relay.changes.models import OverrideTarget
 from relay.core.hashing import fingerprint as content_fingerprint
 from relay.engine.inputs import BankAccountLink, ConversionPlan, DatasetSpec, MigrationInputs
-from relay.engine.overlays import Overlays
+from relay.engine.overlays import Overlays, QuarantineRepair, RecordOverride
 from relay.engine.pipeline import engine_versions, input_fingerprint
 from relay.engine.policy import Policy
 from relay.engine.readiness import gate_set_version
 from relay.imports.blob_store import BlobStore
 from relay.imports.models import Import, ImportStatus, StoredFile
+from relay.mapping_sets import accounts as account_sets
 from relay.mapping_sets import service as mapping_sets
 from relay.workspace import service as workspace
 from relay.workspace.models import Dataset, Migration, SourceSystem
@@ -52,6 +55,8 @@ class RunConfiguration:
     policy: Policy
     policy_version: int
     overlays: Overlays
+    account_mapping_set_id: uuid.UUID | None
+    governed_account_mapping: dict[str, str] | None
     fingerprint: str
     components: dict[str, Any]
 
@@ -90,12 +95,19 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
         )
     policy_row = workspace.current_policy(session, migration.id)
     policy = workspace.policy_from_document(policy_row.policy)
-    # Overlay tables (record overrides, entity decisions, dispositions, waivers, sign-offs) arrive
-    # with their change request kinds in M5-M7; until then a run has no overlays.
-    overlays = Overlays()
+    # Entity decisions, dispositions, waivers and sign-offs arrive with their kinds in M6-M7.
+    overlays = _overlays(session, migration.id)
+    approved_accounts = account_sets.approved_set(session, migration.id)
+    governed = (
+        {k: e.target for k, e in account_sets.entries(session, approved_accounts.id).items()}
+        if approved_accounts
+        else None
+    )
     plan = _plan(migration)
     # File contents are identified by their hashes; bytes are read only when the run executes.
-    engine_fp = input_fingerprint(_inputs(migration, plan, states, files={}), overlays, policy)
+    engine_fp = input_fingerprint(
+        _inputs(migration, plan, states, files={}, governed=governed), overlays, policy
+    )
     components = {
         "migration_id": migration.id,
         "conversion_plan": {
@@ -116,6 +128,7 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
         "required_datasets": sorted(
             {s.dataset.dataset_type for s in states if s.dataset.is_required}
         ),
+        "account_mapping_set": approved_accounts.id if approved_accounts else None,
         "policy_version": policy_row.version,
         "overlays": overlays.identity(),
         "engine_input_fingerprint": engine_fp,
@@ -128,9 +141,40 @@ def load_configuration(session: Session, migration_id: uuid.UUID) -> RunConfigur
         policy=policy,
         policy_version=policy_row.version,
         overlays=overlays,
+        account_mapping_set_id=approved_accounts.id if approved_accounts else None,
+        governed_account_mapping=governed,
         fingerprint=content_fingerprint(components),
         components=components,
     )
+
+
+def _overlays(session: Session, migration_id: uuid.UUID) -> Overlays:
+    """Active record overrides and quarantined row repairs, in approval order."""
+    overrides = []
+    repairs = []
+    for row in change_kinds.active_overrides(session, migration_id):
+        if row.target == OverrideTarget.CANONICAL_FIELD.value:
+            overrides.append(
+                RecordOverride(
+                    id=str(row.id),
+                    record=row.natural_key,
+                    field=str(row.field),
+                    expected_current=str(row.expected_current_value),
+                    new_value=str(row.new_value),
+                    reason=row.reason,
+                )
+            )
+        else:
+            repairs.append(
+                QuarantineRepair(
+                    id=str(row.id),
+                    file=str(row.import_id),
+                    quarantine_key=str(row.new_value["quarantine_key"]),
+                    replacement_text=str(row.new_value["replacement_text"]),
+                    reason=row.reason,
+                )
+            )
+    return Overlays(record_overrides=tuple(overrides), quarantine_repairs=tuple(repairs))
 
 
 def _plan(migration: Migration) -> ConversionPlan:
@@ -179,7 +223,11 @@ def _mapping_set(states: list[DatasetState]) -> dict[str, Any]:
 
 
 def _inputs(
-    migration: Migration, plan: ConversionPlan, states: list[DatasetState], files: dict[str, bytes]
+    migration: Migration,
+    plan: ConversionPlan,
+    states: list[DatasetState],
+    files: dict[str, bytes],
+    governed: dict[str, str] | None,
 ) -> MigrationInputs:
     mapping = _mapping_set(states)
     return MigrationInputs(
@@ -193,6 +241,7 @@ def _inputs(
         file_hashes={
             _file_key(s): s.stored_file.sha256 for s in states if s.usable and s.stored_file
         },
+        governed_account_mapping=governed,
     )
 
 
@@ -204,4 +253,10 @@ def load_engine_inputs(configuration: RunConfiguration, blob_store: BlobStore) -
         for s in states
         if s.usable and s.stored_file is not None
     }
-    return _inputs(configuration.migration, _plan(configuration.migration), states, files)
+    return _inputs(
+        configuration.migration,
+        _plan(configuration.migration),
+        states,
+        files,
+        configuration.governed_account_mapping,
+    )

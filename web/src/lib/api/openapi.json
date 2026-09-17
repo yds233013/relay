@@ -1,6 +1,355 @@
 {
   "components": {
     "schemas": {
+      "AccountMappingChangeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "legacy": {
+            "title": "Legacy",
+            "type": "string"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "required": [
+          "legacy",
+          "target"
+        ],
+        "title": "AccountMappingChangeIn",
+        "type": "object"
+      },
+      "AccountMappingDraftIn": {
+        "additionalProperties": false,
+        "properties": {
+          "base": {
+            "title": "Base",
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/AccountMappingChangeIn"
+            },
+            "title": "Changes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "base",
+          "changes"
+        ],
+        "title": "AccountMappingDraftIn",
+        "type": "object"
+      },
+      "AccountMappingOverviewOut": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_set": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountMappingSetOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AccountMappingRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/AccountMappingSetOut"
+            },
+            "title": "Sets",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approved_set",
+          "source",
+          "rows",
+          "sets"
+        ],
+        "title": "AccountMappingOverviewOut",
+        "type": "object"
+      },
+      "AccountMappingRowOut": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "legacy_account_code": {
+            "title": "Legacy Account Code",
+            "type": "string"
+          },
+          "legacy_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legacy Name"
+          },
+          "legacy_subtype": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legacy Subtype"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountProposalOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "signals": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignalsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_account_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Account Code"
+          },
+          "target_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Name"
+          },
+          "target_subtype": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Subtype"
+          }
+        },
+        "required": [
+          "legacy_account_code",
+          "legacy_name",
+          "legacy_subtype",
+          "target_account_code",
+          "target_name",
+          "target_subtype",
+          "signals",
+          "proposal"
+        ],
+        "title": "AccountMappingRowOut",
+        "type": "object"
+      },
+      "AccountMappingSetDetailOut": {
+        "additionalProperties": false,
+        "properties": {
+          "mapping_set": {
+            "$ref": "#/components/schemas/AccountMappingSetOut"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AccountMappingRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mapping_set",
+          "rows"
+        ],
+        "title": "AccountMappingSetDetailOut",
+        "type": "object"
+      },
+      "AccountMappingSetOut": {
+        "additionalProperties": false,
+        "properties": {
+          "based_on_import_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Based On Import Id"
+          },
+          "based_on_set_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Based On Set Id"
+          },
+          "change_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Request Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entry_count": {
+            "title": "Entry Count",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "based_on_set_id",
+          "based_on_import_id",
+          "change_request_id",
+          "created_at",
+          "entry_count"
+        ],
+        "title": "AccountMappingSetOut",
+        "type": "object"
+      },
+      "AccountProposalOut": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "signals": {
+            "$ref": "#/components/schemas/SignalsOut"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target",
+          "basis",
+          "score",
+          "signals"
+        ],
+        "title": "AccountProposalOut",
+        "type": "object"
+      },
       "AmountByNatureOut": {
         "additionalProperties": false,
         "properties": {
@@ -18,6 +367,47 @@
           "amount"
         ],
         "title": "AmountByNatureOut",
+        "type": "object"
+      },
+      "ApprovalOut": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "decided_at": {
+            "format": "date-time",
+            "title": "Decided At",
+            "type": "string"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "reviewer_name": {
+            "title": "Reviewer Name",
+            "type": "string"
+          },
+          "reviewer_user_id": {
+            "format": "uuid",
+            "title": "Reviewer User Id",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reviewer_user_id",
+          "reviewer_name",
+          "role",
+          "decision",
+          "comment",
+          "decided_at"
+        ],
+        "title": "ApprovalOut",
         "type": "object"
       },
       "AuditEventOut": {
@@ -248,6 +638,38 @@
         "title": "CandidateOut",
         "type": "object"
       },
+      "CanonicalFieldOut": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "required",
+          "values"
+        ],
+        "title": "CanonicalFieldOut",
+        "type": "object"
+      },
       "ChainVerificationOut": {
         "additionalProperties": false,
         "properties": {
@@ -291,6 +713,298 @@
         "title": "ChainVerificationOut",
         "type": "object"
       },
+      "ChangeRequestDetailOut": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "approvals": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovalOut"
+            },
+            "title": "Approvals",
+            "type": "array"
+          },
+          "base_entity_versions": {
+            "additionalProperties": true,
+            "title": "Base Entity Versions",
+            "type": "object"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "change_request": {
+            "$ref": "#/components/schemas/ChangeRequestOut"
+          },
+          "evidence_refs": {
+            "items": {},
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventOut"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementOut"
+            },
+            "title": "Requirements",
+            "type": "array"
+          },
+          "runs": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "viewer": {
+            "$ref": "#/components/schemas/ReviewerOut"
+          }
+        },
+        "required": [
+          "change_request",
+          "payload",
+          "before",
+          "after",
+          "impact",
+          "evidence_refs",
+          "base_entity_versions",
+          "requirements",
+          "approvals",
+          "viewer",
+          "runs",
+          "history"
+        ],
+        "title": "ChangeRequestDetailOut",
+        "type": "object"
+      },
+      "ChangeRequestIn": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_refs": {
+            "items": {
+              "additionalProperties": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "maxItems": 20,
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "field_override": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldOverrideIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "quarantine_repair": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuarantineRepairIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title"
+        ],
+        "title": "ChangeRequestIn",
+        "type": "object"
+      },
+      "ChangeRequestOut": {
+        "additionalProperties": false,
+        "properties": {
+          "applied_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied At"
+          },
+          "approvals_given": {
+            "title": "Approvals Given",
+            "type": "integer"
+          },
+          "approvals_required": {
+            "title": "Approvals Required",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "justification": {
+            "title": "Justification",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "migration_id": {
+            "format": "uuid",
+            "title": "Migration Id",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "requested_by": {
+            "format": "uuid",
+            "title": "Requested By",
+            "type": "string"
+          },
+          "requested_by_name": {
+            "title": "Requested By Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "migration_id",
+          "key",
+          "kind",
+          "status",
+          "title",
+          "justification",
+          "origin",
+          "requested_by",
+          "requested_by_name",
+          "created_at",
+          "submitted_at",
+          "decided_at",
+          "applied_at",
+          "version",
+          "approvals_required",
+          "approvals_given"
+        ],
+        "title": "ChangeRequestOut",
+        "type": "object"
+      },
       "ChangeRequestSummaryOut": {
         "additionalProperties": false,
         "properties": {
@@ -324,6 +1038,257 @@
           "status"
         ],
         "title": "ChangeRequestSummaryOut",
+        "type": "object"
+      },
+      "ChangeRequestUpdateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "ChangeRequestUpdateIn",
+        "type": "object"
+      },
+      "ColumnMappingOut": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "specification": {
+            "additionalProperties": true,
+            "title": "Specification",
+            "type": "object"
+          },
+          "target_field": {
+            "title": "Target Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_field",
+          "specification",
+          "required",
+          "basis"
+        ],
+        "title": "ColumnMappingOut",
+        "type": "object"
+      },
+      "ColumnMappingPreviewOut": {
+        "additionalProperties": false,
+        "properties": {
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "missing_required_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Required Fields",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewRowOut"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "unknown_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unknown Fields",
+            "type": "array"
+          }
+        },
+        "required": [
+          "import_id",
+          "rows",
+          "missing_required_fields",
+          "unknown_fields"
+        ],
+        "title": "ColumnMappingPreviewOut",
+        "type": "object"
+      },
+      "ColumnMappingSetOut": {
+        "additionalProperties": false,
+        "properties": {
+          "based_on_import_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Based On Import Id"
+          },
+          "change_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Request Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "dataset_id": {
+            "format": "uuid",
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "exclude_rows_where_blank": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Exclude Rows Where Blank",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnMappingOut"
+            },
+            "title": "Mappings",
+            "type": "array"
+          },
+          "missing_required_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Required Fields",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "dataset_id",
+          "version",
+          "status",
+          "based_on_import_id",
+          "change_request_id",
+          "created_at",
+          "exclude_rows_where_blank",
+          "mappings",
+          "missing_required_fields"
+        ],
+        "title": "ColumnMappingSetOut",
+        "type": "object"
+      },
+      "ColumnMappingSuggestionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical_fields": {
+            "items": {
+              "$ref": "#/components/schemas/CanonicalFieldOut"
+            },
+            "title": "Canonical Fields",
+            "type": "array"
+          },
+          "dataset_id": {
+            "format": "uuid",
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "dataset_type": {
+            "title": "Dataset Type",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldSuggestionOut"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "header": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Header",
+            "type": "array"
+          },
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "unmatched_columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmatched Columns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset_id",
+          "dataset_type",
+          "import_id",
+          "header",
+          "fields",
+          "unmatched_columns",
+          "canonical_fields"
+        ],
+        "title": "ColumnMappingSuggestionOut",
         "type": "object"
       },
       "ColumnProfile": {
@@ -928,6 +1893,93 @@
           "lineage"
         ],
         "title": "ExceptionOut",
+        "type": "object"
+      },
+      "FieldOverrideIn": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "natural_key": {
+            "title": "Natural Key",
+            "type": "string"
+          },
+          "new_value": {
+            "title": "New Value",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "natural_key",
+          "field",
+          "new_value"
+        ],
+        "title": "FieldOverrideIn",
+        "type": "object"
+      },
+      "FieldSuggestionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          },
+          "specification": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specification"
+          }
+        },
+        "required": [
+          "field",
+          "kind",
+          "required",
+          "specification",
+          "basis",
+          "notes"
+        ],
+        "title": "FieldSuggestionOut",
         "type": "object"
       },
       "FindingChangeOut": {
@@ -1552,6 +2604,20 @@
         "title": "IssueOut",
         "type": "object"
       },
+      "JustificationIn": {
+        "additionalProperties": false,
+        "properties": {
+          "justification": {
+            "title": "Justification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "justification"
+        ],
+        "title": "JustificationIn",
+        "type": "object"
+      },
       "LineageOut": {
         "additionalProperties": false,
         "properties": {
@@ -1580,6 +2646,32 @@
           "line_end"
         ],
         "title": "LineageOut",
+        "type": "object"
+      },
+      "MappingConfigIn": {
+        "additionalProperties": false,
+        "properties": {
+          "exclude_rows_where_blank": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Exclude Rows Where Blank",
+            "type": "array"
+          },
+          "fields": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Fields",
+            "type": "object"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "title": "MappingConfigIn",
         "type": "object"
       },
       "MigrationOut": {
@@ -2061,6 +3153,48 @@
         "title": "Page[SourceRowOut]",
         "type": "object"
       },
+      "PreviewRowOut": {
+        "additionalProperties": false,
+        "properties": {
+          "errors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "object"
+          },
+          "excluded": {
+            "title": "Excluded",
+            "type": "boolean"
+          },
+          "row_number": {
+            "title": "Row Number",
+            "type": "integer"
+          },
+          "values": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "object"
+          }
+        },
+        "required": [
+          "row_number",
+          "values",
+          "errors",
+          "excluded"
+        ],
+        "title": "PreviewRowOut",
+        "type": "object"
+      },
       "QuarantineRefOut": {
         "additionalProperties": false,
         "properties": {
@@ -2089,6 +3223,26 @@
           "reason"
         ],
         "title": "QuarantineRefOut",
+        "type": "object"
+      },
+      "QuarantineRepairIn": {
+        "additionalProperties": false,
+        "properties": {
+          "exception_id": {
+            "format": "uuid",
+            "title": "Exception Id",
+            "type": "string"
+          },
+          "replacement_text": {
+            "title": "Replacement Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exception_id",
+          "replacement_text"
+        ],
+        "title": "QuarantineRepairIn",
         "type": "object"
       },
       "QuarantinedRowOut": {
@@ -2464,6 +3618,184 @@
         "title": "RecordOut",
         "type": "object"
       },
+      "RecordOverrideOut": {
+        "additionalProperties": false,
+        "properties": {
+          "change_request_id": {
+            "format": "uuid",
+            "title": "Change Request Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "dataset_type": {
+            "title": "Dataset Type",
+            "type": "string"
+          },
+          "expected_current_value": {
+            "title": "Expected Current Value"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "natural_key": {
+            "title": "Natural Key",
+            "type": "string"
+          },
+          "new_value": {
+            "title": "New Value"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reverted_by_cr_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted By Cr Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "natural_key",
+          "dataset_type",
+          "target",
+          "field",
+          "expected_current_value",
+          "new_value",
+          "reason",
+          "status",
+          "change_request_id",
+          "reverted_by_cr_id",
+          "created_at"
+        ],
+        "title": "RecordOverrideOut",
+        "type": "object"
+      },
+      "RequirementOut": {
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "satisfied_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Satisfied By"
+          }
+        },
+        "required": [
+          "index",
+          "role",
+          "satisfied_by"
+        ],
+        "title": "RequirementOut",
+        "type": "object"
+      },
+      "ReviewIn": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "default": "",
+            "title": "Comment",
+            "type": "string"
+          }
+        },
+        "title": "ReviewIn",
+        "type": "object"
+      },
+      "ReviewOutcomeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "change_request": {
+            "$ref": "#/components/schemas/ChangeRequestOut"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          }
+        },
+        "required": [
+          "change_request",
+          "run_id"
+        ],
+        "title": "ReviewOutcomeOut",
+        "type": "object"
+      },
+      "ReviewerOut": {
+        "additionalProperties": false,
+        "properties": {
+          "can_review": {
+            "title": "Can Review",
+            "type": "boolean"
+          },
+          "is_requester": {
+            "title": "Is Requester",
+            "type": "boolean"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "can_review",
+          "reason",
+          "is_requester"
+        ],
+        "title": "ReviewerOut",
+        "type": "object"
+      },
       "RuleCatalogOut": {
         "additionalProperties": false,
         "properties": {
@@ -2738,6 +4070,44 @@
           "finished_at"
         ],
         "title": "RunOut",
+        "type": "object"
+      },
+      "SignalsOut": {
+        "additionalProperties": false,
+        "properties": {
+          "subtype_compatible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtype Compatible"
+          },
+          "target_exists": {
+            "title": "Target Exists",
+            "type": "boolean"
+          },
+          "type_compatible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type Compatible"
+          }
+        },
+        "required": [
+          "target_exists",
+          "type_compatible",
+          "subtype_compatible"
+        ],
+        "title": "SignalsOut",
         "type": "object"
       },
       "SourceRowOut": {
@@ -3062,6 +4432,18 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WithdrawIn": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "WithdrawIn",
+        "type": "object"
       }
     }
   },
@@ -3071,6 +4453,799 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/account-mapping-sets/{set_id}": {
+      "get": {
+        "operationId": "get_account_mapping_set_api_v1_account_mapping_sets__set_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Set Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountMappingSetDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Account Mapping Set",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/change-requests/{change_id}": {
+      "get": {
+        "operationId": "get_change_request_api_v1_change_requests__change_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Change Request",
+        "tags": [
+          "governance"
+        ]
+      },
+      "put": {
+        "operationId": "update_change_request_api_v1_change_requests__change_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRequestUpdateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Change Request",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/change-requests/{change_id}/approve": {
+      "post": {
+        "description": "Record an approval. The response status is ``stale`` when the base changed meanwhile.",
+        "operationId": "approve_change_request_api_v1_change_requests__change_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOutcomeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Change Request",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/change-requests/{change_id}/reject": {
+      "post": {
+        "operationId": "reject_change_request_api_v1_change_requests__change_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOutcomeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject Change Request",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/change-requests/{change_id}/submit": {
+      "post": {
+        "operationId": "submit_change_request_api_v1_change_requests__change_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JustificationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Change Request",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/change-requests/{change_id}/withdraw": {
+      "post": {
+        "operationId": "withdraw_change_request_api_v1_change_requests__change_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "change_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Withdraw Change Request",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/column-mapping-sets/{set_id}": {
+      "get": {
+        "operationId": "get_column_mapping_set_api_v1_column_mapping_sets__set_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Set Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColumnMappingSetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Column Mapping Set",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/datasets/{dataset_id}/column-mapping-preview": {
+      "post": {
+        "description": "Apply a mapping to the first rows of the active import without saving anything.",
+        "operationId": "column_mapping_preview_api_v1_datasets__dataset_id__column_mapping_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MappingConfigIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColumnMappingPreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Column Mapping Preview",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/datasets/{dataset_id}/column-mapping-sets": {
+      "get": {
+        "operationId": "list_column_mapping_sets_api_v1_datasets__dataset_id__column_mapping_sets_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ColumnMappingSetOut"
+                  },
+                  "title": "Response List Column Mapping Sets Api V1 Datasets  Dataset Id  Column Mapping Sets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Column Mapping Sets",
+        "tags": [
+          "governance"
+        ]
+      },
+      "post": {
+        "operationId": "create_column_mapping_set_api_v1_datasets__dataset_id__column_mapping_sets_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MappingConfigIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColumnMappingSetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Column Mapping Set",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/datasets/{dataset_id}/column-mapping-suggestion": {
+      "get": {
+        "description": "Deterministic proposal from header names and the column profile; nothing is saved.",
+        "operationId": "column_mapping_suggestion_api_v1_datasets__dataset_id__column_mapping_suggestion_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dataset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dataset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ColumnMappingSuggestionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Column Mapping Suggestion",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
     "/api/v1/datasets/{dataset_id}/imports": {
       "get": {
         "operationId": "list_imports_api_v1_datasets__dataset_id__imports_get",
@@ -3743,6 +5918,137 @@
         ]
       }
     },
+    "/api/v1/migrations/{migration_id}/account-mapping": {
+      "get": {
+        "description": "The mapping in effect, compatibility signals per pair, proposals for doubtful pairs.",
+        "operationId": "account_mapping_api_v1_migrations__migration_id__account_mapping_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountMappingOverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Account Mapping",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/account-mapping-sets": {
+      "post": {
+        "operationId": "create_account_mapping_set_api_v1_migrations__migration_id__account_mapping_sets_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountMappingDraftIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountMappingSetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Account Mapping Set",
+        "tags": [
+          "governance"
+        ]
+      }
+    },
     "/api/v1/migrations/{migration_id}/audit-events": {
       "get": {
         "operationId": "list_audit_events_api_v1_migrations__migration_id__audit_events_get",
@@ -3934,6 +6240,196 @@
         "summary": "Verify Audit",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/change-requests": {
+      "get": {
+        "operationId": "list_change_requests_api_v1_migrations__migration_id__change_requests_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChangeRequestOut"
+                  },
+                  "title": "Response List Change Requests Api V1 Migrations  Migration Id  Change Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Change Requests",
+        "tags": [
+          "governance"
+        ]
+      },
+      "post": {
+        "description": "Create a draft. Record overrides name the record; the server resolves the current value.",
+        "operationId": "create_change_request_api_v1_migrations__migration_id__change_requests_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Change Request",
+        "tags": [
+          "governance"
         ]
       }
     },
@@ -4544,6 +7040,70 @@
         "summary": "Readiness",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/record-overrides": {
+      "get": {
+        "operationId": "list_record_overrides_api_v1_migrations__migration_id__record_overrides_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecordOverrideOut"
+                  },
+                  "title": "Response List Record Overrides Api V1 Migrations  Migration Id  Record Overrides Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Record Overrides",
+        "tags": [
+          "governance"
         ]
       }
     },

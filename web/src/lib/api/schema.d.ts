@@ -4,6 +4,187 @@
  */
 
 export interface paths {
+    "/api/v1/account-mapping-sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account Mapping Set */
+        get: operations["get_account_mapping_set_api_v1_account_mapping_sets__set_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/change-requests/{change_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Change Request */
+        get: operations["get_change_request_api_v1_change_requests__change_id__get"];
+        /** Update Change Request */
+        put: operations["update_change_request_api_v1_change_requests__change_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/change-requests/{change_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Change Request
+         * @description Record an approval. The response status is ``stale`` when the base changed meanwhile.
+         */
+        post: operations["approve_change_request_api_v1_change_requests__change_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/change-requests/{change_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Change Request */
+        post: operations["reject_change_request_api_v1_change_requests__change_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/change-requests/{change_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Change Request */
+        post: operations["submit_change_request_api_v1_change_requests__change_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/change-requests/{change_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw Change Request */
+        post: operations["withdraw_change_request_api_v1_change_requests__change_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/column-mapping-sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Column Mapping Set */
+        get: operations["get_column_mapping_set_api_v1_column_mapping_sets__set_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/{dataset_id}/column-mapping-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Column Mapping Preview
+         * @description Apply a mapping to the first rows of the active import without saving anything.
+         */
+        post: operations["column_mapping_preview_api_v1_datasets__dataset_id__column_mapping_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/{dataset_id}/column-mapping-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Column Mapping Sets */
+        get: operations["list_column_mapping_sets_api_v1_datasets__dataset_id__column_mapping_sets_get"];
+        put?: never;
+        /** Create Column Mapping Set */
+        post: operations["create_column_mapping_set_api_v1_datasets__dataset_id__column_mapping_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/{dataset_id}/column-mapping-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Column Mapping Suggestion
+         * @description Deterministic proposal from header names and the column profile; nothing is saved.
+         */
+        get: operations["column_mapping_suggestion_api_v1_datasets__dataset_id__column_mapping_suggestion_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/datasets/{dataset_id}/imports": {
         parameters: {
             query?: never;
@@ -187,6 +368,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/migrations/{migration_id}/account-mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Account Mapping
+         * @description The mapping in effect, compatibility signals per pair, proposals for doubtful pairs.
+         */
+        get: operations["account_mapping_api_v1_migrations__migration_id__account_mapping_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migrations/{migration_id}/account-mapping-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Account Mapping Set */
+        post: operations["create_account_mapping_set_api_v1_migrations__migration_id__account_mapping_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/migrations/{migration_id}/audit-events": {
         parameters: {
             query?: never;
@@ -215,6 +433,27 @@ export interface paths {
         get: operations["verify_audit_api_v1_migrations__migration_id__audit_events_verify_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migrations/{migration_id}/change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Change Requests */
+        get: operations["list_change_requests_api_v1_migrations__migration_id__change_requests_get"];
+        put?: never;
+        /**
+         * Create Change Request
+         * @description Create a draft. Record overrides name the record; the server resolves the current value.
+         */
+        post: operations["create_change_request_api_v1_migrations__migration_id__change_requests_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -342,6 +581,23 @@ export interface paths {
          * @description Readiness of the latest successful run, marked stale when inputs have changed since.
          */
         get: operations["readiness_api_v1_migrations__migration_id__readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migrations/{migration_id}/record-overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Record Overrides */
+        get: operations["list_record_overrides_api_v1_migrations__migration_id__record_overrides_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -547,12 +803,121 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccountMappingChangeIn */
+        AccountMappingChangeIn: {
+            /** Legacy */
+            legacy: string;
+            /** Rationale */
+            rationale?: string | null;
+            /** Target */
+            target: string | null;
+        };
+        /** AccountMappingDraftIn */
+        AccountMappingDraftIn: {
+            /** Base */
+            base: string;
+            /** Changes */
+            changes: components["schemas"]["AccountMappingChangeIn"][];
+        };
+        /** AccountMappingOverviewOut */
+        AccountMappingOverviewOut: {
+            approved_set: components["schemas"]["AccountMappingSetOut"] | null;
+            /** Rows */
+            rows: components["schemas"]["AccountMappingRowOut"][];
+            /** Sets */
+            sets: components["schemas"]["AccountMappingSetOut"][];
+            /** Source */
+            source: string;
+        };
+        /** AccountMappingRowOut */
+        AccountMappingRowOut: {
+            /** Basis */
+            basis?: string | null;
+            /** Legacy Account Code */
+            legacy_account_code: string;
+            /** Legacy Name */
+            legacy_name: string | null;
+            /** Legacy Subtype */
+            legacy_subtype: string | null;
+            proposal: components["schemas"]["AccountProposalOut"] | null;
+            /** Rationale */
+            rationale?: string | null;
+            signals: components["schemas"]["SignalsOut"] | null;
+            /** Target Account Code */
+            target_account_code: string | null;
+            /** Target Name */
+            target_name: string | null;
+            /** Target Subtype */
+            target_subtype: string | null;
+        };
+        /** AccountMappingSetDetailOut */
+        AccountMappingSetDetailOut: {
+            mapping_set: components["schemas"]["AccountMappingSetOut"];
+            /** Rows */
+            rows: components["schemas"]["AccountMappingRowOut"][];
+        };
+        /** AccountMappingSetOut */
+        AccountMappingSetOut: {
+            /** Based On Import Id */
+            based_on_import_id: string | null;
+            /** Based On Set Id */
+            based_on_set_id: string | null;
+            /** Change Request Id */
+            change_request_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Entry Count */
+            entry_count: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /** AccountProposalOut */
+        AccountProposalOut: {
+            /** Basis */
+            basis: string;
+            /** Score */
+            score: string | null;
+            signals: components["schemas"]["SignalsOut"];
+            /** Target */
+            target: string;
+        };
         /** AmountByNatureOut */
         AmountByNatureOut: {
             /** Amount */
             amount: string;
             /** Nature */
             nature: string;
+        };
+        /** ApprovalOut */
+        ApprovalOut: {
+            /** Comment */
+            comment: string;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /** Decision */
+            decision: string;
+            /** Reviewer Name */
+            reviewer_name: string;
+            /**
+             * Reviewer User Id
+             * Format: uuid
+             */
+            reviewer_user_id: string;
+            /** Role */
+            role: string;
         };
         /** AuditEventOut */
         AuditEventOut: {
@@ -634,6 +999,17 @@ export interface components {
             /** Strong */
             strong: boolean;
         };
+        /** CanonicalFieldOut */
+        CanonicalFieldOut: {
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Required */
+            required: boolean;
+            /** Values */
+            values: string[];
+        };
         /** ChainVerificationOut */
         ChainVerificationOut: {
             /** Events Checked */
@@ -644,6 +1020,107 @@ export interface components {
             problem: string | null;
             /** Valid */
             valid: boolean;
+        };
+        /** ChangeRequestDetailOut */
+        ChangeRequestDetailOut: {
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+            /** Approvals */
+            approvals: components["schemas"]["ApprovalOut"][];
+            /** Base Entity Versions */
+            base_entity_versions: {
+                [key: string]: unknown;
+            };
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+            change_request: components["schemas"]["ChangeRequestOut"];
+            /** Evidence Refs */
+            evidence_refs: unknown[];
+            /** History */
+            history: components["schemas"]["AuditEventOut"][];
+            /** Impact */
+            impact: {
+                [key: string]: unknown;
+            } | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Requirements */
+            requirements: components["schemas"]["RequirementOut"][];
+            /** Runs */
+            runs: string[];
+            viewer: components["schemas"]["ReviewerOut"];
+        };
+        /** ChangeRequestIn */
+        ChangeRequestIn: {
+            /** Evidence Refs */
+            evidence_refs?: {
+                [key: string]: string;
+            }[];
+            field_override?: components["schemas"]["FieldOverrideIn"] | null;
+            /** Kind */
+            kind: string;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            quarantine_repair?: components["schemas"]["QuarantineRepairIn"] | null;
+            /** Title */
+            title: string;
+        };
+        /** ChangeRequestOut */
+        ChangeRequestOut: {
+            /** Applied At */
+            applied_at: string | null;
+            /** Approvals Given */
+            approvals_given: number;
+            /** Approvals Required */
+            approvals_required: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Justification */
+            justification: string;
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Migration Id
+             * Format: uuid
+             */
+            migration_id: string;
+            /** Origin */
+            origin: string;
+            /**
+             * Requested By
+             * Format: uuid
+             */
+            requested_by: string;
+            /** Requested By Name */
+            requested_by_name: string;
+            /** Status */
+            status: string;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
         };
         /** ChangeRequestSummaryOut */
         ChangeRequestSummaryOut: {
@@ -660,6 +1137,99 @@ export interface components {
             status: string;
             /** Title */
             title: string;
+        };
+        /** ChangeRequestUpdateIn */
+        ChangeRequestUpdateIn: {
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /** Title */
+            title?: string | null;
+            /** Version */
+            version: number;
+        };
+        /** ColumnMappingOut */
+        ColumnMappingOut: {
+            /** Basis */
+            basis: string;
+            /** Required */
+            required: boolean;
+            /** Specification */
+            specification: {
+                [key: string]: unknown;
+            };
+            /** Target Field */
+            target_field: string;
+        };
+        /** ColumnMappingPreviewOut */
+        ColumnMappingPreviewOut: {
+            /**
+             * Import Id
+             * Format: uuid
+             */
+            import_id: string;
+            /** Missing Required Fields */
+            missing_required_fields: string[];
+            /** Rows */
+            rows: components["schemas"]["PreviewRowOut"][];
+            /** Unknown Fields */
+            unknown_fields: string[];
+        };
+        /** ColumnMappingSetOut */
+        ColumnMappingSetOut: {
+            /** Based On Import Id */
+            based_on_import_id: string | null;
+            /** Change Request Id */
+            change_request_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Dataset Id
+             * Format: uuid
+             */
+            dataset_id: string;
+            /** Exclude Rows Where Blank */
+            exclude_rows_where_blank: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mappings */
+            mappings: components["schemas"]["ColumnMappingOut"][];
+            /** Missing Required Fields */
+            missing_required_fields: string[];
+            /** Status */
+            status: string;
+            /** Version */
+            version: number;
+        };
+        /** ColumnMappingSuggestionOut */
+        ColumnMappingSuggestionOut: {
+            /** Canonical Fields */
+            canonical_fields: components["schemas"]["CanonicalFieldOut"][];
+            /**
+             * Dataset Id
+             * Format: uuid
+             */
+            dataset_id: string;
+            /** Dataset Type */
+            dataset_type: string;
+            /** Fields */
+            fields: components["schemas"]["FieldSuggestionOut"][];
+            /** Header */
+            header: string[];
+            /**
+             * Import Id
+             * Format: uuid
+             */
+            import_id: string;
+            /** Unmatched Columns */
+            unmatched_columns: string[];
         };
         /** ColumnProfile */
         ColumnProfile: {
@@ -883,6 +1453,37 @@ export interface components {
             /** Subjects */
             subjects: string[];
         };
+        /** FieldOverrideIn */
+        FieldOverrideIn: {
+            /** Field */
+            field: string;
+            /** Natural Key */
+            natural_key: string;
+            /** New Value */
+            new_value: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+        };
+        /** FieldSuggestionOut */
+        FieldSuggestionOut: {
+            /** Basis */
+            basis: string | null;
+            /** Field */
+            field: string;
+            /** Kind */
+            kind: string;
+            /** Notes */
+            notes: string[];
+            /** Required */
+            required: boolean;
+            /** Specification */
+            specification: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** FindingChangeOut */
         FindingChangeOut: {
             /** Fingerprint */
@@ -1071,6 +1672,11 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** JustificationIn */
+        JustificationIn: {
+            /** Justification */
+            justification: string;
+        };
         /** LineageOut */
         LineageOut: {
             /**
@@ -1084,6 +1690,20 @@ export interface components {
             line_start: number;
             /** Row Number */
             row_number: number;
+        };
+        /** MappingConfigIn */
+        MappingConfigIn: {
+            /**
+             * Exclude Rows Where Blank
+             * @default []
+             */
+            exclude_rows_where_blank: string[];
+            /** Fields */
+            fields: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
         };
         /** MigrationOut */
         MigrationOut: {
@@ -1251,6 +1871,21 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** PreviewRowOut */
+        PreviewRowOut: {
+            /** Errors */
+            errors: {
+                [key: string]: string;
+            };
+            /** Excluded */
+            excluded: boolean;
+            /** Row Number */
+            row_number: number;
+            /** Values */
+            values: {
+                [key: string]: string | null;
+            };
+        };
         /** QuarantineRefOut */
         QuarantineRefOut: {
             /**
@@ -1264,6 +1899,16 @@ export interface components {
             line_start: number;
             /** Reason */
             reason: string;
+        };
+        /** QuarantineRepairIn */
+        QuarantineRepairIn: {
+            /**
+             * Exception Id
+             * Format: uuid
+             */
+            exception_id: string;
+            /** Replacement Text */
+            replacement_text: string;
         };
         /** QuarantinedRowOut */
         QuarantinedRowOut: {
@@ -1407,6 +2052,74 @@ export interface components {
             source_header: string[] | null;
             source_row: components["schemas"]["SourceRowOut"] | null;
         };
+        /** RecordOverrideOut */
+        RecordOverrideOut: {
+            /**
+             * Change Request Id
+             * Format: uuid
+             */
+            change_request_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dataset Type */
+            dataset_type: string;
+            /** Expected Current Value */
+            expected_current_value: unknown;
+            /** Field */
+            field: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Natural Key */
+            natural_key: string;
+            /** New Value */
+            new_value: unknown;
+            /** Reason */
+            reason: string;
+            /** Reverted By Cr Id */
+            reverted_by_cr_id: string | null;
+            /** Status */
+            status: string;
+            /** Target */
+            target: string;
+        };
+        /** RequirementOut */
+        RequirementOut: {
+            /** Index */
+            index: number;
+            /** Role */
+            role: string;
+            /** Satisfied By */
+            satisfied_by: string | null;
+        };
+        /** ReviewIn */
+        ReviewIn: {
+            /**
+             * Comment
+             * @default
+             */
+            comment: string;
+        };
+        /** ReviewOutcomeOut */
+        ReviewOutcomeOut: {
+            change_request: components["schemas"]["ChangeRequestOut"];
+            /** Run Id */
+            run_id: string | null;
+        };
+        /** ReviewerOut */
+        ReviewerOut: {
+            /** Can Review */
+            can_review: boolean;
+            /** Is Requester */
+            is_requester: boolean;
+            /** Reason */
+            reason: string;
+        };
         /** RuleCatalogOut */
         RuleCatalogOut: {
             /** Category */
@@ -1507,6 +2220,15 @@ export interface components {
             /** Trigger */
             trigger: string;
         };
+        /** SignalsOut */
+        SignalsOut: {
+            /** Subtype Compatible */
+            subtype_compatible: boolean | null;
+            /** Target Exists */
+            target_exists: boolean;
+            /** Type Compatible */
+            type_compatible: boolean | null;
+        };
         /** SourceRowOut */
         SourceRowOut: {
             /** Line End */
@@ -1595,6 +2317,14 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** WithdrawIn */
+        WithdrawIn: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1604,6 +2334,430 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_account_mapping_set_api_v1_account_mapping_sets__set_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountMappingSetDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_change_request_api_v1_change_requests__change_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRequestDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_change_request_api_v1_change_requests__change_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeRequestUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_change_request_api_v1_change_requests__change_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOutcomeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_change_request_api_v1_change_requests__change_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOutcomeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_change_request_api_v1_change_requests__change_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JustificationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    withdraw_change_request_api_v1_change_requests__change_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_column_mapping_set_api_v1_column_mapping_sets__set_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColumnMappingSetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    column_mapping_preview_api_v1_datasets__dataset_id__column_mapping_preview_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MappingConfigIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColumnMappingPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_column_mapping_sets_api_v1_datasets__dataset_id__column_mapping_sets_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColumnMappingSetOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_column_mapping_set_api_v1_datasets__dataset_id__column_mapping_sets_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MappingConfigIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColumnMappingSetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    column_mapping_suggestion_api_v1_datasets__dataset_id__column_mapping_suggestion_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColumnMappingSuggestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_imports_api_v1_datasets__dataset_id__imports_get: {
         parameters: {
             query?: never;
@@ -1967,6 +3121,76 @@ export interface operations {
             };
         };
     };
+    account_mapping_api_v1_migrations__migration_id__account_mapping_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountMappingOverviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_account_mapping_set_api_v1_migrations__migration_id__account_mapping_sets_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountMappingDraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountMappingSetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_audit_events_api_v1_migrations__migration_id__audit_events_get: {
         parameters: {
             query?: {
@@ -2026,6 +3250,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChainVerificationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_change_requests_api_v1_migrations__migration_id__change_requests_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                kind?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRequestOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_change_request_api_v1_migrations__migration_id__change_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRequestOut"];
                 };
             };
             /** @description Validation Error */
@@ -2300,6 +3599,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_record_overrides_api_v1_migrations__migration_id__record_overrides_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordOverrideOut"][];
                 };
             };
             /** @description Validation Error */

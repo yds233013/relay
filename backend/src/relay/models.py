@@ -7,13 +7,18 @@ Application code imports models from their owning module; this aggregator exists
 from __future__ import annotations
 
 from relay.audit.models import AuditEvent
-from relay.changes.models import Approval, ChangeRequest
+from relay.changes.models import Approval, ChangeRequest, RecordOverride
 from relay.core.db import Base
 from relay.identity.models import User
 from relay.imports.models import DatasetProfile, Import, QuarantinedRow, SourceRow, StoredFile
 from relay.issues.models import Issue, IssueOccurrence
 from relay.jobs.models import Job
-from relay.mapping_sets.models import ColumnMapping, ColumnMappingSet
+from relay.mapping_sets.models import (
+    AccountMapping,
+    AccountMappingSet,
+    ColumnMapping,
+    ColumnMappingSet,
+)
 from relay.pipeline.models import (
     EntityCandidateRow,
     GateResultRow,
@@ -31,6 +36,8 @@ from relay.workspace.models import Company, Dataset, Migration, PolicyVersion, S
 metadata = Base.metadata
 
 __all__ = [
+    "AccountMapping",
+    "AccountMappingSet",
     "Approval",
     "AuditEvent",
     "ChangeRequest",
@@ -53,6 +60,7 @@ __all__ = [
     "ReconciliationLineRow",
     "ReconciliationResultRow",
     "ReconcilingItemRow",
+    "RecordOverride",
     "RuleExceptionRow",
     "RuleRun",
     "SourceRow",

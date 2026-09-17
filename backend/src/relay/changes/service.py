@@ -1,20 +1,22 @@
-"""Change requests: draft, submit, review and apply (governance.md §2).
+"""Change requests: draft, submit, review, withdraw and apply (governance.md §2).
 
 Approval and application happen in the same transaction (GV-04): when the last required approval is
-recorded, the applier runs immediately; if it raises, the whole transaction rolls back.
+recorded, the kind's applier runs immediately; if it raises, the whole transaction rolls back. After
+an application, other submitted requests of the migration whose base objects changed become stale.
+Every transition writes an audit event with its before and after state.
 """
 
 from __future__ import annotations
 
 import uuid
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Final
 
-from pydantic import BaseModel, ConfigDict, ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from relay.audit import service as audit
-from relay.changes.domain import RecordedApproval, eligibility, fully_approved, required_approvals
+from relay.changes.domain import RecordedApproval, eligibility, fully_approved
+from relay.changes.kinds import KINDS, ChangeRequestPreconditionError, parse_payload
 from relay.changes.models import (
     Approval,
     ApprovalDecision,
@@ -25,11 +27,28 @@ from relay.changes.models import (
 )
 from relay.core.actor import Actor
 from relay.core.clock import Clock, SystemClock
-from relay.core.errors import InvalidInputError, RelayError
+from relay.core.errors import InvalidInputError, NotFoundError, RelayError
 from relay.core.ids import uuid7
-from relay.mapping_sets import service as mapping_sets
-from relay.mapping_sets.models import ColumnMappingSet
-from relay.workspace.models import Dataset, Migration
+from relay.workspace.models import Migration
+
+MAX_TITLE_LENGTH: Final = 200
+MAX_TEXT_LENGTH: Final = 4000
+OPEN_STATUSES: Final = frozenset(
+    {ChangeRequestStatus.DRAFT.value, ChangeRequestStatus.SUBMITTED.value}
+)
+
+__all__ = [
+    "ChangeRequestPreconditionError",
+    "ChangeRequestStateError",
+    "SegregationOfDutiesError",
+    "create_draft",
+    "get_change_request",
+    "pending_count",
+    "review",
+    "submit",
+    "update_draft",
+    "withdraw",
+]
 
 
 class ChangeRequestStateError(RelayError):
@@ -44,30 +63,26 @@ class SegregationOfDutiesError(RelayError):
     http_status: ClassVar[int] = 403
 
 
-class ColumnMappingSetPayload(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    mapping_set_id: uuid.UUID
-
-
-def _entity_versions(
-    session: Session, kind: ChangeRequestKind, payload: dict[str, Any]
-) -> dict[str, int]:
-    if kind is ChangeRequestKind.COLUMN_MAPPING_SET:
-        mapping_set = session.get(ColumnMappingSet, uuid.UUID(payload["mapping_set_id"]))
-        if mapping_set is None:
-            raise InvalidInputError("mapping set does not exist")
-        return {f"column_mapping_set:{mapping_set.id}": mapping_set.lock_version}
-    raise NotImplementedError(f"{kind.value} change requests are not implemented yet")
+def get_change_request(session: Session, change_id: uuid.UUID) -> ChangeRequest:
+    change = session.get(ChangeRequest, change_id)
+    if change is None:
+        raise NotFoundError("change request not found")
+    return change
 
 
-def _validate_payload(kind: ChangeRequestKind, payload: dict[str, Any]) -> dict[str, Any]:
-    try:
-        if kind is ChangeRequestKind.COLUMN_MAPPING_SET:
-            return ColumnMappingSetPayload.model_validate(payload).model_dump(mode="json")
-    except ValidationError as exc:
-        raise InvalidInputError(f"invalid payload for {kind.value}") from exc
-    raise NotImplementedError(f"{kind.value} change requests are not implemented yet")
+def _text(value: str, label: str, limit: int, *, required: bool) -> str:
+    text = value.strip()
+    if required and not text:
+        raise InvalidInputError(f"{label} is required")
+    if len(text) > limit:
+        raise InvalidInputError(f"{label} is too long")
+    return text
+
+
+def _require_person(actor: Actor) -> uuid.UUID:
+    if actor.kind != "user" or actor.user_id is None:
+        raise ChangeRequestStateError("change requests are requested by a person")  # GV-07
+    return actor.user_id
 
 
 def create_draft(
@@ -79,16 +94,19 @@ def create_draft(
     title: str,
     payload: dict[str, Any],
     evidence_refs: list[Any] | None = None,
+    origin: ChangeRequestOrigin = ChangeRequestOrigin.OPERATOR,
     clock: Clock | None = None,
 ) -> ChangeRequest:
-    if actor.kind != "user" or actor.user_id is None:
-        raise ChangeRequestStateError("change requests are requested by a person")  # GV-07
-    validated = _validate_payload(kind, payload)
+    requester = _require_person(actor)
+    title = _text(title, "title", MAX_TITLE_LENGTH, required=True)
+    parsed = parse_payload(kind, payload)
+    KINDS[kind].check_draft(session, migration.id, parsed)
     locked = session.get(Migration, migration.id, with_for_update=True)
     if locked is None:
         raise InvalidInputError("migration does not exist")
     number = locked.next_change_request_number
     locked.next_change_request_number += 1
+    stored = parsed.model_dump(mode="json")
     change = ChangeRequest(
         id=uuid7(clock),
         migration_id=migration.id,
@@ -96,10 +114,10 @@ def create_draft(
         kind=kind.value,
         status=ChangeRequestStatus.DRAFT.value,
         title=title,
-        payload=validated,
+        payload=stored,
         evidence_refs=evidence_refs or [],
-        origin=ChangeRequestOrigin.OPERATOR.value,
-        requested_by=actor.user_id,
+        origin=origin.value,
+        requested_by=requester,
         required_approvals=[],
         base_entity_versions={},
         version=1,
@@ -113,7 +131,57 @@ def create_draft(
         entity_type="change_request",
         entity_id=change.id,
         migration_id=migration.id,
-        after={"key": change.key, "kind": kind.value, "title": title, "payload": validated},
+        change_request_id=change.id,
+        before={"status": None},
+        after={
+            "status": change.status,
+            "key": change.key,
+            "kind": kind.value,
+            "title": title,
+            "payload": stored,
+        },
+        evidence_refs=change.evidence_refs,
+        clock=clock,
+    )
+    return change
+
+
+def update_draft(
+    session: Session,
+    *,
+    actor: Actor,
+    change: ChangeRequest,
+    title: str | None,
+    payload: dict[str, Any] | None,
+    expected_version: int,
+    clock: Clock | None = None,
+) -> ChangeRequest:
+    if change.status != ChangeRequestStatus.DRAFT.value:
+        raise ChangeRequestStateError("only drafts can be edited")
+    if actor.user_id != change.requested_by:
+        raise ChangeRequestStateError("only the requester can edit a draft")
+    if change.version != expected_version:
+        raise ChangeRequestStateError("the draft changed since it was loaded; reload it")
+    kind = ChangeRequestKind(change.kind)
+    before = {"title": change.title, "payload": change.payload}
+    if title is not None:
+        change.title = _text(title, "title", MAX_TITLE_LENGTH, required=True)
+    if payload is not None:
+        parsed = parse_payload(kind, payload)
+        KINDS[kind].check_draft(session, change.migration_id, parsed)
+        change.payload = parsed.model_dump(mode="json")
+    change.version += 1
+    session.flush()
+    audit.record(
+        session,
+        actor=actor,
+        action="change_request.draft_updated",
+        entity_type="change_request",
+        entity_id=change.id,
+        migration_id=change.migration_id,
+        change_request_id=change.id,
+        before=before,
+        after={"title": change.title, "payload": change.payload},
         clock=clock,
     )
     return change
@@ -131,29 +199,17 @@ def submit(
         raise ChangeRequestStateError("only drafts can be submitted")
     if actor.user_id != change.requested_by:
         raise ChangeRequestStateError("only the requester can submit a draft")
-    if not justification.strip():
-        raise InvalidInputError("a justification is required")
+    change.justification = _text(justification, "a justification", MAX_TEXT_LENGTH, required=True)
     kind = ChangeRequestKind(change.kind)
-    change.required_approvals = required_approvals(kind)
-    change.base_entity_versions = _entity_versions(session, kind, change.payload)
-    if kind is ChangeRequestKind.COLUMN_MAPPING_SET:
-        mapping_set = session.get(ColumnMappingSet, uuid.UUID(change.payload["mapping_set_id"]))
-        if mapping_set is None:
-            raise InvalidInputError("mapping set does not exist")
-        mapping_sets.mark_pending(mapping_set)
-        dataset = session.get(Dataset, mapping_set.dataset_id)
-        change.before = {"approved_version": None}
-        current = mapping_sets.approved_set(session, mapping_set.dataset_id)
-        if current is not None:
-            change.before = {"approved_version": current.version}
-        change.after = {"approved_version": mapping_set.version}
-        change.impact = {
-            "dataset_id": str(mapping_set.dataset_id),
-            "dataset_type": dataset.dataset_type if dataset else None,
-        }
-        session.flush()
-        change.base_entity_versions = _entity_versions(session, kind, change.payload)
-    change.justification = justification
+    handler = KINDS[kind]
+    payload = parse_payload(kind, change.payload)
+    prepared = handler.prepare(session, change, payload)
+    session.flush()
+    change.before = prepared.before
+    change.after = prepared.after
+    change.impact = prepared.impact
+    change.required_approvals = prepared.required_approvals
+    change.base_entity_versions = handler.versions(session, change, payload)
     change.status = ChangeRequestStatus.SUBMITTED.value
     change.submitted_at = (clock or SystemClock()).now()
     change.version += 1
@@ -166,8 +222,15 @@ def submit(
         entity_id=change.id,
         migration_id=change.migration_id,
         change_request_id=change.id,
-        reason=justification,
-        after={"required_approvals": change.required_approvals},
+        reason=change.justification,
+        before={"status": ChangeRequestStatus.DRAFT.value, "state": change.before},
+        after={
+            "status": change.status,
+            "state": change.after,
+            "impact": change.impact,
+            "required_approvals": change.required_approvals,
+            "base_entity_versions": change.base_entity_versions,
+        },
         clock=clock,
     )
     return change
@@ -180,31 +243,82 @@ def _approvals(session: Session, change: ChangeRequest) -> list[RecordedApproval
     ]
 
 
+def _transition(
+    session: Session,
+    *,
+    actor: Actor,
+    change: ChangeRequest,
+    status: ChangeRequestStatus,
+    action: str,
+    reason: str | None = None,
+    extra_before: dict[str, Any] | None = None,
+    extra_after: dict[str, Any] | None = None,
+    clock: Clock | None = None,
+) -> None:
+    previous = change.status
+    change.status = status.value
+    change.version += 1
+    session.flush()
+    audit.record(
+        session,
+        actor=actor,
+        action=action,
+        entity_type="change_request",
+        entity_id=change.id,
+        migration_id=change.migration_id,
+        change_request_id=change.id,
+        reason=reason,
+        before={"status": previous, **(extra_before or {})},
+        after={"status": status.value, **(extra_after or {})},
+        clock=clock,
+    )
+
+
+def _release(session: Session, change: ChangeRequest, outcome: ChangeRequestStatus) -> None:
+    kind = ChangeRequestKind(change.kind)
+    KINDS[kind].release(session, change, parse_payload(kind, change.payload), outcome)
+
+
 def _mark_if_stale(
     session: Session, change: ChangeRequest, actor: Actor, clock: Clock | None
 ) -> bool:
-    """Mark the change request stale (and audit it) when its base objects changed.
+    """Mark a submitted request stale (audited) when its base objects changed.
 
     Staleness is recorded and returned, not raised: raising would roll the marking back.
     """
-    current = _entity_versions(session, ChangeRequestKind(change.kind), change.payload)
-    if current != change.base_entity_versions:
-        change.status = ChangeRequestStatus.STALE.value
-        session.flush()
-        audit.record(
-            session,
-            actor=actor,
-            action="change_request.stale",
-            entity_type="change_request",
-            entity_id=change.id,
-            migration_id=change.migration_id,
-            change_request_id=change.id,
-            before={"base_entity_versions": change.base_entity_versions},
-            after={"current_entity_versions": current},
-            clock=clock,
+    kind = ChangeRequestKind(change.kind)
+    current = KINDS[kind].versions(session, change, parse_payload(kind, change.payload))
+    if current == change.base_entity_versions:
+        return False
+    _transition(
+        session,
+        actor=actor,
+        change=change,
+        status=ChangeRequestStatus.STALE,
+        action="change_request.stale",
+        extra_before={"base_entity_versions": change.base_entity_versions},
+        extra_after={"current_entity_versions": current},
+        clock=clock,
+    )
+    _release(session, change, ChangeRequestStatus.STALE)
+    session.flush()
+    return True
+
+
+def sweep_stale(
+    session: Session, *, actor: Actor, migration_id: uuid.UUID, clock: Clock | None = None
+) -> list[ChangeRequest]:
+    """Mark every submitted request of the migration whose base changed as stale."""
+    submitted = session.scalars(
+        select(ChangeRequest)
+        .where(
+            ChangeRequest.migration_id == migration_id,
+            ChangeRequest.status == ChangeRequestStatus.SUBMITTED.value,
         )
-        return True
-    return False
+        .order_by(ChangeRequest.created_at, ChangeRequest.id)
+        .with_for_update()
+    )
+    return [change for change in list(submitted) if _mark_if_stale(session, change, actor, clock)]
 
 
 def review(
@@ -221,6 +335,7 @@ def review(
         raise ChangeRequestStateError("only submitted change requests can be reviewed")
     if actor.kind != "user" or actor.user_id is None or actor.role is None:
         raise SegregationOfDutiesError("reviews are made by people")  # GV-07
+    comment = _text(comment, "comment", MAX_TEXT_LENGTH, required=False)
     if _mark_if_stale(session, change, actor, clock):
         return change
     approvals = _approvals(session, change)
@@ -231,10 +346,10 @@ def review(
         reviewer_id=actor.user_id,
         reviewer_role=actor.role,
     )
-    if decision is ApprovalDecision.REJECT and not comment.strip():
-        raise InvalidInputError("a comment is required to reject")
     if not check.allowed:
         raise SegregationOfDutiesError(check.reason)
+    if decision is ApprovalDecision.REJECT and not comment:
+        raise InvalidInputError("a comment is required to reject")
     approval = Approval(
         id=uuid7(clock),
         change_request_id=change.id,
@@ -255,99 +370,128 @@ def review(
         migration_id=change.migration_id,
         change_request_id=change.id,
         reason=comment or None,
-        after={"decision": decision.value, "requirement_index": check.requirement_index},
+        before={"approvals": len(approvals), "required": len(change.required_approvals)},
+        after={
+            "decision": decision.value,
+            "role": actor.role,
+            "requirement_index": check.requirement_index,
+            "approvals": len(approvals) + 1,
+        },
         clock=clock,
     )
     now = (clock or SystemClock()).now()
     if decision is ApprovalDecision.REJECT:
-        change.status = ChangeRequestStatus.REJECTED.value
         change.decided_at = now
-        change.version += 1
-        _on_rejected(session, change)
-        session.flush()
-        audit.record(
+        _transition(
             session,
             actor=actor,
+            change=change,
+            status=ChangeRequestStatus.REJECTED,
             action="change_request.rejected",
-            entity_type="change_request",
-            entity_id=change.id,
-            migration_id=change.migration_id,
-            change_request_id=change.id,
             reason=comment,
             clock=clock,
         )
+        _release(session, change, ChangeRequestStatus.REJECTED)
+        session.flush()
         return change
-    if fully_approved(
-        change.required_approvals,
-        [*approvals, RecordedApproval(actor.user_id, check.requirement_index, decision.value)],
-    ):
-        change.status = ChangeRequestStatus.APPROVED.value
-        change.decided_at = now
-        session.flush()
-        audit.record(
-            session,
-            actor=actor,
-            action="change_request.approved",
-            entity_type="change_request",
-            entity_id=change.id,
-            migration_id=change.migration_id,
-            change_request_id=change.id,
-            clock=clock,
-        )
-        _apply(session, actor, change)
-        change.status = ChangeRequestStatus.APPLIED.value
-        change.applied_at = now
-        change.version += 1
-        session.flush()
-        audit.record(
-            session,
-            actor=actor,
-            action="change_request.applied",
-            entity_type="change_request",
-            entity_id=change.id,
-            migration_id=change.migration_id,
-            change_request_id=change.id,
-            clock=clock,
-        )
+    recorded = [
+        *approvals,
+        RecordedApproval(actor.user_id, check.requirement_index, decision.value),
+    ]
+    if not fully_approved(change.required_approvals, recorded):
+        return change
+    change.decided_at = now
+    _transition(
+        session,
+        actor=actor,
+        change=change,
+        status=ChangeRequestStatus.APPROVED,
+        action="change_request.approved",
+        clock=clock,
+    )
+    kind = ChangeRequestKind(change.kind)
+    KINDS[kind].apply(session, actor, change, parse_payload(kind, change.payload), clock)
+    change.applied_at = now
+    _transition(
+        session,
+        actor=actor,
+        change=change,
+        status=ChangeRequestStatus.APPLIED,
+        action="change_request.applied",
+        clock=clock,
+    )
+    sweep_stale(session, actor=actor, migration_id=change.migration_id, clock=clock)
     return change
 
 
-def _apply(session: Session, actor: Actor, change: ChangeRequest) -> None:
-    kind = ChangeRequestKind(change.kind)
-    if kind is ChangeRequestKind.COLUMN_MAPPING_SET:
-        mapping_set = session.get(
-            ColumnMappingSet, uuid.UUID(change.payload["mapping_set_id"]), with_for_update=True
-        )
-        if mapping_set is None:
-            raise ChangeRequestStateError("mapping set disappeared")
-        mapping_sets.approve(
-            session,
-            actor=actor,
-            mapping_set=mapping_set,
-            change_request_id=change.id,
-            migration_id=change.migration_id,
-        )
-        return
-    raise NotImplementedError(f"{kind.value} appliers are not implemented yet")
-
-
-def _on_rejected(session: Session, change: ChangeRequest) -> None:
-    if ChangeRequestKind(change.kind) is ChangeRequestKind.COLUMN_MAPPING_SET:
-        mapping_set = session.get(ColumnMappingSet, uuid.UUID(change.payload["mapping_set_id"]))
-        if mapping_set is not None:
-            mapping_sets.reject(mapping_set)
+def withdraw(
+    session: Session,
+    *,
+    actor: Actor,
+    change: ChangeRequest,
+    reason: str,
+    clock: Clock | None = None,
+) -> ChangeRequest:
+    if change.status not in OPEN_STATUSES:
+        raise ChangeRequestStateError("only drafts and submitted change requests can be withdrawn")
+    if actor.user_id != change.requested_by:
+        raise ChangeRequestStateError("only the requester can withdraw a change request")
+    _transition(
+        session,
+        actor=actor,
+        change=change,
+        status=ChangeRequestStatus.WITHDRAWN,
+        action="change_request.withdrawn",
+        reason=_text(reason, "reason", MAX_TEXT_LENGTH, required=False) or None,
+        clock=clock,
+    )
+    _release(session, change, ChangeRequestStatus.WITHDRAWN)
+    session.flush()
+    return change
 
 
 def pending_count(session: Session, migration_id: uuid.UUID) -> int:
-    return len(
-        list(
-            session.scalars(
-                select(ChangeRequest.id).where(
-                    ChangeRequest.migration_id == migration_id,
-                    ChangeRequest.status.in_(
-                        [ChangeRequestStatus.SUBMITTED.value, ChangeRequestStatus.STALE.value]
-                    ),
-                )
+    return (
+        session.scalar(
+            select(func.count())
+            .select_from(ChangeRequest)
+            .where(
+                ChangeRequest.migration_id == migration_id,
+                ChangeRequest.status == ChangeRequestStatus.SUBMITTED.value,
             )
+        )
+        or 0
+    )
+
+
+def approvals_for(session: Session, change_id: uuid.UUID) -> list[Approval]:
+    return list(
+        session.scalars(
+            select(Approval)
+            .where(Approval.change_request_id == change_id)
+            .order_by(Approval.decided_at, Approval.id)
+        )
+    )
+
+
+def change_requests_for(
+    session: Session,
+    migration_id: uuid.UUID,
+    *,
+    status: str | None = None,
+    kind: str | None = None,
+    offset: int = 0,
+    limit: int = 100,
+) -> list[ChangeRequest]:
+    query = select(ChangeRequest).where(ChangeRequest.migration_id == migration_id)
+    if status:
+        query = query.where(ChangeRequest.status == status)
+    if kind:
+        query = query.where(ChangeRequest.kind == kind)
+    return list(
+        session.scalars(
+            query.order_by(ChangeRequest.created_at.desc(), ChangeRequest.id.desc())
+            .offset(offset)
+            .limit(limit)
         )
     )

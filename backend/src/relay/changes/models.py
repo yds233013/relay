@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, Integer, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,6 +25,7 @@ class ChangeRequestKind(StrEnum):
     POLICY_CHANGE = "policy_change"
     GATE_WAIVER = "gate_waiver"
     READINESS_SIGNOFF = "readiness_signoff"
+    REVERT = "revert"
 
 
 class ChangeRequestStatus(StrEnum):
@@ -101,3 +102,47 @@ class Approval(Base):
     comment: Mapped[str] = mapped_column(Text, nullable=False, default="")
     satisfies_requirement_index: Mapped[int | None] = mapped_column(Integer)
     decided_at: Mapped[datetime] = created_at()
+
+
+class OverrideTarget(StrEnum):
+    CANONICAL_FIELD = "canonical_field"
+    QUARANTINED_ROW_REPAIR = "quarantined_row_repair"
+
+
+class OverlayStatus(StrEnum):
+    ACTIVE = "active"
+    REVERTED = "reverted"
+
+
+class RecordOverride(Base):
+    """An approved change applied on top of immutable source data (data-model.md §7).
+
+    Canonical-field overrides name a record and field; quarantined row repairs name an import and
+    a quarantine key and carry replacement text. Only approved change requests create or revert
+    them.
+    """
+
+    __tablename__ = "record_overrides"
+    __table_args__ = (
+        check_in("target", "target", OverrideTarget),
+        check_in("status", "status", OverlayStatus),
+        Index("ix_record_overrides_migration_status", "migration_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    migration_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("migrations.id"), nullable=False)
+    dataset_type: Mapped[str] = mapped_column(Text, nullable=False)
+    natural_key: Mapped[str] = mapped_column(Text, nullable=False)
+    target: Mapped[str] = mapped_column(Text, nullable=False)
+    field: Mapped[str | None] = mapped_column(Text)
+    import_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("imports.id"))
+    expected_current_value: Mapped[Any] = mapped_column(JSONB, nullable=True)
+    new_value: Mapped[Any] = mapped_column(JSONB, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    change_request_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("change_requests.id"), nullable=False
+    )
+    reverted_by_cr_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("change_requests.id"))
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = created_at()

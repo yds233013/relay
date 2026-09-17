@@ -13,6 +13,7 @@ from decimal import Decimal
 from relay.canonical.enums import PartyType
 from relay.engine.exceptions import Severity
 from relay.engine.overlays import EntityDecision, Overlays, QuarantineRepair, RecordOverride
+from relay.engine.pipeline import input_fingerprint, run_engine
 from relay.engine.policy import Policy
 from relay.engine.readiness import GovernanceFacts, evaluate_readiness, unresolved_exposure
 from relay_scenarios.volume import OPENING_CASH
@@ -29,6 +30,7 @@ from tests.unit.engine_support import (
     Rows,
     base_files,
     edit,
+    inputs,
     read_rows,
     recompute_bank_balances,
     rules_fired,
@@ -420,3 +422,38 @@ def test_unresolved_exposure_counts_connected_findings_once() -> None:
         finding(["c"], "30"),
     ]
     assert unresolved_exposure(findings) == Decimal("130")
+
+
+# ---------------------------------------------------------------------- governed account mapping
+def _file_pairs(files: dict[str, bytes]) -> dict[str, str]:
+    _, rows = read_rows(files, MAPPING)
+    return {r["Legacy Account"]: r["Target Account"] for r in rows}
+
+
+def test_a_governed_account_mapping_replaces_the_mapping_file() -> None:
+    files = base_files()
+    ungoverned = inputs(files)
+    same = replace(ungoverned, governed_account_mapping=_file_pairs(files))
+    assert run_engine(same).exceptions == ()
+    assert input_fingerprint(same, Overlays(), Policy()) != input_fingerprint(
+        ungoverned, Overlays(), Policy()
+    )
+
+    remapped = replace(ungoverned, governed_account_mapping={**_file_pairs(files), "1300": "1200"})
+    result = run_engine(remapped)
+    subtype = [e for e in result.exceptions if e.rule_id == "MAP.SUBTYPE_COMPATIBLE"]
+    assert [e.subjects for e in subtype] == [("acct:legacy:1300",)]
+    # The file row says 1300 -> 1300, so it is not cited as the source of the governed pair.
+    assert subtype[0].lineage == ()
+
+    removed = {k: v for k, v in _file_pairs(files).items() if k != "6200"}
+    result = run_engine(replace(ungoverned, governed_account_mapping=removed))
+    assert rules_fired(result).get("MAP.ACCOUNT_UNMAPPED") == 1
+
+
+def test_a_repair_for_a_file_the_run_did_not_read_is_reported_stale() -> None:
+    repair = QuarantineRepair("QR-GONE", "replaced/export.csv", "abc", "a,b", "superseded import")
+    result = run(base_files(), Overlays(quarantine_repairs=(repair,)))
+    stale = [e for e in result.exceptions if e.rule_id == "OVERRIDE.STALE"]
+    assert [e.subjects for e in stale] == [("override:QR-GONE",)]
+    assert rules_fired(result) == {"OVERRIDE.STALE": 1}

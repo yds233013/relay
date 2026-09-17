@@ -56,13 +56,13 @@ def test_connects_to_postgres_16_in_utc(engine: Engine) -> None:
 
 def test_migrations_upgrade_downgrade_upgrade(database_url: str, engine: Engine) -> None:
     head = head_revision()
-    assert head == "0002_persistence"
+    assert head == "0003_governance"
 
     _upgrade(database_url)
     assert current_revision(engine) == head
 
     _downgrade(database_url, "-1")
-    assert current_revision(engine) == "0001_baseline"
+    assert current_revision(engine) == "0002_persistence"
     _upgrade(database_url)
     assert current_revision(engine) == head
 
@@ -84,7 +84,7 @@ def test_ready_endpoint_against_real_database(
             "reachable": True,
             "migrations": "not_at_head",
             "current_revision": None,
-            "head_revision": "0002_persistence",
+            "head_revision": "0003_governance",
         }
 
         _upgrade(database_url)
@@ -95,11 +95,11 @@ def test_ready_endpoint_against_real_database(
             "database": {
                 "reachable": True,
                 "migrations": "at_head",
-                "current_revision": "0002_persistence",
-                "head_revision": "0002_persistence",
+                "current_revision": "0003_governance",
+                "head_revision": "0003_governance",
             },
         }
-    assert current_revision(engine) == "0002_persistence"
+    assert current_revision(engine) == "0003_governance"
 
 
 # --------------------------------------------------------------------------- column types

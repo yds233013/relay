@@ -1,0 +1,38 @@
+# 0006: Mappings, change requests and approvals (M5)
+
+Status: **Accepted** (autonomous Tier 1 and Tier 2 decisions, 2026-09-17).
+
+| # | Decision | Why |
+|---|---|---|
+| G-01 | **An account mapping set is a complete mapping that replaces the file's pairs.** The engine takes an optional `MigrationInputs.governed_account_mapping`. The account mapping file is still staged, so its rows stay inspectable and duplicate keys are still reported. The input fingerprint includes the governed mapping only when one is present, so ungoverned fingerprints (tests, CLI) do not change. When a governed pair differs from the file row, that row is no longer cited as lineage. Version 1 is drafted from the file; gate G3 needs an approved set. | Matches data-model.md §6 (versions with one approved). A delta-only overlay could not remove a pair. Brightwater Run #1 still matches the manifest 89/89 with the seeded version 1. |
+| G-02 | **Each kind is a handler** in `relay.changes.kinds`: payload model, draft checks, submit-time `before`/`after`/`impact` and approvals, base entity versions, applier, release. | One place per kind; the service handles transitions, SoD, audit and staleness the same way for every kind. |
+| G-03 | **Record override payloads are resolved on the server** (`relay.pipeline.overrides`) from a succeeded run: expected current value, source import and dataset, entry size. The API accepts only `field_override {run_id, natural_key, field, new_value}` or `quarantine_repair {exception_id, replacement_text}` for this kind; a raw payload is refused. | A client must not choose the value an override was "written against". The resolver lives in the pipeline layer because staged records and findings are pipeline data (import-linter layers). |
+| G-04 | **Approval policy for `record_override`**: lead; plus the customer controller for date, period, account or amount fields, for any quarantined row repair (it restores amounts), or when the entry size is at least 10,000.00. `revert` copies the approvals of the change it reverts. | governance.md §2.3 and demo-scenario.md (DS-05, DS-08, DS-11). The approval policy is not yet part of the per-migration policy document, so a `policy_change` cannot lower its own requirements. Making approval policy configurable is deferred. |
+| G-05 | **Staleness**: each kind names its base versions (for example the approved account mapping set, the dataset's active import, the active override on the same record and field, the policy version). Submitted requests are checked on every review and swept after every application. A stale or withdrawn request releases its mapping set to a new terminal status `abandoned`. Submitting a draft based on a set that is no longer approved is refused. | An outdated complete mapping set must never be resubmitted: approving it would silently undo the change approved in between. |
+| G-06 | **G11 counts only submitted requests.** Stale requests no longer count as pending. | G11 is "no change requests waiting for approval"; a stale request cannot be approved and must be drafted again. |
+| G-07 | **Applying a change requests a pipeline run in the same transaction** (API layer, trigger `change_request_applied`, attributed to the approving reviewer). Runs stay idempotent on the fingerprint. | The pipeline sits above `changes` in the layers, so the API coordinates. |
+| G-08 | **Overridable fields are the ones the engine applies**: journal entry `entry_date` and `posting_period`. One active override per record and field; revert before overriding again. A repair must be exactly one CSV record with the header's field count. | Preconditions are checked when drafting and again at submit; the engine still reports `OVERRIDE.STALE` if the expected value no longer matches at run time. |
+| G-09 | **Column mappings**: a canonical field registry (`relay.mapping.registry`) lists required and optional fields per dataset type, mirroring what normalization reads. Drafts with missing required or unknown fields are rejected. Deterministic suggestions match normalized headers to field names or a general synonym list and choose parsing steps from the column profile; a preview applies a mapping to the first 50 rows and reports per-field errors. | See the measurement below. |
+| G-10 | **Account mapping suggestions** are made only for unmapped pairs or pairs with a failing signal: the same code in the target chart if compatible, otherwise the best name match (token Jaccard similarity plus 0.50 for the same subtype, compatible types and subtypes only, threshold 0.50). Signals: target exists, type compatible, subtype compatible (the same control-subtype test as `MAP.SUBTYPE_COMPATIBLE`). Ratios are exact decimals. | Proposals, not decisions: a person enters the target and the change request needs lead and controller approval. |
+| G-11 | **`policy_change`** merges top-level keys into the current policy document, validates the result with the engine policy parser and severity overrides against the rule registry, and creates policy version n+1. | Decimals are stored canonically (for example `500`, not `500.00`), as in M3. |
+| G-12 | **UI mutations are Server Functions** that call the API and redirect with `?notice=` or `?error=`. The column mapping editor is a JSON text area with a GET preview; only a mapping that previewed successfully can be proposed, so the proposal is exactly what was previewed. E2E tests that change state need a fresh seed: `make demo-reset` recreates the local database and seeds again. | Works without client JavaScript. A structured field-by-field editor is deferred. |
+| G-13 | **Downgrading revision 0003 refuses** when revert change requests or abandoned sets exist. | Governed history is never rewritten to fit an older schema. |
+
+## Measured
+
+Column mapping suggestions against the Brightwater version 1 mapping (126 fields across 16 datasets): **112 fields (89%) use the same source column, 73 have an identical specification.** The synonyms were first written with LedgerPro's headers in view; synonyms copied from those headers (for example "Name ID", "Doc No", "Open Balance (USD)") were removed before this measurement, so the number is not inflated by scenario knowledge. Abbreviations such as "Txn Date" are not recognized.
+
+## Found while building M5
+
+- The suggestion synonyms initially echoed Brightwater's export headers (125 of 126 matched). Removed; measured again (above).
+- An entry size read from the database kept the column's scale (`21730.0000`). Amounts in change request impact are now formatted through `Money`.
+- A test expected a policy value as `1000.00`; stored policy documents are canonical (`1000`). The test now compares decimals; no behaviour changed.
+- The scenario-knowledge guard caught a demo defect identifier in a production docstring. Removed.
+- Review found that a quarantined row repair naming a file the run did not read (for example after the import was replaced) was silently ignored. It is now reported as `OVERRIDE.STALE`; normalization version 1 → 2. Brightwater results are unchanged (180 engine scenario and rule tests pass).
+- Review found `evidence_refs` on change request creation unbounded; now at most 20 entries of 500-character strings.
+
+## Known limitations
+
+- Legacy accounts that appear only in the general ledger (in neither the legacy chart nor the mapping) are not listed on the Mappings page; `MAP.ACCOUNT_UNMAPPED` still reports them. DS-12 is M6 scope.
+- Record overrides support only journal entry dates and periods.
+- Change requests list and review in the UI one at a time; there is no bulk approval.

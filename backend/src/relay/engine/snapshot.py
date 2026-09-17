@@ -53,7 +53,7 @@ from relay.ingestion.csv_reader import (
 )
 from relay.mapping.transforms import DatasetMapping, MappingConfigError, TransformError
 
-NORM_VERSION = 1
+NORM_VERSION = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +137,7 @@ class _Normalizer:
             bank_links=inputs.bank_links,
         )
         self.mapping_configs: dict[str, Any] = dict(inputs.mapping_set.get("datasets", {}))
+        self._read_files: set[str] = set()
 
     # ------------------------------------------------------------------ exceptions
     def _norm(  # noqa: PLR0917 - one call per normalization finding
@@ -192,6 +193,7 @@ class _Normalizer:
         mapping = DatasetMapping.parse(spec.dataset_type, config, table.header)
         self.snapshot.raw_tables[spec.file] = table
         self.snapshot.dataset_mappings[spec.file] = mapping
+        self._read_files.add(spec.file)
         self.snapshot.datasets_present.add(spec.dataset_type)
         quarantined = list(table.quarantined)
         repairs = {
@@ -345,6 +347,30 @@ class _Normalizer:
         for dataset_type in order:
             for spec in self.inputs.datasets_of(dataset_type):
                 getattr(self, f"_load_{dataset_type}")(spec)
+        for repair in self.overlays.quarantine_repairs:
+            if repair.file not in self._read_files:
+                # The repaired file is not among this run's readable inputs (for example it was
+                # replaced by a new import): report it rather than ignore it.
+                self.snapshot.exceptions.append(
+                    make_exception(
+                        rule_id="OVERRIDE.STALE",
+                        rule_version=NORM_VERSION,
+                        severity=Severity.HIGH,
+                        nature=Nature.MIGRATION_DEFECT,
+                        category=Category.OTHER,
+                        subjects=[f"override:{repair.id}"],
+                        message=f"quarantine repair {repair.id} names a file this run did not read",
+                        expected=repair.file,
+                    )
+                )
+        if self.inputs.governed_account_mapping is not None:
+            governed = dict(self.inputs.governed_account_mapping)
+            for legacy, target in self.snapshot.account_mapping.items():
+                if governed.get(legacy) != target:
+                    # The file row no longer describes the pair in effect; do not cite it.
+                    self.snapshot.locations.pop(f"mapping:{legacy}", None)
+            self.snapshot.account_mapping = governed
+            self.snapshot.datasets_present.add("account_mapping")
         for change in self.overlays.account_mapping_changes:
             self.snapshot.account_mapping[change.legacy_account] = change.target_account
             self.snapshot.applied_overrides.append(change.id)

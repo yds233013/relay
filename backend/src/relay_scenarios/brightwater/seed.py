@@ -34,6 +34,7 @@ from relay.identity.permissions import Permission
 from relay.imports import service as imports
 from relay.imports.blob_store import BlobStore
 from relay.imports.models import Import, ImportStatus
+from relay.mapping_sets import accounts as account_sets
 from relay.mapping_sets import service as mapping_sets
 from relay.pipeline import service as pipeline
 from relay.pipeline.models import PipelineRun
@@ -226,6 +227,43 @@ def seed(
             )
             if reviewed.status != ChangeRequestStatus.APPLIED.value:
                 raise RuntimeError(f"mapping change request ended as {reviewed.status}")
+
+    controller = PEOPLE[2][0]
+    with session_scope(session_factory) as session:
+        # The project's account mapping file becomes governed account mapping set version 1.
+        specialist = _actor(session, maya, Permission.DRAFT_CHANGE_REQUEST)
+        account_set = account_sets.create_draft(
+            session, actor=specialist, migration_id=migration_id, base="import", changes=[]
+        )
+        change = changes.create_draft(
+            session,
+            actor=specialist,
+            migration=workspace.get_migration(session, migration_id),
+            kind=ChangeRequestKind.ACCOUNT_MAPPING_SET,
+            title="Account mapping from the implementation mapping file",
+            payload={"mapping_set_id": str(account_set.id)},
+        )
+        changes.submit(
+            session,
+            actor=specialist,
+            change=change,
+            justification="Mapping agreed in the chart of accounts workshop.",
+        )
+        change_id = change.id
+    for reviewer_email in (daniel, controller):
+        with session_scope(session_factory) as session:
+            reviewer = _actor(session, reviewer_email, Permission.REVIEW_CHANGE_REQUEST)
+            changes.review(
+                session,
+                actor=reviewer,
+                change=session.get_one(ChangeRequest, change_id),
+                decision=ApprovalDecision.APPROVE,
+                comment="Approved.",
+            )
+    with session_scope(session_factory) as session:
+        status = session.get_one(ChangeRequest, change_id).status
+        if status != ChangeRequestStatus.APPLIED.value:
+            raise RuntimeError(f"account mapping change request ended as {status}")
 
     with session_scope(session_factory) as session:
         specialist = _actor(session, maya, Permission.REQUEST_PIPELINE_RUN)

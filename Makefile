@@ -137,12 +137,12 @@ smoke: ## Verify a running stack end to end: the web status page shows API and d
 		grep -q 'at_head' <<<"$$page" || { echo "smoke: migrations not at head"; exit 1; }
 	@echo "smoke: web -> api -> database OK"
 
-test-e2e: ## Playwright end-to-end tests against the running, seeded stack (`make up`, `make demo-seed`); uses local Chrome
-	cd web && E2E_BASE_URL=http://127.0.0.1:$(RELAY_WEB_HOST_PORT) npx playwright test
+test-e2e: ## Playwright end-to-end tests against a freshly seeded stack (`make up`, then `make demo-seed` or `make demo-reset`); uses local Chrome
+	cd web && E2E_BASE_URL=http://127.0.0.1:$(RELAY_WEB_HOST_PORT) E2E_API_URL=http://127.0.0.1:$(RELAY_API_HOST_PORT) npx playwright test
 
 # ------------------------------------------------------------------------------------ demo data
 
-.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-seed-host verify-audit
+.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-seed-host verify-audit
 demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
 	$(UV) relay-demo generate
 
@@ -150,6 +150,13 @@ demo-seed: ## Load Brightwater into the running Compose stack (day-9 state) thro
 	docker compose run --rm --no-deps -v "$(CURDIR)/fixtures:/fixtures:ro" api \
 		relay-demo seed --fixtures /fixtures/demo/brightwater \
 		--mapping-set /fixtures/demo/brightwater_config/column_mapping_set_v1.json
+
+demo-reset: ## DESTROYS the local Compose database, recreates it, and seeds Brightwater again (E2E tests change the demo state)
+	docker compose stop api worker
+	docker compose exec -T db psql -U relay -d postgres -c 'DROP DATABASE IF EXISTS relay WITH (FORCE)' -c 'CREATE DATABASE relay'
+	docker compose run --rm migrate
+	docker compose up -d --wait api worker
+	$(MAKE) demo-seed
 
 demo-seed-host: db-migrate ## Load Brightwater into the local database with host-run processes (stop the Compose worker first)
 	$(UV) env $(BACKEND_DB_ENV) relay-demo seed

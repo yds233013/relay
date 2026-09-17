@@ -30,3 +30,14 @@ def events(
     if entity_id:
         query = query.where(AuditEvent.entity_id == entity_id)
     return list(session.scalars(query.order_by(AuditEvent.migration_seq).limit(limit)))
+
+
+def events_for_change_request(session: Session, change_request_id: uuid.UUID) -> list[AuditEvent]:
+    """Every event recorded under a change request, in chain order."""
+    return list(
+        session.scalars(
+            select(AuditEvent)
+            .where(AuditEvent.change_request_id == change_request_id)
+            .order_by(AuditEvent.migration_seq)
+        )
+    )

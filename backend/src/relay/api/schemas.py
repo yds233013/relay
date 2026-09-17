@@ -5,9 +5,9 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from relay.core.currency import Currency
 from relay.core.money import Money
@@ -448,3 +448,248 @@ class DrilldownOut(Schema):
     quarantined_rows: list[QuarantineRefOut] = []
     items: list[DrilldownItemOut] = []
     extra: dict[str, Any] = {}
+
+
+# ---------------------------------------------------------------------------------- governance
+class CanonicalFieldOut(Schema):
+    name: str
+    kind: str
+    required: bool
+    values: list[str]
+
+
+class FieldSuggestionOut(Schema):
+    field: str
+    kind: str
+    required: bool
+    specification: dict[str, Any] | None
+    basis: str | None
+    notes: list[str]
+
+
+class ColumnMappingSuggestionOut(Schema):
+    dataset_id: uuid.UUID
+    dataset_type: str
+    import_id: uuid.UUID
+    header: list[str]
+    fields: list[FieldSuggestionOut]
+    unmatched_columns: list[str]
+    canonical_fields: list[CanonicalFieldOut]
+
+
+class ColumnMappingOut(Schema):
+    target_field: str
+    specification: dict[str, Any]
+    required: bool
+    basis: str
+
+
+class ColumnMappingSetOut(Schema):
+    id: uuid.UUID
+    dataset_id: uuid.UUID
+    version: int
+    status: str
+    based_on_import_id: uuid.UUID | None
+    change_request_id: uuid.UUID | None
+    created_at: datetime
+    exclude_rows_where_blank: list[str]
+    mappings: list[ColumnMappingOut]
+    missing_required_fields: list[str]
+
+
+class MappingConfigIn(Schema):
+    fields: dict[str, dict[str, Any]]
+    exclude_rows_where_blank: list[str] = []
+
+
+class PreviewRowOut(Schema):
+    row_number: int
+    values: dict[str, str | None]
+    errors: dict[str, str]
+    excluded: bool
+
+
+class ColumnMappingPreviewOut(Schema):
+    import_id: uuid.UUID
+    rows: list[PreviewRowOut]
+    missing_required_fields: list[str]
+    unknown_fields: list[str]
+
+
+class SignalsOut(Schema):
+    target_exists: bool
+    type_compatible: bool | None
+    subtype_compatible: bool | None
+
+
+class AccountProposalOut(Schema):
+    target: str
+    basis: str
+    score: str | None
+    signals: SignalsOut
+
+
+class AccountMappingRowOut(Schema):
+    legacy_account_code: str
+    legacy_name: str | None
+    legacy_subtype: str | None
+    target_account_code: str | None
+    target_name: str | None
+    target_subtype: str | None
+    signals: SignalsOut | None
+    proposal: AccountProposalOut | None
+    basis: str | None = None
+    rationale: str | None = None
+
+
+class AccountMappingSetOut(Schema):
+    id: uuid.UUID
+    version: int
+    status: str
+    based_on_set_id: uuid.UUID | None
+    based_on_import_id: uuid.UUID | None
+    change_request_id: uuid.UUID | None
+    created_at: datetime
+    entry_count: int
+
+
+class AccountMappingOverviewOut(Schema):
+    approved_set: AccountMappingSetOut | None
+    source: str
+    """``approved_set`` or ``account_mapping_file``: where the mapping in effect comes from."""
+    rows: list[AccountMappingRowOut]
+    sets: list[AccountMappingSetOut]
+
+
+class AccountMappingSetDetailOut(Schema):
+    mapping_set: AccountMappingSetOut
+    rows: list[AccountMappingRowOut]
+
+
+class AccountMappingChangeIn(Schema):
+    legacy: str
+    target: str | None
+    rationale: str | None = None
+
+
+class AccountMappingDraftIn(Schema):
+    base: str
+    changes: list[AccountMappingChangeIn]
+
+
+class FieldOverrideIn(Schema):
+    run_id: uuid.UUID
+    natural_key: str
+    field: str
+    new_value: str
+
+
+class QuarantineRepairIn(Schema):
+    exception_id: uuid.UUID
+    replacement_text: str
+
+
+class ChangeRequestIn(Schema):
+    kind: str
+    title: str
+    payload: dict[str, Any] | None = None
+    field_override: FieldOverrideIn | None = None
+    quarantine_repair: QuarantineRepairIn | None = None
+    evidence_refs: list[dict[str, Annotated[str, Field(max_length=500)]]] = Field(
+        default_factory=list, max_length=20
+    )
+
+
+class ChangeRequestUpdateIn(Schema):
+    version: int
+    title: str | None = None
+    payload: dict[str, Any] | None = None
+
+
+class JustificationIn(Schema):
+    justification: str
+
+
+class ReviewIn(Schema):
+    comment: str = ""
+
+
+class WithdrawIn(Schema):
+    reason: str = ""
+
+
+class RequirementOut(Schema):
+    index: int
+    role: str
+    satisfied_by: str | None
+
+
+class ApprovalOut(Schema):
+    reviewer_user_id: uuid.UUID
+    reviewer_name: str
+    role: str
+    decision: str
+    comment: str
+    decided_at: datetime
+
+
+class ReviewerOut(Schema):
+    can_review: bool
+    reason: str
+    is_requester: bool
+
+
+class ChangeRequestOut(Schema):
+    id: uuid.UUID
+    migration_id: uuid.UUID
+    key: str
+    kind: str
+    status: str
+    title: str
+    justification: str
+    origin: str
+    requested_by: uuid.UUID
+    requested_by_name: str
+    created_at: datetime
+    submitted_at: datetime | None
+    decided_at: datetime | None
+    applied_at: datetime | None
+    version: int
+    approvals_required: int
+    approvals_given: int
+
+
+class ChangeRequestDetailOut(Schema):
+    change_request: ChangeRequestOut
+    payload: dict[str, Any]
+    before: dict[str, Any] | None
+    after: dict[str, Any] | None
+    impact: dict[str, Any] | None
+    evidence_refs: list[Any]
+    base_entity_versions: dict[str, Any]
+    requirements: list[RequirementOut]
+    approvals: list[ApprovalOut]
+    viewer: ReviewerOut
+    runs: list[uuid.UUID]
+    history: list[AuditEventOut]
+
+
+class ReviewOutcomeOut(Schema):
+    change_request: ChangeRequestOut
+    run_id: uuid.UUID | None
+    """The pipeline run requested because the change was applied, if any."""
+
+
+class RecordOverrideOut(Schema):
+    id: uuid.UUID
+    natural_key: str
+    dataset_type: str
+    target: str
+    field: str | None
+    expected_current_value: Any
+    new_value: Any
+    reason: str
+    status: str
+    change_request_id: uuid.UUID
+    reverted_by_cr_id: uuid.UUID | None
+    created_at: datetime

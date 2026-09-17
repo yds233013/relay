@@ -5,10 +5,13 @@ import { apiGet, type Schemas } from "@/lib/api/client";
 const SECTIONS = [
   ["", "Overview"],
   ["/data", "Data"],
+  ["/mappings", "Mappings"],
   ["/runs", "Runs"],
   ["/validation", "Validation"],
   ["/reconciliation", "Reconciliation"],
   ["/issues", "Issues"],
+  ["/approvals", "Approvals"],
+  ["/overrides", "Overrides"],
   ["/readiness", "Readiness"],
   ["/audit", "Audit log"],
 ] as const;

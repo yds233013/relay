@@ -28,32 +28,57 @@ export class ApiError extends Error {
   }
 }
 
-/** GET a Relay API resource as the signed-in development user. */
-export async function apiGet<T>(path: string, query: Query = {}): Promise<T> {
+async function problem(response: Response): Promise<ApiError> {
+  let code = "http.error";
+  let detail = response.statusText;
+  try {
+    const body = (await response.json()) as { code?: string; detail?: string; title?: string };
+    code = body.code ?? code;
+    detail = body.detail ?? body.title ?? detail;
+  } catch {
+    // Non-JSON error bodies keep the status text.
+  }
+  return new ApiError(response.status, code, detail);
+}
+
+async function request(method: string, path: string, query: Query, body?: unknown) {
   const config = parseServerConfig(process.env);
   const user = await currentUserEmail();
   if (user === null && path !== "/api/v1/dev/users") {
     redirect("/select-user");
   }
   const url = new URL(buildPath(path, query).replace(/^\//, ""), config.apiBaseUrl);
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (user) {
+    headers["X-Relay-User"] = user;
+  }
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
   const response = await fetch(url, {
-    headers: user ? { "X-Relay-User": user, Accept: "application/json" } : {},
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
   if (response.status === 401) {
     redirect("/select-user");
   }
   if (!response.ok) {
-    let code = "http.error";
-    let detail = response.statusText;
-    try {
-      const problem = (await response.json()) as { code?: string; detail?: string; title?: string };
-      code = problem.code ?? code;
-      detail = problem.detail ?? problem.title ?? detail;
-    } catch {
-      // Non-JSON error bodies keep the status text.
-    }
-    throw new ApiError(response.status, code, detail);
+    throw await problem(response);
   }
-  return (await response.json()) as T;
+  return response;
+}
+
+/** GET a Relay API resource as the signed-in development user. */
+export async function apiGet<T>(path: string, query: Query = {}): Promise<T> {
+  return (await (await request("GET", path, query)).json()) as T;
+}
+
+/**
+ * Send a mutation as the signed-in development user. Only Server Functions call this; the API
+ * decides authorization, so a hidden button is never the only protection.
+ */
+export async function apiSend<T>(method: "POST" | "PUT", path: string, body: unknown): Promise<T> {
+  return (await (await request(method, path, {}, body)).json()) as T;
 }

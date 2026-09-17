@@ -38,6 +38,7 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 - **M3**: persistence (Alembic `0002_persistence`), imports with append-only source rows, column mapping sets, change request core, pipeline runs persisted in one transaction, issue synchronization, hash-chained audit, PostgreSQL job queue and `relay worker`, read API (dev identity), `relay-demo seed`. Decisions: `docs/decisions/0004-persistence-and-pipeline.md`.
 
 - **M4**: web evidence workspace (Next.js Server Components over the API): portfolio, overview with evidence links, data, runs with diff, validation, reconciliation with drill-down, record inspector, issues, readiness, audit log; Playwright E2E-1 with axe. Decisions: `docs/decisions/0005-web-evidence-workspace.md`.
+- **M5**: governed changes: account mapping sets (replace the mapping file's pairs in runs), column mapping suggestions and preview, change request kinds `column_mapping_set`, `account_mapping_set`, `record_override`, `policy_change`, `revert` with SoD, staleness and atomic apply plus run request; Mappings, Approvals, change request, Overrides pages; E2E-2. Decisions: `docs/decisions/0006-governed-changes.md`. E2E tests change demo state: `make demo-reset` before rerunning.
 
 Governed overlays (overrides, entity decisions, dispositions, waivers, sign-offs), the remaining change request kinds, their UI and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
 
@@ -91,7 +92,8 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make worker` | Run the job worker on the host (`relay worker`; `relay worker --once` drains and exits) |
 | `make verify-audit` | Recompute every audit hash chain (`relay verify-audit [--migration ID]`) |
 | `make openapi` | Regenerate `web/src/lib/api/openapi.json`; `tests/unit/test_openapi.py` fails on drift. Then `cd web && npm run api:types` regenerates `schema.d.ts` (a web test fails on drift) |
-| `make test-e2e` | Playwright end-to-end tests against the running, seeded stack (`make up`, `make demo-seed`); uses the locally installed Chrome |
+| `make test-e2e` | Playwright end-to-end tests against a freshly seeded stack (`make up`, then `make demo-seed` or `make demo-reset`); uses the locally installed Chrome. The tests change demo state |
+| `make demo-reset` | **Destroys** the local Compose database, recreates it, migrates and seeds Brightwater again |
 | `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
 | `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
 | `make clean` | Remove caches and build output |

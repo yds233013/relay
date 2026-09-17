@@ -2,7 +2,7 @@
 
 **Migration operations for ERP implementations: prove the data is right before go-live.**
 
-> **Status:** M0 (foundation), M1 (canonical model and the Brightwater demo scenario) M2 (the deterministic validation and reconciliation engine) and M3 (persistence, imports, pipeline runs, audit and the read API) and M4 (the web evidence workspace) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
+> **Status:** M0 (foundation), M1 (canonical model and the Brightwater demo scenario) M2 (the deterministic validation and reconciliation engine) and M3 (persistence, imports, pipeline runs, audit and the read API) M4 (the web evidence workspace) and M5 (governed mappings, change requests, approvals and record overrides) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
 
 ---
 

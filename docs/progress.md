@@ -301,3 +301,51 @@ Status: **Complete** (commit `feat: build Relay evidence workspace`). Decisions:
 ### Next
 
 M5: mappings, change requests and approvals in the UI and API.
+
+---
+
+## M5 — Mappings, change requests, approvals
+
+Status: **Complete** (commit `feat: govern mappings and record corrections with approvals`). Decisions: [decisions/0006-governed-changes.md](decisions/0006-governed-changes.md).
+
+### Built
+
+- **Schema** (Alembic `0003_governance`): `account_mapping_sets`, `account_mappings`, `record_overrides`; change request kind `revert`; mapping set status `abandoned`.
+- **Engine**: optional governed account mapping that replaces the mapping file's pairs (G-01); shared `subtype_conflict` test used by the rule and by the mapping signals.
+- **Change request framework** (`relay.changes.kinds`, `relay.changes.service`): kinds `column_mapping_set`, `account_mapping_set`, `record_override` (canonical field or quarantined row repair), `policy_change`, `revert`; server-computed before, after, impact and required approvals; segregation of duties; staleness checks on review and a sweep after every application; withdraw; draft edits with optimistic versioning; every transition audited with before and after.
+- **Pipeline**: active overrides and repairs become engine overlays; the approved account mapping set feeds runs and gate G3; override payloads are resolved from run evidence (`relay.pipeline.overrides`).
+- **Mappings**: canonical field registry, deterministic column mapping suggestions and 50-row preview, account mapping suggestions with compatibility signals.
+- **API** (`/api/v1`): column mapping sets, suggestion and preview; account mapping overview, sets and drafts; change requests (list, create, get with requirements, approvals, viewer eligibility, history and triggered runs; update, submit, approve, reject, withdraw); record overrides. Approving the last requirement applies the change and requests a run in the same transaction.
+- **Web**: Mappings (account mapping with signals, suggestions and a proposal form; column mapping per dataset with suggestion, JSON editor, preview and proposal), Approvals queue, change request detail (per-kind before/after, requirements, approve and reject only when eligible, withdraw, history, runs), Overrides with revert, correction form in the record inspector (journal entry date and period), repair form on quarantine issues.
+- **Seed**: account mapping set version 1 drafted by Maya from the mapping file and approved by Daniel and Priya.
+- **Tooling**: `make demo-reset` recreates and reseeds the local database (E2E tests change demo state); `make test-e2e` passes the API URL to Playwright.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| E2E-2 in Playwright against the Compose stack | passed: Maya proposes 1205 → 1210 on the Mappings page; no approve button for her and the API returns 403; Daniel's approval leaves it submitted; Priya's applies it and requests a run; `R3:party=unassigned` is gone from the blockers while `R3:party=C-0233` remains; the mapping issue is resolved |
+| DS-05, DS-08, DS-11 through the UI (Playwright) | passed: two entry-date corrections from the record inspector and one row repair from the quarantine issue, each approved by lead and controller; after the rerun all three issues are resolved; three overrides active |
+| axe on Mappings and change request pages | 0 serious or critical violations |
+| API integration (`tests/integration/test_governance.py`, 11 tests) | SoD (requester and lead's own change), E2E-2 at the API, competing account mapping changes (the loser becomes stale and cannot be approved; its set is abandoned), DS-08 and DS-11 overrides, DS-05 repair, revert reopens the DS-11 issue, policy change creates a policy version and changes the fingerprint, every change request transition audited with before and after |
+| Persisted run after the API corrections vs the pure engine with the documented resolutions (`relay_evaluation.brightwater.resolution`) | equal rule counts, finding subjects and reconciliation differences |
+| Brightwater Run #1 persisted with the governed mapping version 1 | still matches the golden manifest (89/89) |
+| Column mapping suggestions vs Brightwater version 1 mapping | 112 of 126 fields use the same source column; 73 identical specifications (G-09) |
+
+### Changed from the plan, and why
+
+- The account mapping file remains a dataset; version 1 of the governed set is drafted from it (G-01).
+- G11 no longer counts stale change requests (G-06).
+- Approval policy is fixed in code rather than stored in the policy document (G-04).
+- The column mapping editor is a JSON text area, not a field-by-field form (G-12).
+
+### Known limitations and debt
+
+- Legacy accounts present only in the GL are not listed on the Mappings page (DS-12 is M6 scope).
+- Overrides cover journal entry dates and periods only.
+- E2E tests need a fresh seed (`make demo-reset`) to run twice.
+- No bulk approvals.
+
+### Next
+
+M6: issue workflow, entity decisions, dispositions, re-imports and the new-migration flow.

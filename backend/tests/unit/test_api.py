@@ -59,7 +59,7 @@ def test_ready_reports_unreachable_database_without_leaking_details(client: Test
     body = response.json()
     assert body["status"] == "unavailable"
     assert body["database"]["reachable"] is False
-    assert body["database"]["head_revision"] == "0002_persistence"
+    assert body["database"]["head_revision"] == "0003_governance"
     assert "unused" not in response.text
     assert "127.0.0.1" not in response.text
 

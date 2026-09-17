@@ -197,7 +197,7 @@ def execute_run(
     facts = GovernanceFacts(
         required_datasets=configuration.required_dataset_types,
         column_mapping_sets_approved=configuration.all_mapped,
-        account_mapping_set_approved=True,
+        account_mapping_set_approved=configuration.account_mapping_set_id is not None,
         current_fingerprint=None,
         pending_change_requests=changes.pending_count(session, run.migration_id),
     )

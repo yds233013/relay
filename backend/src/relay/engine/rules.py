@@ -172,6 +172,11 @@ def _legacy_subtype(ctx: RuleContext, code: str) -> AccountSubtype | None:
 
 
 # ======================================================================================= mapping
+def subtype_conflict(legacy: AccountSubtype, target: AccountSubtype) -> bool:
+    """A mapping that mixes a control-account subtype with a different subtype."""
+    return legacy != target and (legacy in CONTROL_SUBTYPES or target in CONTROL_SUBTYPES)
+
+
 @rule(
     "MAP.ACCOUNT_UNMAPPED",
     "Legacy account with activity or balance has no target",
@@ -268,9 +273,7 @@ def map_subtype_compatible(ctx: RuleContext, spec: RuleSpec) -> Iterable[RuleExc
         target_account = ctx.snapshot.target_accounts.get(target)
         if not (legacy_account and target_account):
             continue
-        if legacy_account.subtype == target_account.subtype:
-            continue
-        if legacy_account.subtype in CONTROL_SUBTYPES or target_account.subtype in CONTROL_SUBTYPES:
+        if subtype_conflict(legacy_account.subtype, target_account.subtype):
             yield _exception(
                 spec,
                 [nk.legacy_account(legacy)],

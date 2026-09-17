@@ -1,0 +1,224 @@
+import Link from "next/link";
+
+import { FilterForm, SelectFilter } from "@/components/filters";
+import { SubmitButton, TextArea, TextField } from "@/components/forms";
+import { Notice } from "@/components/notice";
+import { PageHeader, Section } from "@/components/page-header";
+import { SignalChips } from "@/components/signal-chips";
+import { StatusChip } from "@/components/status-chip";
+import { apiGet, type Schemas } from "@/lib/api/client";
+import { humanize, param } from "@/lib/format";
+
+import { proposeAccountMapping } from "../governance-actions";
+
+export const dynamic = "force-dynamic";
+
+type Row = Schemas["AccountMappingRowOut"];
+
+function doubtful(row: Row): boolean {
+  const signals = row.signals;
+  return (
+    row.target_account_code === null ||
+    row.proposal !== null ||
+    (signals !== null &&
+      (!signals.target_exists ||
+        signals.type_compatible === false ||
+        signals.subtype_compatible === false))
+  );
+}
+
+export default async function MappingsPage(props: PageProps<"/migrations/[migrationId]/mappings">) {
+  const { migrationId } = await props.params;
+  const query = await props.searchParams;
+  const show = param(query.show) ?? "doubtful";
+  const [mapping, datasets] = await Promise.all([
+    apiGet<Schemas["AccountMappingOverviewOut"]>(
+      `/api/v1/migrations/${migrationId}/account-mapping`,
+    ),
+    apiGet<Schemas["DatasetOut"][]>(`/api/v1/migrations/${migrationId}/datasets`),
+  ]);
+  const rows = show === "all" ? mapping.rows : mapping.rows.filter(doubtful);
+  const pending = mapping.sets.filter((s) => s.status === "pending_approval");
+  return (
+    <div className="max-w-7xl">
+      <PageHeader
+        title="Mappings"
+        description="Account and column mappings. Changes take effect only through approved change requests."
+      />
+      <Notice error={param(query.error)} notice={param(query.notice)} />
+      <Section title="Account mapping">
+        <p className="mb-2 text-sm">
+          In effect:{" "}
+          {mapping.approved_set
+            ? `approved version ${mapping.approved_set.version} (${mapping.approved_set.entry_count} accounts)`
+            : "the account mapping file (not yet approved; gate G3 fails until it is)"}
+          .
+          {pending.map((s) => (
+            <span key={s.id}>
+              {" "}
+              Version {s.version} is{" "}
+              {s.change_request_id ? (
+                <Link
+                  href={`/migrations/${migrationId}/change-requests/${s.change_request_id}`}
+                  className="underline"
+                >
+                  waiting for approval
+                </Link>
+              ) : (
+                "waiting for approval"
+              )}
+              .
+            </span>
+          ))}
+        </p>
+        <FilterForm>
+          <SelectFilter
+            name="show"
+            label="Accounts"
+            value={show}
+            options={[
+              ["doubtful", "Needing attention"],
+              ["all", "All accounts"],
+            ]}
+          />
+        </FilterForm>
+        <form action={proposeAccountMapping}>
+          <input type="hidden" name="migrationId" value={migrationId} />
+          <input type="hidden" name="base" value={mapping.approved_set ? "approved" : "import"} />
+          <div className="overflow-x-auto">
+            <table
+              className="w-full border-collapse text-left text-sm"
+              data-testid="account-mapping"
+            >
+              <caption className="mb-2 text-left text-sm font-semibold text-gray-900">
+                {rows.length} of {mapping.rows.length} legacy accounts
+              </caption>
+              <thead>
+                <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+                  <th scope="col" className="px-2 py-1.5">
+                    Legacy account
+                  </th>
+                  <th scope="col" className="px-2 py-1.5">
+                    Current target
+                  </th>
+                  <th scope="col" className="px-2 py-1.5">
+                    Compatibility
+                  </th>
+                  <th scope="col" className="px-2 py-1.5">
+                    Suggestion
+                  </th>
+                  <th scope="col" className="px-2 py-1.5">
+                    New target
+                  </th>
+                  <th scope="col" className="px-2 py-1.5">
+                    Rationale
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.legacy_account_code}
+                    className="border-b border-gray-100 align-top"
+                    data-legacy={row.legacy_account_code}
+                  >
+                    <td className="px-2 py-1.5">
+                      <span className="font-mono">{row.legacy_account_code}</span>{" "}
+                      {row.legacy_name ?? "not in legacy chart"}
+                      <span className="block text-xs text-gray-700">
+                        {row.legacy_subtype ? humanize(row.legacy_subtype) : ""}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <span className="font-mono">{row.target_account_code ?? "unmapped"}</span>{" "}
+                      {row.target_name ?? ""}
+                      <span className="block text-xs text-gray-700">
+                        {row.target_subtype ? humanize(row.target_subtype) : ""}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <SignalChips signals={row.signals} />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      {row.proposal ? (
+                        <>
+                          <span className="font-mono">{row.proposal.target}</span>{" "}
+                          <span className="text-xs text-gray-700">
+                            {humanize(row.proposal.basis)}
+                            {row.proposal.score ? ` ${row.proposal.score}` : ""}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <label className="sr-only" htmlFor={`target-${row.legacy_account_code}`}>
+                        New target for {row.legacy_account_code}
+                      </label>
+                      <input
+                        id={`target-${row.legacy_account_code}`}
+                        name={`target:${row.legacy_account_code}`}
+                        placeholder={row.proposal?.target ?? ""}
+                        className="w-24 rounded border border-gray-400 px-2 py-1 font-mono"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <label className="sr-only" htmlFor={`rationale-${row.legacy_account_code}`}>
+                        Rationale for {row.legacy_account_code}
+                      </label>
+                      <input
+                        id={`rationale-${row.legacy_account_code}`}
+                        name={`rationale:${row.legacy_account_code}`}
+                        className="w-56 rounded border border-gray-400 px-2 py-1"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 flex max-w-2xl flex-col gap-2">
+            <TextField name="title" label="Title" required defaultValue="Account mapping change" />
+            <TextArea name="justification" label="Justification" required />
+            <span>
+              <SubmitButton>Propose mapping change</SubmitButton>
+            </span>
+          </div>
+        </form>
+      </Section>
+      <Section title="Column mappings">
+        <ul className="list-inside list-disc text-sm">
+          {datasets.map((dataset) => (
+            <li key={dataset.id}>
+              <Link
+                href={`/migrations/${migrationId}/mappings/columns/${dataset.id}`}
+                className="underline"
+              >
+                {dataset.name}
+              </Link>{" "}
+              <span className="text-gray-700">({humanize(dataset.dataset_type)})</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <Section title="Account mapping versions">
+        <ul className="space-y-1 text-sm">
+          {mapping.sets.map((s) => (
+            <li key={s.id} className="flex items-center gap-2">
+              Version {s.version} <StatusChip status={s.status} /> {s.entry_count} accounts
+              {s.change_request_id ? (
+                <Link
+                  href={`/migrations/${migrationId}/change-requests/${s.change_request_id}`}
+                  className="underline"
+                >
+                  change request
+                </Link>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </Section>
+    </div>
+  );
+}

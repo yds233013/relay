@@ -69,6 +69,12 @@ class MigrationInputs:
     mapping_set: Mapping[str, Any]
     bank_links: tuple[BankAccountLink, ...]
     file_hashes: Mapping[str, str] = field(default_factory=dict)
+    governed_account_mapping: Mapping[str, str] | None = None
+    """An approved account mapping set (legacy code → target code).
+
+    When present it replaces the pairs read from ``account_mapping`` files, which are still staged
+    so their rows stay inspectable and duplicate keys are still reported.
+    """
 
     def datasets_of(self, dataset_type: str) -> list[DatasetSpec]:
         return [spec for spec in self.datasets if spec.dataset_type == dataset_type]

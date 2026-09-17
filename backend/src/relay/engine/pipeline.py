@@ -86,22 +86,26 @@ def engine_versions() -> dict[str, object]:
 
 
 def input_fingerprint(inputs: MigrationInputs, overlays: Overlays, policy: Policy) -> str:
-    return content_fingerprint(
-        {
-            "files": dict(sorted(inputs.file_hashes.items())),
-            "mapping_set": inputs.mapping_set,
-            "plan": {
-                "opening_balance_date": inputs.plan.opening_balance_date.isoformat(),
-                "history_start_date": inputs.plan.history_start_date.isoformat(),
-                "cutover_date": inputs.plan.cutover_date.isoformat(),
-                "go_live_date": inputs.plan.go_live_date.isoformat(),
-                "bank_clearing_window_days": inputs.plan.bank_clearing_window_days,
-            },
-            "overlays": overlays.identity(),
-            "policy": {k: str(v) for k, v in policy.as_dict().items()},
-            "versions": engine_versions(),
-        }
-    )
+    components: dict[str, object] = {
+        "files": dict(sorted(inputs.file_hashes.items())),
+        "mapping_set": inputs.mapping_set,
+        "plan": {
+            "opening_balance_date": inputs.plan.opening_balance_date.isoformat(),
+            "history_start_date": inputs.plan.history_start_date.isoformat(),
+            "cutover_date": inputs.plan.cutover_date.isoformat(),
+            "go_live_date": inputs.plan.go_live_date.isoformat(),
+            "bank_clearing_window_days": inputs.plan.bank_clearing_window_days,
+        },
+        "overlays": overlays.identity(),
+        "policy": {k: str(v) for k, v in policy.as_dict().items()},
+        "versions": engine_versions(),
+    }
+    if inputs.governed_account_mapping is not None:
+        # Added only when present, so fingerprints of ungoverned inputs are unchanged.
+        components["governed_account_mapping"] = dict(
+            sorted(inputs.governed_account_mapping.items())
+        )
+    return content_fingerprint(components)
 
 
 def _shared_references(snapshot: RunSnapshot) -> dict[frozenset[str], int]:
