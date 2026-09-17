@@ -42,13 +42,16 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 - **M6**: issue workflow (owner, status, comments, links, history, manual issues), `entity_decision` and multi-issue `disposition` kinds, `revert` for every overlay, re-imports with committed unfiltered re-exports (`fixtures/demo/brightwater_reexport/`), new migration and setup pages; E2E-3, E2E-4, E2E-8. Decisions: `docs/decisions/0007-issue-workflow-and-decisions.md`.
 - **M7**: scope-bound gate waivers that lapse, fingerprint-bound readiness sign-off with invalidation, readiness re-evaluation jobs, shared change request orchestration (`relay.pipeline.approvals`), `relay-demo fast-forward --to before-signoff`, Readiness and Settings pages; E2E-5. Decisions: `docs/decisions/0008-readiness-waivers-signoff.md`.
 
-AI is built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
+- **M8**: AI investigation layer: providers (`disabled`, `scripted`, `anthropic` over the standard library), 15 read-only tools with redaction, investigator loop with budgets, provenance verification, findings to operator-owned draft change requests, consent through `policy_change` (`ai_enabled`), `run_investigation` jobs (`relay.investigations`), investigation UI, scripted evals E1–E6 (`relay_evaluation.ai`); E2E-7. No live eval run recorded (no key). Decisions: `docs/decisions/0009-ai-investigation-layer.md`.
+
+Hardening (M9) comes next. `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
-- `backend/src/relay/`: **runtime** package. Pure: `core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`. Database: `audit`, `identity`, `workspace`, `jobs`, `imports`, `mapping_sets`, `changes`, `issues`, `pipeline`. Entry points: `api`, `worker.py`, `cli.py`. Layers are enforced by import-linter (see `backend/pyproject.toml`).
+- `backend/src/relay/`: **runtime** package. Pure: `core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`. Database: `audit`, `identity`, `workspace`, `jobs`, `imports`, `mapping_sets`, `changes`, `issues`, `pipeline`, `investigations`. AI (read models only): `ai`. Entry points: `api`, `worker.py`, `cli.py`. Layers are enforced by import-linter (see `backend/pyproject.toml`).
 - `backend/src/relay_scenarios/`: **demo/evaluation-only** scenario generators (they know which issues they plant)
 - `backend/src/relay_evaluation/`: **evaluation-only** golden-manifest loader, reference oracle, verifier
-- `backend/migrations/` (Alembic), `backend/tests/{unit,integration,scenario}`
+- `backend/migrations/` (Alembic), `backend/tests/{unit,integration,scenario,ai}`
+- `evals/results/`: recorded live investigator eval runs (none yet)
 - `fixtures/demo/brightwater/`: generated source-style files Relay ingests (no answers inside)
 - `fixtures/demo/brightwater_config/`: the approved column mapping set for those files (configuration, no answers)
 - `evaluation/brightwater/golden_manifest.toml`: hand-authored ground truth (never read by runtime code)
@@ -96,6 +99,8 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make openapi` | Regenerate `web/src/lib/api/openapi.json`; `tests/unit/test_openapi.py` fails on drift. Then `cd web && npm run api:types` regenerates `schema.d.ts` (a web test fails on drift) |
 | `make test-e2e` | Playwright end-to-end tests against a freshly seeded stack (`make up`, then `make demo-seed` or `make demo-reset`); uses the locally installed Chrome. The tests change demo state |
 | `make demo-reset` | **Destroys** the local Compose database, recreates it, migrates and seeds Brightwater again |
+| `make eval-ai-scripted` | Investigator evals E1–E6 with the scripted provider against the local seeded database (no model calls; at most 20 investigations per person per hour) |
+| `make eval-ai` | **Manual, costs money**: live investigator evals against the local seeded database; needs `ANTHROPIC_API_KEY` (refuses without it, verified); writes `evals/results/investigator-<timestamp>.json`. Never in CI. Not yet run with a key |
 | `make demo-fast-forward` | With the stack up and seeded: apply the documented resolutions as the seeded users so only sign-off remains (`relay-demo fast-forward --to before-signoff`) |
 | `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
 | `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
@@ -107,7 +112,7 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| `make eval-ai` | Live-model evals (manual, needs key) | M8 |
+| `make test-all` | Full suite from a clean clone via Docker Compose | M9 |
 
 ---
 

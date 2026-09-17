@@ -5,18 +5,30 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 import pytest
 from alembic import command
 from fastapi.testclient import TestClient
-from sqlalchemy import Column, Connection, Engine, Integer, MetaData, Table, insert, select, text
+from sqlalchemy import (
+    Column,
+    Connection,
+    Engine,
+    Integer,
+    MetaData,
+    Table,
+    create_engine,
+    insert,
+    select,
+    text,
+)
 from sqlalchemy.exc import StatementError
 
 from relay.api.app import create_app
-from relay.core.config import Settings
+from relay.core.config import Environment, Settings
 from relay.core.currency import Currency
-from relay.core.db import alembic_config, current_revision, head_revision, ping
+from relay.core.db import alembic_config, create_db_engine, current_revision, head_revision, ping
 from relay.core.db_types import (
     AmountType,
     BusinessDateType,
@@ -54,15 +66,42 @@ def test_connects_to_postgres_16_in_utc(engine: Engine) -> None:
 # --------------------------------------------------------------------------- migrations
 
 
-def test_migrations_upgrade_downgrade_upgrade(database_url: str, engine: Engine) -> None:
+@pytest.fixture(scope="module")
+def migration_database(database_url: str) -> Iterator[tuple[str, Settings, Engine]]:
+    """An empty database of its own: downgrades refuse to drop governed rows other tests create."""
+    parts = urlsplit(database_url)
+    name = parts.path.lstrip("/").removesuffix("_test") + "_migrations_test"
+    admin = create_engine(
+        urlunsplit(parts._replace(path="/postgres")), isolation_level="AUTOCOMMIT"
+    )
+    with admin.connect() as connection:
+        # Derived from the validated test database name; identifiers cannot be bound.
+        connection.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        connection.execute(text(f'CREATE DATABASE "{name}"'))
+    url = urlunsplit(parts._replace(path=f"/{name}"))
+    settings = Settings(env=Environment.TEST, database_url=url)  # type: ignore[arg-type]
+    db_engine = create_db_engine(settings)
+    try:
+        yield url, settings, db_engine
+    finally:
+        db_engine.dispose()
+        with admin.connect() as connection:
+            connection.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        admin.dispose()
+
+
+def test_migrations_upgrade_downgrade_upgrade(
+    migration_database: tuple[str, Settings, Engine],
+) -> None:
+    database_url, _, engine = migration_database
     head = head_revision()
-    assert head == "0005_readiness"
+    assert head == "0006_investigations"
 
     _upgrade(database_url)
     assert current_revision(engine) == head
 
     _downgrade(database_url, "-1")
-    assert current_revision(engine) == "0004_issue_workflow"
+    assert current_revision(engine) == "0005_readiness"
     _upgrade(database_url)
     assert current_revision(engine) == head
 
@@ -74,8 +113,9 @@ def test_migrations_upgrade_downgrade_upgrade(database_url: str, engine: Engine)
 
 
 def test_ready_endpoint_against_real_database(
-    database_url: str, engine: Engine, settings: Settings
+    migration_database: tuple[str, Settings, Engine],
 ) -> None:
+    database_url, settings, engine = migration_database
     _downgrade(database_url, "base")
     with TestClient(create_app(settings)) as client:
         behind = client.get("/health/ready")
@@ -84,7 +124,7 @@ def test_ready_endpoint_against_real_database(
             "reachable": True,
             "migrations": "not_at_head",
             "current_revision": None,
-            "head_revision": "0005_readiness",
+            "head_revision": "0006_investigations",
         }
 
         _upgrade(database_url)
@@ -95,11 +135,11 @@ def test_ready_endpoint_against_real_database(
             "database": {
                 "reachable": True,
                 "migrations": "at_head",
-                "current_revision": "0005_readiness",
-                "head_revision": "0005_readiness",
+                "current_revision": "0006_investigations",
+                "head_revision": "0006_investigations",
             },
         }
-    assert current_revision(engine) == "0005_readiness"
+    assert current_revision(engine) == "0006_investigations"
 
 
 # --------------------------------------------------------------------------- column types

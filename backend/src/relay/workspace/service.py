@@ -327,3 +327,29 @@ def set_migration_status(
         after={"status": status.value},
         reason=reason,
     )
+
+
+def set_ai_enabled(
+    session: Session,
+    *,
+    actor: Actor,
+    migration: Migration,
+    enabled: bool,
+    change_request_id: uuid.UUID,
+) -> None:
+    """Record customer consent to AI processing (SEC-22); only approved policy changes call this."""
+    before = migration.ai_enabled
+    migration.ai_enabled = enabled
+    migration.version += 1
+    session.flush()
+    audit.record(
+        session,
+        actor=actor,
+        action="migration.ai_enabled_changed",
+        entity_type="migration",
+        entity_id=migration.id,
+        migration_id=migration.id,
+        change_request_id=change_request_id,
+        before={"ai_enabled": before},
+        after={"ai_enabled": enabled},
+    )

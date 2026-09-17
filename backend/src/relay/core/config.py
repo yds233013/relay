@@ -55,6 +55,24 @@ class Settings(BaseSettings):
         ),
     )
 
+    ai_provider: Literal["disabled", "scripted", "anthropic"] = Field(
+        default="disabled",
+        description="AI investigation provider. Every workflow works with 'disabled'.",
+    )
+    ai_model: str = Field(default="claude-opus-5", min_length=1, max_length=100)
+    ai_api_base_url: str = "https://api.anthropic.com"
+    anthropic_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias="ANTHROPIC_API_KEY",
+        description="From the environment only; never logged, returned or sent to the browser.",
+    )
+    ai_scripts_dir: Path | None = Field(
+        default=None, description="Transcripts replayed by the scripted provider (demo, tests)."
+    )
+    ai_max_tool_calls: int = Field(default=15, ge=1, le=50)
+    ai_max_seconds: int = Field(default=120, ge=5, le=600)
+    ai_max_total_tokens: int = Field(default=200_000, ge=1_000, le=2_000_000)
+
     @field_validator("database_url")
     @classmethod
     def _validate_database_url(cls, value: SecretStr) -> SecretStr:
@@ -77,6 +95,8 @@ class Settings(BaseSettings):
                 raise ValueError("production requires a real database password")
             if self.dev_identity_enabled:
                 raise ValueError("the development identity header cannot be enabled in production")
+        if self.ai_provider == "anthropic" and self.anthropic_api_key is None:
+            raise ValueError("ai_provider=anthropic requires ANTHROPIC_API_KEY in the environment")
         return self
 
     @property

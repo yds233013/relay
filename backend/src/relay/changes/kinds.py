@@ -546,14 +546,38 @@ def _override_apply(
 
 
 # ----------------------------------------------------------------------------- policy changes
+AI_ENABLED: Final = "ai_enabled"
+"""Customer consent to AI processing (SEC-22). Stored on the migration, not in the engine policy,
+so granting or withdrawing it never changes run inputs."""
+
+
+@dataclass(frozen=True, slots=True)
+class _PolicyPlan:
+    current: PolicyVersion
+    document: dict[str, Any]
+    engine_keys: list[str]
+    ai_enabled: bool | None
+    """The new consent value when it changes, else None."""
+
+
 def _merged_policy(
     session: Session, migration_id: uuid.UUID, payload: PolicyChangePayload
-) -> tuple[PolicyVersion, dict[str, Any]]:
+) -> _PolicyPlan:
     current = workspace.current_policy(session, migration_id)
-    unknown = set(payload.changes) - set(current.policy)
+    engine_changes = {k: v for k, v in payload.changes.items() if k != AI_ENABLED}
+    unknown = set(engine_changes) - set(current.policy)
     if unknown:
         raise InvalidInputError(f"unknown policy keys: {sorted(unknown)}")
-    merged = {**current.policy, **payload.changes}
+    ai_enabled: bool | None = None
+    if AI_ENABLED in payload.changes:
+        requested = payload.changes[AI_ENABLED]
+        if isinstance(requested, str) and requested.strip().casefold() in {"true", "false"}:
+            requested = requested.strip().casefold() == "true"
+        if not isinstance(requested, bool):
+            raise InvalidInputError("ai_enabled must be true or false")
+        if requested != workspace.get_migration(session, migration_id).ai_enabled:
+            ai_enabled = requested
+    merged = {**current.policy, **engine_changes}
     overrides = merged.get("severity_overrides")
     if not isinstance(overrides, dict):
         raise InvalidInputError("severity_overrides must be an object")
@@ -567,9 +591,10 @@ def _merged_policy(
     except (InvalidInputError, ValueError, TypeError, InvalidOperation) as exc:
         raise InvalidInputError("policy change does not produce a valid policy") from exc
     document = workspace.policy_document(policy)
-    if document == current.policy:
+    engine_keys = sorted(k for k in document if document[k] != current.policy.get(k))
+    if not engine_keys and ai_enabled is None:
         raise InvalidInputError("the policy change changes nothing")
-    return current, document
+    return _PolicyPlan(current, document, engine_keys, ai_enabled)
 
 
 def _policy_check(session: Session, migration_id: uuid.UUID, payload: PolicyChangePayload) -> None:
@@ -579,12 +604,25 @@ def _policy_check(session: Session, migration_id: uuid.UUID, payload: PolicyChan
 def _policy_prepare(
     session: Session, change: ChangeRequest, payload: PolicyChangePayload
 ) -> Prepared:
-    current, document = _merged_policy(session, change.migration_id, payload)
-    keys = sorted(k for k in document if document[k] != current.policy.get(k))
+    plan = _merged_policy(session, change.migration_id, payload)
+    before: dict[str, Any] = {k: plan.current.policy.get(k) for k in plan.engine_keys}
+    after: dict[str, Any] = {k: plan.document[k] for k in plan.engine_keys}
+    if plan.engine_keys:
+        before["policy_version"] = plan.current.version
+        after["policy_version"] = plan.current.version + 1
+    if plan.ai_enabled is not None:
+        before[AI_ENABLED] = not plan.ai_enabled
+        after[AI_ENABLED] = plan.ai_enabled
     return Prepared(
-        before={"policy_version": current.version, **{k: current.policy.get(k) for k in keys}},
-        after={"policy_version": current.version + 1, **{k: document[k] for k in keys}},
-        impact={"changed_keys": keys},
+        before=before,
+        after=after,
+        impact={
+            "changed_keys": [
+                *plan.engine_keys,
+                *([AI_ENABLED] if plan.ai_enabled is not None else []),
+            ],
+            "changes_run_inputs": bool(plan.engine_keys),
+        },
         # Approval requirements are not part of the policy document, so a policy change cannot
         # lower its own requirements (governance.md §2.3).
         required_approvals=required_approvals(ChangeRequestKind.POLICY_CHANGE),
@@ -592,7 +630,10 @@ def _policy_prepare(
 
 
 def _policy_versions(session: Session, change: ChangeRequest, _: PolicyChangePayload) -> Versions:
-    return {"policy_version": workspace.current_policy(session, change.migration_id).version}
+    return {
+        "policy_version": workspace.current_policy(session, change.migration_id).version,
+        AI_ENABLED: str(workspace.get_migration(session, change.migration_id).ai_enabled),
+    }
 
 
 def _policy_apply(
@@ -602,30 +643,41 @@ def _policy_apply(
     payload: PolicyChangePayload,
     clock: Clock | None,
 ) -> None:
-    current, document = _merged_policy(session, change.migration_id, payload)
-    row = PolicyVersion(
-        id=uuid7(clock),
-        migration_id=change.migration_id,
-        version=current.version + 1,
-        policy=document,
-        change_request_id=change.id,
-        created_by=change.requested_by,
-    )
-    session.add(row)
-    session.flush()
-    keys = sorted(k for k in document if document[k] != current.policy.get(k))
-    audit.record(
-        session,
-        actor=actor,
-        action="policy.version_created",
-        entity_type="policy_version",
-        entity_id=row.id,
-        migration_id=change.migration_id,
-        change_request_id=change.id,
-        before={"version": current.version, **{k: current.policy.get(k) for k in keys}},
-        after={"version": row.version, **{k: document[k] for k in keys}},
-        clock=clock,
-    )
+    plan = _merged_policy(session, change.migration_id, payload)
+    if plan.engine_keys:
+        row = PolicyVersion(
+            id=uuid7(clock),
+            migration_id=change.migration_id,
+            version=plan.current.version + 1,
+            policy=plan.document,
+            change_request_id=change.id,
+            created_by=change.requested_by,
+        )
+        session.add(row)
+        session.flush()
+        audit.record(
+            session,
+            actor=actor,
+            action="policy.version_created",
+            entity_type="policy_version",
+            entity_id=row.id,
+            migration_id=change.migration_id,
+            change_request_id=change.id,
+            before={
+                "version": plan.current.version,
+                **{k: plan.current.policy.get(k) for k in plan.engine_keys},
+            },
+            after={"version": row.version, **{k: plan.document[k] for k in plan.engine_keys}},
+            clock=clock,
+        )
+    if plan.ai_enabled is not None:
+        workspace.set_ai_enabled(
+            session,
+            actor=actor,
+            migration=workspace.get_migration(session, change.migration_id),
+            enabled=plan.ai_enabled,
+            change_request_id=change.id,
+        )
 
 
 # --------------------------------------------------------------------------- entity decisions

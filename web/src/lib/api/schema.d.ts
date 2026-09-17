@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ai Status */
+        get: operations["ai_status_api_v1_ai_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/change-requests/{change_id}": {
         parameters: {
             query?: never;
@@ -246,6 +263,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/findings/{finding_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Finding */
+        post: operations["accept_finding_api_v1_findings__finding_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/findings/{finding_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Finding */
+        post: operations["dismiss_finding_api_v1_findings__finding_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/findings/{finding_id}/draft-change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draft From Finding */
+        post: operations["draft_from_finding_api_v1_findings__finding_id__draft_change_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/imports/{import_id}": {
         parameters: {
             query?: never;
@@ -306,6 +374,23 @@ export interface paths {
         };
         /** List Rows */
         get: operations["list_rows_api_v1_imports__import_id__rows_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/investigations/{investigation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Investigation */
+        get: operations["get_investigation_api_v1_investigations__investigation_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -614,6 +699,24 @@ export interface paths {
         get: operations["fingerprint_api_v1_migrations__migration_id__fingerprint_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/migrations/{migration_id}/investigations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Investigations */
+        get: operations["list_investigations_api_v1_migrations__migration_id__investigations_get"];
+        put?: never;
+        /** Start Investigation */
+        post: operations["start_investigation_api_v1_migrations__migration_id__investigations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -951,6 +1054,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AIStatusOut */
+        AIStatusOut: {
+            /** Available */
+            available: boolean;
+            /** Configured */
+            configured: boolean;
+            /** Migration Enabled */
+            migration_enabled: boolean;
+            /** Provider */
+            provider: string;
+        };
         /** AccountMappingChangeIn */
         AccountMappingChangeIn: {
             /** Legacy */
@@ -1267,6 +1381,8 @@ export interface components {
             migration_id: string;
             /** Origin */
             origin: string;
+            /** Origin Finding Id */
+            origin_finding_id?: string | null;
             /**
              * Requested By
              * Format: uuid
@@ -1790,6 +1906,57 @@ export interface components {
             /** Rule Id */
             rule_id: string;
         };
+        /** FindingOut */
+        FindingOut: {
+            /** Affected Record Refs */
+            affected_record_refs: string[];
+            /** Confidence */
+            confidence: string;
+            /**
+             * Draftable
+             * @description Whether a change request can be drafted from it now.
+             */
+            draftable: boolean;
+            /** Drafted Change Request Id */
+            drafted_change_request_id: string | null;
+            /** Evidence */
+            evidence: {
+                [key: string]: unknown;
+            }[];
+            /** Hypothesis */
+            hypothesis: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Open Questions */
+            open_questions: string[];
+            /** Requires Approval */
+            requires_approval: boolean;
+            /** Review Comment */
+            review_comment: string;
+            /** Review Status */
+            review_status: string;
+            /** Suggested Action */
+            suggested_action: {
+                [key: string]: unknown;
+            };
+            /** Verification Report */
+            verification_report: {
+                [key: string]: unknown;
+            };
+            /** Verification Status */
+            verification_status: string;
+        };
+        /** FindingReviewIn */
+        FindingReviewIn: {
+            /**
+             * Comment
+             * @default
+             */
+            comment: string;
+        };
         /** FingerprintOut */
         FingerprintOut: {
             /** Components */
@@ -1892,6 +2059,91 @@ export interface components {
             sequence: number;
             /** Status */
             status: string;
+        };
+        /** InvestigationDetailOut */
+        InvestigationDetailOut: {
+            /** Findings */
+            findings: components["schemas"]["FindingOut"][];
+            investigation: components["schemas"]["InvestigationOut"];
+            /** Steps */
+            steps: components["schemas"]["InvestigationStepOut"][];
+        };
+        /** InvestigationIn */
+        InvestigationIn: {
+            /** Issue Id */
+            issue_id?: string | null;
+            /** Question */
+            question: string;
+        };
+        /** InvestigationOut */
+        InvestigationOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: {
+                [key: string]: unknown;
+            } | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Issue Id */
+            issue_id: string | null;
+            /**
+             * Migration Id
+             * Format: uuid
+             */
+            migration_id: string;
+            /** Model */
+            model: string;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Prompt Version */
+            prompt_version: string;
+            /** Provider */
+            provider: string;
+            /** Question */
+            question: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Status */
+            status: string;
+            /** Tool Call Count */
+            tool_call_count: number;
+        };
+        /** InvestigationStepOut */
+        InvestigationStepOut: {
+            /** Arguments */
+            arguments: {
+                [key: string]: unknown;
+            } | null;
+            /** Is Error */
+            is_error: boolean;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Result */
+            result: string | null;
+            /** Seq */
+            seq: number;
+            /** Text */
+            text: string;
+            /** Tool Name */
+            tool_name: string | null;
+            /** Truncated */
+            truncated: boolean;
+            /** Type */
+            type: string;
         };
         /** IssueDetailOut */
         IssueDetailOut: {
@@ -2920,6 +3172,39 @@ export interface operations {
             };
         };
     };
+    ai_status_api_v1_ai_status_get: {
+        parameters: {
+            query: {
+                migration_id: string;
+            };
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_change_request_api_v1_change_requests__change_id__get: {
         parameters: {
             query?: never;
@@ -3444,6 +3729,113 @@ export interface operations {
             };
         };
     };
+    accept_finding_api_v1_findings__finding_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_finding_api_v1_findings__finding_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    draft_from_finding_api_v1_findings__finding_id__draft_change_request_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_import_api_v1_imports__import_id__get: {
         parameters: {
             query?: never;
@@ -3566,6 +3958,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_SourceRowOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_investigation_api_v1_investigations__investigation_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                investigation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationDetailOut"];
                 };
             };
             /** @description Validation Error */
@@ -4321,6 +4746,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FingerprintOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_investigations_api_v1_migrations__migration_id__investigations_get: {
+        parameters: {
+            query?: {
+                issue_id?: string | null;
+                limit?: number;
+            };
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_investigation_api_v1_migrations__migration_id__investigations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvestigationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationOut"];
                 };
             };
             /** @description Validation Error */

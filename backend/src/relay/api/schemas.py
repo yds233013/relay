@@ -686,6 +686,7 @@ class ChangeRequestOut(Schema):
     title: str
     justification: str
     origin: str
+    origin_finding_id: uuid.UUID | None = None
     requested_by: uuid.UUID
     requested_by_name: str
     created_at: datetime
@@ -860,3 +861,73 @@ class DatasetIn(Schema):
     is_required: bool = True
     bank_account: str | None = Field(default=None, min_length=1, max_length=64)
     gl_account: str | None = Field(default=None, min_length=1, max_length=64)
+
+
+# ---------------------------------------------------------------------------------------- AI
+class AIStatusOut(Schema):
+    provider: str
+    configured: bool
+    migration_enabled: bool
+    available: bool
+
+
+class InvestigationIn(Schema):
+    question: str = Field(min_length=1, max_length=2_000)
+    issue_id: uuid.UUID | None = None
+
+
+class InvestigationOut(Schema):
+    id: uuid.UUID
+    migration_id: uuid.UUID
+    issue_id: uuid.UUID | None
+    run_id: uuid.UUID
+    question: str
+    status: str
+    provider: str
+    model: str
+    prompt_version: str
+    input_tokens: int
+    output_tokens: int
+    tool_call_count: int
+    created_at: datetime
+    finished_at: datetime | None
+    error: dict[str, Any] | None
+
+
+class InvestigationStepOut(Schema):
+    seq: int
+    type: str
+    tool_name: str | None
+    arguments: dict[str, Any] | None
+    result: str | None
+    truncated: bool
+    is_error: bool
+    text: str
+    latency_ms: int
+
+
+class FindingOut(Schema):
+    id: uuid.UUID
+    hypothesis: str
+    evidence: list[dict[str, Any]]
+    affected_record_refs: list[str]
+    confidence: str
+    suggested_action: dict[str, Any]
+    open_questions: list[str]
+    requires_approval: bool
+    verification_status: str
+    verification_report: dict[str, Any]
+    review_status: str
+    review_comment: str
+    drafted_change_request_id: uuid.UUID | None
+    draftable: bool = Field(description="Whether a change request can be drafted from it now.")
+
+
+class InvestigationDetailOut(Schema):
+    investigation: InvestigationOut
+    steps: list[InvestigationStepOut]
+    findings: list[FindingOut]
+
+
+class FindingReviewIn(Schema):
+    comment: str = Field(default="", max_length=2_000)

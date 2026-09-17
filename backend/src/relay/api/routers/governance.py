@@ -331,6 +331,7 @@ def change_request_out(
         title=change.title,
         justification=change.justification,
         origin=change.origin,
+        origin_finding_id=change.origin_finding_id,
         requested_by=change.requested_by,
         requested_by_name=names.get(change.requested_by, "Unknown user"),
         created_at=change.created_at,

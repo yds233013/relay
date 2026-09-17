@@ -14,7 +14,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from relay.core.errors import NotFoundError
@@ -622,3 +622,102 @@ def latest_exception(session: Session, issue: Issue) -> RuleExceptionRow | None:
         .order_by(RuleExceptionRow.id.desc())
         .limit(1)
     ).first()
+
+
+def exceptions_for_fingerprint(
+    session: Session, run_id: uuid.UUID, fingerprint: str, limit: int
+) -> list[RuleExceptionRow]:
+    return list(
+        session.scalars(
+            select(RuleExceptionRow)
+            .where(RuleExceptionRow.run_id == run_id, RuleExceptionRow.fingerprint == fingerprint)
+            .order_by(RuleExceptionRow.id)
+            .limit(limit)
+        )
+    )
+
+
+def search_records(
+    session: Session,
+    run_id: uuid.UUID,
+    *,
+    record_type: str,
+    party_code: str | None = None,
+    account_code: str | None = None,
+    document_prefix: str | None = None,
+    entry_number: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    amount_min: Decimal | None = None,
+    amount_max: Decimal | None = None,
+    limit: int = 50,
+) -> list[StagedRecord]:
+    """Structured search over one run's staged records; no free-form query language."""
+    query = _staged(run_id).where(StagedRecord.record_type == record_type)
+    if party_code:
+        query = query.where(StagedRecord.party_code == party_code)
+    if account_code:
+        query = query.where(StagedRecord.account_code == account_code)
+    if document_prefix:
+        escaped = document_prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.where(StagedRecord.document_number.like(f"{escaped}%", escape="\\"))
+    if entry_number:
+        query = query.where(StagedRecord.entry_number == entry_number)
+    if date_from:
+        query = query.where(StagedRecord.record_date >= date_from)
+    if date_to:
+        query = query.where(StagedRecord.record_date <= date_to)
+    if amount_min is not None:
+        query = query.where(StagedRecord.functional_amount >= amount_min)
+    if amount_max is not None:
+        query = query.where(StagedRecord.functional_amount <= amount_max)
+    return list(session.scalars(query.order_by(StagedRecord.natural_key).limit(limit)))
+
+
+def result_by_recon(
+    session: Session, run_id: uuid.UUID, recon_id: str
+) -> ReconciliationResultRow | None:
+    return session.scalars(
+        select(ReconciliationResultRow).where(
+            ReconciliationResultRow.run_id == run_id, ReconciliationResultRow.recon_id == recon_id
+        )
+    ).first()
+
+
+def line_in_run(session: Session, run_id: uuid.UUID, line_id: uuid.UUID) -> ReconciliationLineRow:
+    """A reconciliation line, only if it belongs to the given run."""
+    line = get_line(session, line_id)
+    if get_result(session, line.result_id).run_id != run_id:
+        raise ResourceNotFoundError("reconciliation line not found")
+    return line
+
+
+def candidates_for_party(
+    session: Session, run_id: uuid.UUID, party_type: str, code: str
+) -> list[EntityCandidateRow]:
+    return list(
+        session.scalars(
+            select(EntityCandidateRow)
+            .where(
+                EntityCandidateRow.run_id == run_id,
+                EntityCandidateRow.party_type == party_type,
+                or_(EntityCandidateRow.left_code == code, EntityCandidateRow.right_code == code),
+            )
+            .order_by(EntityCandidateRow.score.desc())
+        )
+    )
+
+
+def count_documents(session: Session, run_id: uuid.UUID, record_type: str, party_code: str) -> int:
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(StagedRecord)
+            .where(
+                StagedRecord.run_id == run_id,
+                StagedRecord.record_type == record_type,
+                StagedRecord.party_code == party_code,
+            )
+        )
+        or 0
+    )

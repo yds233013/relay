@@ -19,6 +19,7 @@ from relay.changes.models import (
 from relay.core.db import Base
 from relay.identity.models import User
 from relay.imports.models import DatasetProfile, Import, QuarantinedRow, SourceRow, StoredFile
+from relay.investigations.models import Finding, Investigation, InvestigationStep
 from relay.issues.models import Issue, IssueComment, IssueLink, IssueOccurrence
 from relay.jobs.models import Job
 from relay.mapping_sets.models import (
@@ -57,9 +58,12 @@ __all__ = [
     "Disposition",
     "EntityCandidateRow",
     "EntityDecision",
+    "Finding",
     "GateResultRow",
     "GateWaiver",
     "Import",
+    "Investigation",
+    "InvestigationStep",
     "Issue",
     "IssueComment",
     "IssueLink",

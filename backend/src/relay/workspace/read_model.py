@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import uuid
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from relay.workspace.models import Company, Migration
+from relay.workspace.models import Company, Dataset, Migration
 
 
 def migrations(session: Session) -> list[tuple[Migration, Company]]:
@@ -17,3 +19,11 @@ def migrations(session: Session) -> list[tuple[Migration, Company]]:
             .order_by(Migration.created_at)
         ).tuples()
     ]
+
+
+def datasets_for(session: Session, migration_id: uuid.UUID) -> list[Dataset]:
+    return list(
+        session.scalars(
+            select(Dataset).where(Dataset.migration_id == migration_id).order_by(Dataset.name)
+        )
+    )

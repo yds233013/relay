@@ -108,11 +108,13 @@ root_packages = ["relay", "relay_scenarios", "relay_evaluation"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Runtime layers: api > worker > pipeline > changes > issues > mapping sets > imports > workspace > audit > engine > readers > canonical > core"
+name = "Runtime layers: api > worker > investigations > ai > pipeline > changes > issues > mapping sets > imports > workspace > audit > engine > readers > canonical > core"
 type = "layers"
 layers = [
     "relay.api",
     "relay.worker",
+    "relay.investigations",
+    "relay.ai",
     "relay.pipeline",
     "relay.changes",
     "relay.issues",
@@ -126,6 +128,63 @@ layers = [
     "relay.core",
 ]
 containers = []
+
+[[tool.importlinter.contracts]]
+name = "AI reads only: no services, write paths, session factories, jobs or API (direct imports)"
+type = "forbidden"
+source_modules = ["relay.ai"]
+forbidden_modules = [
+    "relay.api",
+    "relay.worker",
+    "relay.investigations",
+    "relay.audit.service",
+    "relay.changes.service",
+    "relay.changes.kinds",
+    "relay.identity.service",
+    "relay.imports.service",
+    "relay.imports.blob_store",
+    "relay.issues.service",
+    "relay.issues.workflow",
+    "relay.jobs",
+    "relay.mapping_sets.service",
+    "relay.mapping_sets.accounts",
+    "relay.pipeline.service",
+    "relay.pipeline.approvals",
+    "relay.pipeline.overrides",
+    "relay.pipeline.readiness",
+    "relay.pipeline.inputs",
+    "relay.workspace.service",
+    "relay.core.db",
+]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Read models never import write paths (so AI tools reach none indirectly)"
+type = "forbidden"
+source_modules = [
+    "relay.audit.read_model",
+    "relay.changes.read_model",
+    "relay.imports.read_model",
+    "relay.issues.read_model",
+    "relay.mapping_sets.read_model",
+    "relay.pipeline.read_model",
+    "relay.workspace.read_model",
+]
+forbidden_modules = [
+    "relay.audit.service",
+    "relay.changes.service",
+    "relay.changes.kinds",
+    "relay.identity.service",
+    "relay.imports.service",
+    "relay.issues.service",
+    "relay.issues.workflow",
+    "relay.jobs.service",
+    "relay.mapping_sets.service",
+    "relay.mapping_sets.accounts",
+    "relay.pipeline.service",
+    "relay.pipeline.approvals",
+    "relay.workspace.service",
+]
 
 [[tool.importlinter.contracts]]
 name = "The engine is pure: no database, web framework, network or clock access"

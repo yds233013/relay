@@ -21,6 +21,7 @@ class JobKind(StrEnum):
     PROFILE_IMPORT = "profile_import"
     RUN_PIPELINE = "run_pipeline"
     EVALUATE_READINESS = "evaluate_readiness"
+    RUN_INVESTIGATION = "run_investigation"
 
 
 class JobStatus(StrEnum):

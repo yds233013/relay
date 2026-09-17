@@ -97,9 +97,12 @@ def create_draft(
     payload: dict[str, Any],
     evidence_refs: list[Any] | None = None,
     origin: ChangeRequestOrigin = ChangeRequestOrigin.OPERATOR,
+    origin_finding_id: uuid.UUID | None = None,
     clock: Clock | None = None,
 ) -> ChangeRequest:
     requester = _require_person(actor)
+    if (origin is ChangeRequestOrigin.AI_FINDING) != (origin_finding_id is not None):
+        raise InvalidInputError("a change drafted from a finding names that finding")
     title = _text(title, "title", MAX_TITLE_LENGTH, required=True)
     parsed = parse_payload(kind, payload)
     KINDS[kind].check_draft(session, migration.id, parsed)
@@ -119,6 +122,7 @@ def create_draft(
         payload=stored,
         evidence_refs=evidence_refs or [],
         origin=origin.value,
+        origin_finding_id=origin_finding_id,
         requested_by=requester,
         required_approvals=[],
         base_entity_versions={},
@@ -141,6 +145,8 @@ def create_draft(
             "kind": kind.value,
             "title": title,
             "payload": stored,
+            "origin": origin.value,
+            "origin_finding_id": origin_finding_id,
         },
         evidence_refs=change.evidence_refs,
         clock=clock,

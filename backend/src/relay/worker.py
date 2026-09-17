@@ -11,19 +11,24 @@ import socket
 import time
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
+from relay.ai.investigator import Budgets
+from relay.ai.providers.base import LLMProvider
+from relay.ai.providers.factory import provider_from_settings
 from relay.core.clock import Clock
+from relay.core.config import get_settings
 from relay.core.db import session_scope
 from relay.core.errors import RelayError
 from relay.core.logging import get_logger
 from relay.imports import service as imports
 from relay.imports.blob_store import BlobStore
+from relay.investigations import service as investigations
 from relay.jobs import service as jobs
 from relay.jobs.models import Job, JobKind
 from relay.pipeline import service as pipeline
@@ -38,6 +43,9 @@ class WorkerContext:
     limits: imports.ImportLimits
     clock: Clock | None = None
     name: str = f"{socket.gethostname()}:{uuid.uuid4().hex[:8]}"
+    ai_provider: LLMProvider | None = None
+    """The provider investigations use; built from settings when None."""
+    ai_budgets: Budgets = field(default_factory=Budgets)
 
 
 Handler = Callable[[Session, WorkerContext, dict[str, Any]], None]
@@ -71,10 +79,31 @@ def _evaluate_readiness(session: Session, context: WorkerContext, payload: dict[
     )
 
 
+def _run_investigation(_session: Session, context: WorkerContext, payload: dict[str, Any]) -> None:
+    if context.ai_provider is not None:
+        provider, budgets = context.ai_provider, context.ai_budgets
+    else:
+        settings = get_settings()
+        provider = provider_from_settings(settings)
+        budgets = Budgets(
+            max_tool_calls=settings.ai_max_tool_calls,
+            max_seconds=float(settings.ai_max_seconds),
+            max_total_tokens=settings.ai_max_total_tokens,
+        )
+    investigations.execute(
+        context.session_factory,
+        investigation_id=uuid.UUID(payload["investigation_id"]),
+        provider=provider,
+        budgets=budgets,
+        clock=context.clock,
+    )
+
+
 HANDLERS: dict[JobKind, Handler] = {
     JobKind.PARSE_IMPORT: _parse_import,
     JobKind.RUN_PIPELINE: _run_pipeline,
     JobKind.EVALUATE_READINESS: _evaluate_readiness,
+    JobKind.RUN_INVESTIGATION: _run_investigation,
 }
 
 
@@ -115,6 +144,11 @@ def run_once(context: WorkerContext) -> bool:
             import_id = _payload_id(payload, "import_id")
             if final and kind is JobKind.RUN_PIPELINE and run_id is not None:
                 pipeline.mark_failed(session, run_id=run_id, error=error, clock=context.clock)
+            investigation_id = _payload_id(payload, "investigation_id")
+            if final and kind is JobKind.RUN_INVESTIGATION and investigation_id is not None:
+                investigations.mark_failed(
+                    session, investigation_id=investigation_id, error=error, clock=context.clock
+                )
             if final and kind is JobKind.PARSE_IMPORT and import_id is not None:
                 imports.mark_failed(session, import_id=import_id, error=error, clock=context.clock)
             if job is not None:

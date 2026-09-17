@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
+import { InvestigatePanel } from "@/components/investigate-panel";
 import { LocalTime } from "@/components/local-time";
 import { Money } from "@/components/money";
 import { Notice } from "@/components/notice";
@@ -213,6 +214,12 @@ export default async function IssuePage(
           </form>
         </Section>
       ) : null}
+      <InvestigatePanel
+        migrationId={migrationId}
+        issueId={issue.id}
+        returnTo={`/migrations/${migrationId}/issues/${issueId}`}
+        defaultQuestion={`Why does ${issue.key} occur, and what should we do about it?`}
+      />
       <Section title="Related issues">
         {links.length === 0 ? (
           <p className="text-sm text-gray-700">No linked issues.</p>

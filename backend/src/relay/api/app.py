@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from relay import __version__
 from relay.api.middleware import RequestContextMiddleware
 from relay.api.problems import install_problem_handlers
-from relay.api.routers import governance, health, issues, runs, setup, workspace
+from relay.api.routers import ai, governance, health, issues, runs, setup, workspace
 from relay.core.clock import SystemClock
 from relay.core.config import Settings, get_settings
 from relay.core.db import create_db_engine, create_session_factory
@@ -59,4 +59,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(governance.router)
     app.include_router(issues.router)
     app.include_router(setup.router)
+    app.include_router(ai.router)
     return app

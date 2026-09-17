@@ -1,6 +1,35 @@
 {
   "components": {
     "schemas": {
+      "AIStatusOut": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "migration_enabled": {
+            "title": "Migration Enabled",
+            "type": "boolean"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "configured",
+          "migration_enabled",
+          "available"
+        ],
+        "title": "AIStatusOut",
+        "type": "object"
+      },
       "AccountMappingChangeIn": {
         "additionalProperties": false,
         "properties": {
@@ -983,6 +1012,18 @@
           "origin": {
             "title": "Origin",
             "type": "string"
+          },
+          "origin_finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Finding Id"
           },
           "requested_by": {
             "format": "uuid",
@@ -2395,6 +2436,120 @@
         "title": "FindingChangeOut",
         "type": "object"
       },
+      "FindingOut": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_record_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Affected Record Refs",
+            "type": "array"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "draftable": {
+            "description": "Whether a change request can be drafted from it now.",
+            "title": "Draftable",
+            "type": "boolean"
+          },
+          "drafted_change_request_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drafted Change Request Id"
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "hypothesis": {
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "open_questions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Open Questions",
+            "type": "array"
+          },
+          "requires_approval": {
+            "title": "Requires Approval",
+            "type": "boolean"
+          },
+          "review_comment": {
+            "title": "Review Comment",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "suggested_action": {
+            "additionalProperties": true,
+            "title": "Suggested Action",
+            "type": "object"
+          },
+          "verification_report": {
+            "additionalProperties": true,
+            "title": "Verification Report",
+            "type": "object"
+          },
+          "verification_status": {
+            "title": "Verification Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "hypothesis",
+          "evidence",
+          "affected_record_refs",
+          "confidence",
+          "suggested_action",
+          "open_questions",
+          "requires_approval",
+          "verification_status",
+          "verification_report",
+          "review_status",
+          "review_comment",
+          "drafted_change_request_id",
+          "draftable"
+        ],
+        "title": "FindingOut",
+        "type": "object"
+      },
+      "FindingReviewIn": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Comment",
+            "type": "string"
+          }
+        },
+        "title": "FindingReviewIn",
+        "type": "object"
+      },
       "FingerprintOut": {
         "additionalProperties": false,
         "properties": {
@@ -2687,6 +2842,251 @@
           "completed_at"
         ],
         "title": "ImportOut",
+        "type": "object"
+      },
+      "InvestigationDetailOut": {
+        "additionalProperties": false,
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "investigation": {
+            "$ref": "#/components/schemas/InvestigationOut"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/InvestigationStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "investigation",
+          "steps",
+          "findings"
+        ],
+        "title": "InvestigationDetailOut",
+        "type": "object"
+      },
+      "InvestigationIn": {
+        "additionalProperties": false,
+        "properties": {
+          "issue_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Id"
+          },
+          "question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "InvestigationIn",
+        "type": "object"
+      },
+      "InvestigationOut": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "issue_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Id"
+          },
+          "migration_id": {
+            "format": "uuid",
+            "title": "Migration Id",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tool_call_count": {
+            "title": "Tool Call Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "migration_id",
+          "issue_id",
+          "run_id",
+          "question",
+          "status",
+          "provider",
+          "model",
+          "prompt_version",
+          "input_tokens",
+          "output_tokens",
+          "tool_call_count",
+          "created_at",
+          "finished_at",
+          "error"
+        ],
+        "title": "InvestigationOut",
+        "type": "object"
+      },
+      "InvestigationStepOut": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arguments"
+          },
+          "is_error": {
+            "title": "Is Error",
+            "type": "boolean"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "integer"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "tool_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Name"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq",
+          "type",
+          "tool_name",
+          "arguments",
+          "result",
+          "truncated",
+          "is_error",
+          "text",
+          "latency_ms"
+        ],
+        "title": "InvestigationStepOut",
         "type": "object"
       },
       "IssueDetailOut": {
@@ -5459,6 +5859,66 @@
         ]
       }
     },
+    "/api/v1/ai/status": {
+      "get": {
+        "operationId": "ai_status_api_v1_ai_status_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ai Status",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/api/v1/change-requests/{change_id}": {
       "get": {
         "operationId": "get_change_request_api_v1_change_requests__change_id__get",
@@ -6432,6 +6892,206 @@
         ]
       }
     },
+    "/api/v1/findings/{finding_id}/accept": {
+      "post": {
+        "operationId": "accept_finding_api_v1_findings__finding_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindingReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Finding",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_finding_api_v1_findings__finding_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindingReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dismiss Finding",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/draft-change-request": {
+      "post": {
+        "operationId": "draft_from_finding_api_v1_findings__finding_id__draft_change_request_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Finding Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Draft From Finding",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/api/v1/imports/{import_id}": {
       "get": {
         "operationId": "get_import_api_v1_imports__import_id__get",
@@ -6696,6 +7356,66 @@
         "summary": "List Rows",
         "tags": [
           "runs"
+        ]
+      }
+    },
+    "/api/v1/investigations/{investigation_id}": {
+      "get": {
+        "operationId": "get_investigation_api_v1_investigations__investigation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "investigation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Investigation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Investigation",
+        "tags": [
+          "ai"
         ]
       }
     },
@@ -8207,6 +8927,167 @@
         "summary": "Fingerprint",
         "tags": [
           "runs"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/investigations": {
+      "get": {
+        "operationId": "list_investigations_api_v1_migrations__migration_id__investigations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "issue_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issue Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvestigationOut"
+                  },
+                  "title": "Response List Investigations Api V1 Migrations  Migration Id  Investigations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Investigations",
+        "tags": [
+          "ai"
+        ]
+      },
+      "post": {
+        "operationId": "start_investigation_api_v1_migrations__migration_id__investigations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvestigationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Investigation",
+        "tags": [
+          "ai"
         ]
       }
     },

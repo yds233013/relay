@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Timestamp } from "@/components/dates";
 import { EvidenceLink } from "@/components/evidence-link";
+import { InvestigatePanel } from "@/components/investigate-panel";
 import { Money } from "@/components/money";
 import { Section } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
@@ -210,6 +211,7 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
         </ol>
       </Section>
 
+      <InvestigatePanel migrationId={migrationId} returnTo={base} />
       <Section title="Recent activity">
         <ul className="text-sm">
           {data.recent_activity.map((event) => (

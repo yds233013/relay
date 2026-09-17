@@ -21,6 +21,7 @@ from relay.changes.models import (
     ApprovalDecision,
     ChangeRequest,
     ChangeRequestKind,
+    ChangeRequestOrigin,
     ChangeRequestStatus,
 )
 from relay.core.actor import Actor
@@ -88,6 +89,8 @@ def create(
     field_override: dict[str, Any] | None = None,
     quarantine_repair: dict[str, Any] | None = None,
     evidence_refs: list[Any] | None = None,
+    origin: ChangeRequestOrigin = ChangeRequestOrigin.OPERATOR,
+    origin_finding_id: uuid.UUID | None = None,
     clock: Clock | None = None,
 ) -> ChangeRequest:
     migration = workspace.get_migration(session, migration_id)
@@ -107,6 +110,8 @@ def create(
         title=title,
         payload=resolved,
         evidence_refs=evidence_refs,
+        origin=origin,
+        origin_finding_id=origin_finding_id,
         clock=clock,
     )
 

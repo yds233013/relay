@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from relay.core.errors import NotFoundError
-from relay.issues.models import Issue
+from relay.issues.models import Issue, IssueLink
 
 
 def issues_for(
@@ -61,3 +61,26 @@ def issues_touching(session: Session, migration_id: uuid.UUID, natural_key: str)
             .order_by(Issue.id)
         )
     )
+
+
+def get_issue_by_key(session: Session, migration_id: uuid.UUID, key: str) -> Issue | None:
+    return session.scalars(
+        select(Issue).where(Issue.migration_id == migration_id, Issue.key == key)
+    ).first()
+
+
+def links_for(session: Session, issue_id: uuid.UUID) -> list[tuple[IssueLink, Issue]]:
+    """Links of an issue with the issue at the other end."""
+    rows = session.scalars(
+        select(IssueLink)
+        .where(or_(IssueLink.from_issue_id == issue_id, IssueLink.to_issue_id == issue_id))
+        .order_by(IssueLink.created_at, IssueLink.id)
+    ).all()
+    linked = []
+    for link in rows:
+        other = session.get(
+            Issue, link.to_issue_id if link.from_issue_id == issue_id else link.from_issue_id
+        )
+        if other is not None:
+            linked.append((link, other))
+    return linked

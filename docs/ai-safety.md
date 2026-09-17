@@ -25,6 +25,8 @@ Every deterministic workflow works with `RELAY_AI_PROVIDER=disabled`. The UI hid
 
 ## 2. Components
 
+> As built (M8): persistence, consent and drafting live in `relay.investigations`, because `relay.ai` may not import models; findings arrive through a terminal `submit_findings` tool rather than a `final_output_schema` argument; mapping suggestion tasks (§5) were cut. See [decisions/0009](decisions/0009-ai-investigation-layer.md).
+
 ```
 ai/
 ├── providers/

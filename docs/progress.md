@@ -415,3 +415,49 @@ See 0008: no waiver expiry; readiness re-evaluation reruns the engine; approvals
 ### Next
 
 M8: the AI investigation layer.
+
+---
+
+## M8 — AI investigation layer
+
+Status: **Complete except the live eval run** (commit `feat: add AI investigation layer`). Decisions: [decisions/0009-ai-investigation-layer.md](decisions/0009-ai-investigation-layer.md).
+
+### Built
+
+- **Providers** (`relay.ai.providers`): `disabled` (default), `scripted` (replays authored transcripts; can reference earlier tool results), `anthropic` (Messages API over the standard library, key only in the header, retries on 429/5xx). Settings `RELAY_AI_PROVIDER`, `RELAY_AI_MODEL`, `ANTHROPIC_API_KEY`, `RELAY_AI_SCRIPTS_DIR`, budgets.
+- **Tools** (`relay.ai.tools`): 15 read-only tools over read models, scoped to the investigation's migration and pinned run, with redaction, truncation and untrusted-data wrapping, plus the terminal `submit_findings`.
+- **Investigator loop** with tool-call, wall-clock, token and result-size budgets; argument errors returned to the model; one reminder to submit.
+- **Findings**: closed schema of suggested actions, provenance verification (verified / partially verified / failed), server-computed `requires_approval` and `draftable`.
+- **Persistence and governance** (`relay.investigations`, Alembic `0006_investigations`): investigations, steps, findings; `SET TRANSACTION READ ONLY` tool sessions; consent through `policy_change` `ai_enabled`; `run_investigation` jobs; review (accept/dismiss); operator-owned draft change requests with `origin_finding_id`.
+- **API**: `GET /ai/status`, investigations (start, list, detail), finding accept/dismiss/draft-change-request.
+- **Web**: Investigate panel on the overview and issue detail (only when AI is available), investigation page with the AI label, verification badges, per-evidence checks, review, draft buttons and a plain-text transcript (`components/ai-finding.tsx`).
+- **Evals** (`relay_evaluation.ai`): E1–E6 with scripted transcripts and scoring (root cause, fabricated references, injection violations) plus a hallucinating negative control; `relay-eval ai`, `make eval-ai-scripted`, `make eval-ai` (manual, live).
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Playwright on a freshly rebuilt and seeded stack (`RELAY_AI_PROVIDER` unset, so disabled) | 10 of 10, including **E2E-7**: no Investigate panel or AI label on the overview and issue detail, `/ai/status` unavailable, starting an investigation refused (409); every other flow passes in the same mode |
+| AI unit tests (`tests/ai`, 12) | Anthropic request shape with the key only in the header; retries on 429 and failure on 4xx; disabled and scripted providers; redaction; loop numbering, argument errors returned to the model, tool-call and wall-clock budgets, one reminder then failure, provider errors; verification of cited references and normalized numbers; fabricated references and missing steps caught; injection scoring |
+| Promotion policy (`tests/unit/test_finding_promotion.py`, 6) | verified and partially verified change suggestions are draftable; failed, dismissed, no-change and `request_reimport` findings are not |
+| API/DB (`tests/integration/test_ai.py`, 6) | AI off by default; a write inside a tool session raises in PostgreSQL; all 15 tools answer in a read-only session and only in scope; consent is an approved policy change that requests no run; scripted E1–E5 root cause 5/5, 0 fabricated references, 0 injection violations, and the hallucinating control fails verification; a verified finding drafts an operator-owned change request (viewer 403) and is then no longer draftable; a **failed finding cannot be accepted or drafted (409)** and no change request references it |
+| Web unit (`components/ai-finding.test.tsx`, 3) | hostile model and data text rendered escaped; verification states in words, with failed evidence problems; no buttons, forms or links inside AI components |
+| Manual, scripted provider against a scratch database with production web build | issue BWP-41 → Investigate → job → findings with badges and transcript → draft CR "Map 1205 to 1210" with provenance in its history; `request_reimport` finding has no draft button; failed control finding collapsed with no Accept/Draft and dismissible |
+| `make eval-ai` without a key | refuses: "ANTHROPIC_API_KEY is not set; a live eval was not run." |
+| `make check` | 673 unit and scenario tests, 95 integration tests (235 s), 40 web tests, 115/115 manifest checks, 6 import contracts kept |
+| `make verify-audit` after E2E | all chains valid |
+
+Found during verification: `test_database.py`'s migration round trip shared the test database with `test_ai.py`, whose drafted change requests (correctly) block the 0006 downgrade. The round-trip and readiness-probe tests now use a dedicated empty database; the guard is unchanged.
+
+### Not done
+
+- **Live eval run**: no provider key was available, so the acceptance item "live eval run recorded" is not met. `make eval-ai` refuses without a key (checked). See `evals/results/README.md`.
+- Mapping suggestion tasks (ai-safety.md §5): cut per implementation plan cut line 2.
+
+### Known limitations and debt
+
+See 0009: `sent_fields` is not a field-level inventory; the scripted provider reports no tokens; investigations are not marked stale when newer runs exist. In `next dev`, a form submitted before hydration is rejected (`Origin: null` under `Referrer-Policy: no-referrer`); production builds are unaffected.
+
+### Next
+
+M9: hardening and demo rehearsal.

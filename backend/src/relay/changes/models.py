@@ -74,6 +74,9 @@ class ChangeRequest(Base):
     impact: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     evidence_refs: Mapped[list[Any]] = mapped_column(JSONB, nullable=False, default=list)
     origin: Mapped[str] = mapped_column(Text, nullable=False)
+    origin_finding_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("findings.id", use_alter=True, name="fk_change_requests_origin_finding")
+    )
     requested_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     base_fingerprint: Mapped[str | None] = mapped_column(Text)
     base_entity_versions: Mapped[dict[str, Any]] = mapped_column(

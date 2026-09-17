@@ -143,7 +143,7 @@ test-e2e: ## Playwright end-to-end tests against a freshly seeded stack (`make u
 
 # ------------------------------------------------------------------------------------ demo data
 
-.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-fast-forward demo-seed-host verify-audit
+.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-fast-forward demo-seed-host verify-audit eval-ai eval-ai-scripted
 demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
 	$(UV) relay-demo generate
 
@@ -161,6 +161,12 @@ demo-reset: ## DESTROYS the local Compose database, recreates it, and seeds Brig
 
 demo-fast-forward: ## Apply the documented resolutions to the seeded Brightwater stack as the seeded users (demo step 10); needs `make up` and a seed
 	docker compose run --rm --no-deps api relay-demo fast-forward --to before-signoff
+
+eval-ai: ## MANUAL, COSTS MONEY: live investigator evals E1-E6 against a freshly seeded local database (needs ANTHROPIC_API_KEY); results in evals/results/
+	$(UV) env $(BACKEND_DB_ENV) relay-eval ai --provider anthropic --out ../evals/results/investigator-$$(date -u +%Y%m%dT%H%M%SZ).json
+
+eval-ai-scripted: ## Investigator evals E1-E6 with the scripted provider against the local seeded database (no model calls)
+	$(UV) env $(BACKEND_DB_ENV) relay-eval ai --provider scripted
 
 demo-seed-host: db-migrate ## Load Brightwater into the local database with host-run processes (stop the Compose worker first)
 	$(UV) env $(BACKEND_DB_ENV) relay-demo seed
