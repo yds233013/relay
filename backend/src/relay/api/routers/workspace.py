@@ -3,39 +3,49 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query
 
-from relay.api.deps import ActorDep, ReaderDep, SessionDep, SettingsDep
+from relay.api.deps import ActorDep, ClockDep, ReaderDep, SessionDep, SettingsDep
 from relay.api.schemas import (
+    AmountByNatureOut,
     AuditEventOut,
+    BlockerOut,
     CandidateOut,
     ChainVerificationOut,
+    ChangeRequestSummaryOut,
     DatasetOut,
+    EvidenceLinkOut,
     ExceptionOut,
     GateOut,
     IssueDetailOut,
     IssueOut,
     LineageOut,
     MigrationOut,
+    MigrationSummaryOut,
+    OverviewOut,
     Page,
     ReadinessOut,
+    StageOut,
     UserOut,
     amount_text,
 )
 from relay.audit import read_model as audit_read
 from relay.audit import service as audit
+from relay.audit.models import AuditEvent
 from relay.core.currency import Currency
 from relay.identity import service as identity
 from relay.issues import read_model as issues_read
 from relay.issues.models import Issue
+from relay.pipeline import overview as overview_read
 from relay.pipeline import read_model as runs_read
 from relay.pipeline import service as pipeline
 from relay.pipeline.models import RuleExceptionRow
 from relay.pipeline.read_model import ResourceNotFoundError
 from relay.workspace import read_model as workspace_read
 from relay.workspace import service as workspace
+from relay.workspace.models import Migration
 
 router = APIRouter(prefix="/api/v1", tags=["workspace"])
 
@@ -59,42 +69,98 @@ def dev_users(session: SessionDep, settings: SettingsDep) -> list[UserOut]:
     ]
 
 
+def migration_out(migration: Migration, company_name: str) -> MigrationOut:
+    return MigrationOut(
+        id=migration.id,
+        name=migration.name,
+        company_name=company_name,
+        status=migration.status,
+        functional_currency=migration.functional_currency.code,
+        opening_balance_date=migration.opening_balance_date,
+        history_start_date=migration.history_start_date,
+        cutover_date=migration.cutover_date,
+        go_live_date=migration.go_live_date,
+        bank_clearing_window_days=migration.bank_clearing_window_days,
+    )
+
+
 @router.get("/migrations")
-def list_migrations(_actor: ReaderDep, session: SessionDep) -> list[MigrationOut]:
-    return [
-        MigrationOut(
-            id=m.id,
-            name=m.name,
-            company_name=c.name,
-            status=m.status,
-            functional_currency=m.functional_currency.code,
-            opening_balance_date=m.opening_balance_date,
-            history_start_date=m.history_start_date,
-            cutover_date=m.cutover_date,
-            go_live_date=m.go_live_date,
-            bank_clearing_window_days=m.bank_clearing_window_days,
+def list_migrations(
+    _actor: ReaderDep, session: SessionDep, clock: ClockDep
+) -> list[MigrationSummaryOut]:
+    """Portfolio: each migration's readiness on its latest run (stale when inputs changed)."""
+    today = clock.now().date()
+    rows = []
+    for migration, company in workspace_read.migrations(session):
+        summary = overview_read.portfolio_row(session, migration, today)
+        rows.append(
+            MigrationSummaryOut(
+                **migration_out(migration, company.name).model_dump(),
+                overall=summary["overall"],
+                failing_gate_count=summary["failing_gate_count"],
+                gate_count=summary["gate_count"],
+                unresolved_exposure=amount_text(
+                    summary["unresolved_exposure"], migration.functional_currency
+                ),
+                days_to_go_live=summary["days_to_go_live"],
+            )
         )
-        for m, c in workspace_read.migrations(session)
-    ]
+    return rows
 
 
 @router.get("/migrations/{migration_id}")
 def get_migration(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -> MigrationOut:
-    for m, c in workspace_read.migrations(session):
-        if m.id == migration_id:
-            return MigrationOut(
-                id=m.id,
-                name=m.name,
-                company_name=c.name,
-                status=m.status,
-                functional_currency=m.functional_currency.code,
-                opening_balance_date=m.opening_balance_date,
-                history_start_date=m.history_start_date,
-                cutover_date=m.cutover_date,
-                go_live_date=m.go_live_date,
-                bank_clearing_window_days=m.bank_clearing_window_days,
-            )
+    for migration, company in workspace_read.migrations(session):
+        if migration.id == migration_id:
+            return migration_out(migration, company.name)
     raise ResourceNotFoundError("migration not found")
+
+
+@router.get("/migrations/{migration_id}/overview")
+def get_overview(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDep) -> OverviewOut:
+    """What is blocking this migration from going live, with links to the evidence."""
+    migration = workspace.get_migration(session, migration_id)
+    company_name = next(
+        (c.name for m, c in workspace_read.migrations(session) if m.id == migration_id), ""
+    )
+    currency = migration.functional_currency
+    data = overview_read.overview(session, migration, user_id=actor.user_id, role=actor.role)
+    run = data["run"]
+    return OverviewOut(
+        migration=migration_out(migration, company_name),
+        run_id=run.id if run else None,
+        run_sequence=run.sequence if run else None,
+        run_is_current=data["run_is_current"],
+        overall=data["overall"],
+        gate_count=data["gate_count"],
+        failing_gate_count=data["failing_gate_count"],
+        blockers=[
+            BlockerOut(
+                gate_id=b["gate_id"],
+                title=b["title"],
+                summary=b["summary"],
+                observed=b["observed"],
+                evidence_count=b["evidence_count"],
+                evidence=[EvidenceLinkOut(**link) for link in b["evidence"]],
+            )
+            for b in data["blockers"]
+        ],
+        unresolved_exposure=amount_text(data["unresolved_exposure"], currency),
+        open_issue_count=data["open_issue_count"] or 0,
+        open_issue_amounts_by_nature=[
+            AmountByNatureOut(nature=nature, amount=amount_text(amount, currency) or "0")
+            for nature, amount in sorted(data["open_issue_amounts_by_nature"].items())
+        ],
+        top_issues=[issue_out(i, currency) for i in data["top_issues"]],
+        my_issues=[issue_out(i, currency) for i in data["queue"]["issues"]],
+        my_approvals=[
+            ChangeRequestSummaryOut(id=c.id, key=c.key, kind=c.kind, title=c.title, status=c.status)
+            for c in data["queue"]["approvals"]
+        ],
+        stages=[StageOut(**stage) for stage in data["stages"]],
+        recent_activity=[audit_event_out(e) for e in data["recent_activity"]],
+        currency=currency.code,
+    )
 
 
 @router.get("/migrations/{migration_id}/datasets")
@@ -149,10 +215,35 @@ def readiness(migration_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -
                 threshold=g.threshold,
                 summary=g.summary,
                 evidence=list(g.evidence),
+                evidence_links=[
+                    EvidenceLinkOut(**link)
+                    for link in overview_read.resolve_evidence(
+                        session, migration_id, run.id, list(g.evidence)
+                    )
+                ],
                 waiver_id=g.waiver_id,
             )
             for g in gates
         ],
+    )
+
+
+def audit_event_out(event: AuditEvent) -> AuditEventOut:
+    return AuditEventOut(
+        id=event.id,
+        migration_seq=event.migration_seq,
+        occurred_at=event.occurred_at,
+        actor_type=event.actor_type,
+        actor_user_id=event.actor_user_id,
+        action=event.action,
+        entity_type=event.entity_type,
+        entity_id=event.entity_id,
+        before=event.before,
+        after=event.after,
+        reason=event.reason,
+        change_request_id=event.change_request_id,
+        request_id=event.request_id,
+        hash=event.hash,
     )
 
 
@@ -206,16 +297,27 @@ def list_issues(
     session: SessionDep,
     status: Annotated[str | None, Query(max_length=32)] = None,
     severity: Annotated[str | None, Query(max_length=16)] = None,
-    cursor: Annotated[uuid.UUID | None, Query()] = None,
+    nature: Annotated[str | None, Query(max_length=32)] = None,
+    fingerprint: Annotated[str | None, Query(max_length=64)] = None,
+    order: Annotated[Literal["key", "amount"], Query()] = "key",
+    cursor: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> Page[IssueOut]:
     migration = workspace.get_migration(session, migration_id)
     items = issues_read.issues_for(
-        session, migration_id, status=status, severity=severity, after_id=cursor, limit=limit
+        session,
+        migration_id,
+        status=status,
+        severity=severity,
+        nature=nature,
+        fingerprint=fingerprint,
+        order=order,
+        offset=cursor,
+        limit=limit,
     )
     return Page(
         items=[issue_out(i, migration.functional_currency) for i in items],
-        next_cursor=str(items[-1].id) if len(items) == limit else None,
+        next_cursor=str(cursor + limit) if len(items) == limit else None,
     )
 
 
@@ -252,25 +354,7 @@ def list_audit_events(
         limit=limit,
     )
     return Page(
-        items=[
-            AuditEventOut(
-                id=e.id,
-                migration_seq=e.migration_seq,
-                occurred_at=e.occurred_at,
-                actor_type=e.actor_type,
-                actor_user_id=e.actor_user_id,
-                action=e.action,
-                entity_type=e.entity_type,
-                entity_id=e.entity_id,
-                before=e.before,
-                after=e.after,
-                reason=e.reason,
-                change_request_id=e.change_request_id,
-                request_id=e.request_id,
-                hash=e.hash,
-            )
-            for e in events
-        ],
+        items=[audit_event_out(e) for e in events],
         next_cursor=str(events[-1].migration_seq) if len(events) == limit else None,
     )
 

@@ -14,6 +14,7 @@ from relay import __version__
 from relay.api.middleware import RequestContextMiddleware
 from relay.api.problems import install_problem_handlers
 from relay.api.routers import health, runs, workspace
+from relay.core.clock import SystemClock
 from relay.core.config import Settings, get_settings
 from relay.core.db import create_db_engine, create_session_factory
 from relay.core.logging import configure_logging
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
     app.state.blob_store = LocalBlobStore(resolved.storage_dir)
+    app.state.clock = SystemClock()
 
     app.add_middleware(RequestContextMiddleware)
     install_problem_handlers(app)

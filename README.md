@@ -2,7 +2,7 @@
 
 **Migration operations for ERP implementations: prove the data is right before go-live.**
 
-> **Status:** M0 (foundation), M1 (canonical model and the Brightwater demo scenario) M2 (the deterministic validation and reconciliation engine) and M3 (persistence, imports, pipeline runs, audit and the read API) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
+> **Status:** M0 (foundation), M1 (canonical model and the Brightwater demo scenario) M2 (the deterministic validation and reconciliation engine) and M3 (persistence, imports, pipeline runs, audit and the read API) and M4 (the web evidence workspace) are implemented. Relay's product features are built milestone by milestone. See [docs/progress.md](docs/progress.md) for exactly what exists.
 
 ---
 
@@ -99,6 +99,12 @@ make demo-seed
 make verify-audit
 ```
 
+Open http://127.0.0.1:3000, choose a user, and follow a blocker from the Overview to the reconciliation drill-down and the exact source row behind it. End-to-end tests for that path:
+
+```bash
+make test-e2e
+```
+
 The API documents itself at http://127.0.0.1:8000/api/v1/docs. Development identity: send `X-Relay-User: maya.chen@relay.example` (seeded users only; refused outside local and test).
 
 Measure throughput on a synthetic clean 250,000-line migration:
@@ -138,7 +144,7 @@ make up
 make smoke
 ```
 
-Open http://127.0.0.1:3000 to see the status page. The API docs are at http://127.0.0.1:8000/api/v1/docs.
+Open http://127.0.0.1:3000 for the app (run `make demo-seed` for data) or http://127.0.0.1:3000/status for the health page. The API docs are at http://127.0.0.1:8000/api/v1/docs.
 
 To stop the stack (the database volume is kept):
 

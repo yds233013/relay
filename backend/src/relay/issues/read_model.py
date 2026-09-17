@@ -17,17 +17,27 @@ def issues_for(
     *,
     status: str | None,
     severity: str | None,
-    after_id: uuid.UUID | None,
+    nature: str | None = None,
+    fingerprint: str | None = None,
+    order: str = "key",
+    offset: int = 0,
     limit: int,
 ) -> list[Issue]:
+    """Issues for the queue. ``order`` is ``key`` or ``amount`` (largest first)."""
     query = select(Issue).where(Issue.migration_id == migration_id)
     if status:
         query = query.where(Issue.status == status)
     if severity:
         query = query.where(Issue.severity == severity)
-    if after_id:
-        query = query.where(Issue.id > after_id)
-    return list(session.scalars(query.order_by(Issue.id).limit(limit)))
+    if nature:
+        query = query.where(Issue.nature == nature)
+    if fingerprint:
+        query = query.where(Issue.fingerprint == fingerprint)
+    if order == "amount":
+        query = query.order_by(Issue.amount_at_risk.desc().nulls_last(), Issue.id)
+    else:
+        query = query.order_by(Issue.id)
+    return list(session.scalars(query.offset(offset).limit(limit)))
 
 
 def get_issue(session: Session, issue_id: uuid.UUID) -> Issue:

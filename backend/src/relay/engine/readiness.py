@@ -18,6 +18,8 @@ from relay.engine.pipeline import EngineResult
 from relay.engine.policy import Policy
 
 GATE_SET_VERSION: Final = 1
+MAX_EVIDENCE: Final = 1000
+"""Evidence references stored per gate; the count of findings is always in ``observed``."""
 WAIVABLE: Final = frozenset({"G6", "G7", "G8", "G9"})
 
 
@@ -121,7 +123,7 @@ def _gate(  # noqa: PLR0917 - gate rows read like the governance table
         str(observed),
         threshold,
         summary,
-        tuple(sorted(evidence))[:50],
+        tuple(sorted(evidence))[:MAX_EVIDENCE],
     )
 
 

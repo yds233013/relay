@@ -147,3 +147,45 @@ def test_blob_store_path_is_content_addressed(
         keys = session.scalars(select(StoredFile.storage_key)).all()
     assert keys
     assert all(len(Path(k).name) == 64 for k in keys)
+
+
+def test_overview_links_every_blocker_to_evidence(
+    seeded: tuple[SeedResult, sessionmaker[Session]], manifest: Manifest
+) -> None:
+    from relay.pipeline import overview  # noqa: PLC0415
+    from relay.workspace import service as workspace  # noqa: PLC0415
+
+    result, factory = seeded
+    with session_scope(factory) as session:
+        migration = workspace.get_migration(session, result.migration_id)
+        data = overview.overview(session, migration, user_id=None, role=None)
+    assert data["overall"] == "not_ready"
+    assert data["run_is_current"] is True
+    assert [b["gate_id"] for b in data["blockers"]] == list(manifest.failing_gates)
+    kinds = {b["gate_id"]: {link["kind"] for link in b["evidence"]} for b in data["blockers"]}
+    assert "reconciliation_line" in kinds["G6"]
+    assert "reconciliation_line" in kinds["G7"]
+    assert "issue" in kinds["G5"]
+    assert "entity_candidate" in kinds["G10"]
+    linked = [link for b in data["blockers"] for link in b["evidence"] if link["kind"] != "text"]
+    assert all(
+        link.get("issue_id") or link.get("line_id") or link["kind"] == "entity_candidate"
+        for link in linked
+    )
+    amounts = [issue.amount_at_risk for issue in data["top_issues"]]
+    assert amounts == sorted(amounts, reverse=True)
+    assert data["open_issue_count"] == 65
+
+
+def test_run_diff_of_a_run_with_itself_is_empty(
+    seeded: tuple[SeedResult, sessionmaker[Session]],
+) -> None:
+    from relay.pipeline import overview  # noqa: PLC0415
+
+    result, factory = seeded
+    with session_scope(factory) as session:
+        diff = overview.run_diff(session, result.run_id, result.run_id)
+    assert diff["changed_fingerprint_components"] == []
+    assert diff["findings_added"] == []
+    assert diff["findings_removed"] == []
+    assert diff["gate_changes"] == []

@@ -14,19 +14,29 @@ from sqlalchemy.orm import Session
 from relay.api.deps import BlobStoreDep, ReaderDep, SessionDep, SettingsDep, require
 from relay.api.routers.workspace import exception_out
 from relay.api.schemas import (
+    DocumentComparisonOut,
+    DrilldownItemOut,
+    DrilldownOut,
     ExceptionOut,
+    FindingChangeOut,
     FingerprintOut,
     ImportOut,
+    LineageOut,
+    OpeningSummaryOut,
     Page,
     QuarantinedRowOut,
+    QuarantineRefOut,
     ReconciliationLineOut,
     ReconciliationResultOut,
     ReconcilingItemOut,
     RecordOut,
     RuleCatalogOut,
     RuleRunOut,
+    RunDiffOut,
     RunOut,
     SourceRowOut,
+    StagedRecordOut,
+    StatusChangeOut,
     amount_text,
 )
 from relay.core.actor import Actor
@@ -39,9 +49,11 @@ from relay.imports import service as imports
 from relay.imports.blob_store import UploadTooLargeError
 from relay.imports.models import Import, SourceRow
 from relay.issues import read_model as issues_read
+from relay.pipeline import overview as overview_read
 from relay.pipeline import read_model as runs_read
 from relay.pipeline import service as pipeline
 from relay.pipeline.models import PipelineRun
+from relay.profiling.domain import DatasetProfile
 from relay.workspace import service as workspace
 
 router = APIRouter(prefix="/api/v1", tags=["runs"])
@@ -180,12 +192,12 @@ def list_quarantine(
 
 
 @router.get("/imports/{import_id}/profile")
-def get_profile(import_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -> dict[str, Any]:
+def get_profile(import_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) -> DatasetProfile:
     imports_read.get_import(session, import_id)
     profile = imports_read.profile(session, import_id)
     if profile is None:
         raise runs_read.ResourceNotFoundError("profile not available")
-    return profile.profile
+    return DatasetProfile.model_validate(profile.profile)
 
 
 def run_out(run: PipelineRun, current_fingerprint: str | None) -> RunOut:
@@ -368,10 +380,83 @@ def drilldown(
     _actor: ReaderDep,
     session: SessionDep,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
-) -> dict[str, Any]:
-    """Both sides' contributing records with lineage to source rows. Amounts are strings."""
-    result = to_canonical(runs_read.drilldown(session, line_id, limit=limit))
-    return result if isinstance(result, dict) else {}
+) -> DrilldownOut:
+    """Both sides' contributing records, with lineage to source rows."""
+    line = runs_read.get_line(session, line_id)
+    run_id = runs_read.get_result(session, line.result_id).run_id
+    _, currency = _run_and_currency(session, run_id)
+    data = runs_read.drilldown(session, line_id, limit=limit)
+
+    def money(value: Any) -> str:
+        return _amount(Decimal(str(value)), currency)
+
+    def record(view: dict[str, Any]) -> StagedRecordOut:
+        amount = view.get("functional_amount")
+        open_amount = view.get("open_amount")
+        return StagedRecordOut(
+            natural_key=view["natural_key"],
+            record_type=view["record_type"],
+            account_code=view.get("account_code"),
+            party_code=view.get("party_code"),
+            document_number=view.get("document_number"),
+            entry_number=view.get("entry_number"),
+            record_date=view.get("record_date"),
+            posting_period=view.get("posting_period"),
+            functional_amount=None if amount is None else money(amount),
+            lineage=LineageOut(**view["lineage"]) if view.get("lineage") else None,
+            role=view.get("role"),
+            counted_by_entry_date=view.get("counted_by_entry_date"),
+            counted_by_posting_period=view.get("counted_by_posting_period"),
+            open_amount=None if open_amount is None else money(open_amount),
+        )
+
+    opening = data.get("opening")
+    extra = to_canonical(data.get("extra", {}))
+    return DrilldownOut(
+        recon_id=data["recon_id"],
+        grain=data["grain"],
+        left_amount=money(data["left_amount"]),
+        right_amount=money(data["right_amount"]),
+        difference=money(data["difference"]),
+        unexplained_amount=money(data["unexplained_amount"]),
+        status=data["status"],
+        currency=currency.code,
+        run_id=run_id,
+        basis=data["basis"],
+        limits=data.get("limits"),
+        left_label=data.get("left_label"),
+        right_label=data.get("right_label"),
+        accounts=data.get("accounts", []),
+        documents=[
+            DocumentComparisonOut(
+                document=d["document"],
+                status=d["status"],
+                left_amount=money(d["left_amount"]),
+                right_amount=money(d["right_amount"]),
+                difference=money(d["difference"]),
+                left_records=[record(r) for r in d["left_records"]],
+                right_records=[record(r) for r in d["right_records"]],
+            )
+            for d in data.get("documents", [])
+        ],
+        matched_document_count=data.get("matched_document_count"),
+        opening=OpeningSummaryOut(**{k: money(v) for k, v in opening.items()}) if opening else None,
+        control_balances=[record(r) for r in data.get("control_balances", [])],
+        detail_line_count=data.get("detail_line_count"),
+        detail_total=money(data["detail_total"]) if "detail_total" in data else None,
+        date_period_disagreements=[record(r) for r in data.get("date_period_disagreements", [])],
+        quarantined_rows=[QuarantineRefOut(**q) for q in data.get("quarantined_rows", [])],
+        items=[
+            DrilldownItemOut(
+                classification=i["classification"],
+                amount=money(i["amount"]),
+                message=i["message"],
+                records=[record(r) for r in i["records"]],
+            )
+            for i in data.get("items", [])
+        ],
+        extra=extra if isinstance(extra, dict) else {},
+    )
 
 
 @router.get("/pipeline-runs/{run_id}/records/{natural_key:path}")
@@ -381,7 +466,10 @@ def get_record(
     run = runs_read.get_run(session, run_id)
     record = runs_read.get_record(session, run_id, natural_key)
     source_row = None
+    source_header = None
     if record.source_import_id and record.source_row_number:
+        source_import = imports_read.get_import(session, record.source_import_id)
+        source_header = [str(h) for h in source_import.header] if source_import.header else None
         rows = imports_read.rows(
             session, record.source_import_id, after_row=record.source_row_number - 1, limit=1
         )
@@ -393,9 +481,35 @@ def get_record(
         record=view if isinstance(view, dict) else {},
         data=record.data,
         source_row=source_row,
+        source_header=source_header,
         related_issue_ids=[
             i.id for i in issues_read.issues_touching(session, run.migration_id, natural_key)
         ],
+    )
+
+
+@router.get("/pipeline-runs/{run_id}/diff/{other_run_id}")
+def diff_runs(
+    run_id: uuid.UUID, other_run_id: uuid.UUID, _actor: ReaderDep, session: SessionDep
+) -> RunDiffOut:
+    """Changes from ``run_id`` to ``other_run_id``: inputs, findings, reconciliations, gates."""
+    diff = overview_read.run_diff(session, run_id, other_run_id)
+    return RunDiffOut(
+        base_run_id=diff["base_run_id"],
+        other_run_id=diff["other_run_id"],
+        changed_fingerprint_components=diff["changed_fingerprint_components"],
+        findings_added=[FindingChangeOut(**f) for f in diff["findings_added"]],
+        findings_removed=[FindingChangeOut(**f) for f in diff["findings_removed"]],
+        reconciliation_changes=[
+            StatusChangeOut(key=c["recon_id"], before=c["before"], after=c["after"])
+            for c in diff["reconciliation_changes"]
+        ],
+        gate_changes=[
+            StatusChangeOut(key=c["gate_id"], before=c["before"], after=c["after"])
+            for c in diff["gate_changes"]
+        ],
+        entity_candidates_before=diff["entity_candidates"]["before"] or 0,
+        entity_candidates_after=diff["entity_candidates"]["after"] or 0,
     )
 
 

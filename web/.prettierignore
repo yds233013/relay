@@ -4,3 +4,6 @@ coverage
 next-env.d.ts
 package-lock.json
 src/lib/api/openapi.json
+src/lib/api/schema.d.ts
+test-results
+playwright-report

@@ -37,7 +37,9 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 
 - **M3**: persistence (Alembic `0002_persistence`), imports with append-only source rows, column mapping sets, change request core, pipeline runs persisted in one transaction, issue synchronization, hash-chained audit, PostgreSQL job queue and `relay worker`, read API (dev identity), `relay-demo seed`. Decisions: `docs/decisions/0004-persistence-and-pipeline.md`.
 
-The web UI, governed overlays (overrides, entity decisions, dispositions, waivers, sign-offs), the remaining change request kinds and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
+- **M4**: web evidence workspace (Next.js Server Components over the API): portfolio, overview with evidence links, data, runs with diff, validation, reconciliation with drill-down, record inspector, issues, readiness, audit log; Playwright E2E-1 with axe. Decisions: `docs/decisions/0005-web-evidence-workspace.md`.
+
+Governed overlays (overrides, entity decisions, dispositions, waivers, sign-offs), the remaining change request kinds, their UI and AI are built in later milestones. `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
 - `backend/src/relay/`: **runtime** package. Pure: `core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`. Database: `audit`, `identity`, `workspace`, `jobs`, `imports`, `mapping_sets`, `changes`, `issues`, `pipeline`. Entry points: `api`, `worker.py`, `cli.py`. Layers are enforced by import-linter (see `backend/pyproject.toml`).
@@ -47,7 +49,7 @@ Layout:
 - `fixtures/demo/brightwater/`: generated source-style files Relay ingests (no answers inside)
 - `fixtures/demo/brightwater_config/`: the approved column mapping set for those files (configuration, no answers)
 - `evaluation/brightwater/golden_manifest.toml`: hand-authored ground truth (never read by runtime code)
-- `web/`: Next.js app (`src/app`, `src/lib`)
+- `web/`: Next.js app. `src/app` (routes; Server Components call the API server-side), `src/components` (shared UI), `src/lib` (API client and generated types, formatting, session), `e2e/` (Playwright)
   - `web/AGENTS.md` and `web/CLAUDE.md` are generated and re-created by `next dev`. They only point to the Next.js 16 docs bundled in `node_modules/next/dist/docs/`. Read those docs before writing Next.js code; every rule in this file still applies inside `web/`.
 - `docs/`: planning documents, `decisions/`, `progress.md`
 
@@ -88,7 +90,8 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make demo-seed` | With the stack up (`make up`): load Brightwater at the day-9 state through the services, inside Compose so the worker shares blob storage. `make demo-seed-host` does the same with host-run processes (stop the Compose worker first) |
 | `make worker` | Run the job worker on the host (`relay worker`; `relay worker --once` drains and exits) |
 | `make verify-audit` | Recompute every audit hash chain (`relay verify-audit [--migration ID]`) |
-| `make openapi` | Regenerate `web/src/lib/api/openapi.json`; `tests/unit/test_openapi.py` fails on drift |
+| `make openapi` | Regenerate `web/src/lib/api/openapi.json`; `tests/unit/test_openapi.py` fails on drift. Then `cd web && npm run api:types` regenerates `schema.d.ts` (a web test fails on drift) |
+| `make test-e2e` | Playwright end-to-end tests against the running, seeded stack (`make up`, `make demo-seed`); uses the locally installed Chrome |
 | `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
 | `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
 | `make clean` | Remove caches and build output |
@@ -99,8 +102,6 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| TypeScript client generated from `openapi.json` | Typed web API client | M4 |
-| `make test-e2e` | Playwright against compose | M4 |
 | `uv run relay demo fast-forward --to=before-signoff` | Apply scripted resolutions | M7 |
 | `make eval-ai` | Live-model evals (manual, needs key) | M8 |
 

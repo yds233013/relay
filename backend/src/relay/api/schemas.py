@@ -195,6 +195,14 @@ class CandidateOut(Schema):
     features: dict[str, Any]
 
 
+class EvidenceLinkOut(Schema):
+    kind: str
+    """issue, reconciliation_line, entity_candidate or text."""
+    label: str
+    issue_id: uuid.UUID | None = None
+    line_id: uuid.UUID | None = None
+
+
 class GateOut(Schema):
     gate_id: str
     title: str
@@ -203,6 +211,7 @@ class GateOut(Schema):
     threshold: str
     summary: str
     evidence: list[str]
+    evidence_links: list[EvidenceLinkOut]
     waiver_id: str | None
 
 
@@ -279,4 +288,163 @@ class RecordOut(Schema):
     record: dict[str, Any]
     data: dict[str, Any]
     source_row: SourceRowOut | None
+    source_header: list[str] | None
+    """Column order of the source file (row values are an unordered mapping)."""
     related_issue_ids: list[uuid.UUID]
+
+
+class MigrationSummaryOut(MigrationOut):
+    overall: str
+    failing_gate_count: int | None
+    gate_count: int | None
+    unresolved_exposure: str | None
+    days_to_go_live: int
+
+
+class BlockerOut(Schema):
+    gate_id: str
+    title: str
+    summary: str
+    observed: str
+    evidence_count: int
+    evidence: list[EvidenceLinkOut]
+
+
+class StageOut(Schema):
+    stage: str
+    status: str
+    detail: str
+
+
+class ChangeRequestSummaryOut(Schema):
+    id: uuid.UUID
+    key: str
+    kind: str
+    title: str
+    status: str
+
+
+class AmountByNatureOut(Schema):
+    nature: str
+    amount: str
+
+
+class OverviewOut(Schema):
+    migration: MigrationOut
+    run_id: uuid.UUID | None
+    run_sequence: int | None
+    run_is_current: bool
+    overall: str
+    gate_count: int
+    failing_gate_count: int
+    blockers: list[BlockerOut]
+    unresolved_exposure: str | None
+    open_issue_count: int
+    open_issue_amounts_by_nature: list[AmountByNatureOut]
+    top_issues: list[IssueOut]
+    my_issues: list[IssueOut]
+    my_approvals: list[ChangeRequestSummaryOut]
+    stages: list[StageOut]
+    recent_activity: list[AuditEventOut]
+    currency: str
+
+
+class FindingChangeOut(Schema):
+    fingerprint: str
+    rule_id: str
+    message: str
+
+
+class StatusChangeOut(Schema):
+    key: str
+    before: str | None
+    after: str | None
+
+
+class RunDiffOut(Schema):
+    base_run_id: uuid.UUID
+    other_run_id: uuid.UUID
+    changed_fingerprint_components: list[str]
+    findings_added: list[FindingChangeOut]
+    findings_removed: list[FindingChangeOut]
+    reconciliation_changes: list[StatusChangeOut]
+    gate_changes: list[StatusChangeOut]
+    entity_candidates_before: int
+    entity_candidates_after: int
+
+
+class StagedRecordOut(Schema):
+    natural_key: str
+    record_type: str
+    account_code: str | None
+    party_code: str | None
+    document_number: str | None
+    entry_number: str | None
+    record_date: date | None
+    posting_period: str | None
+    functional_amount: str | None
+    lineage: LineageOut | None
+    role: str | None = None
+    counted_by_entry_date: bool | None = None
+    counted_by_posting_period: bool | None = None
+    open_amount: str | None = None
+
+
+class DocumentComparisonOut(Schema):
+    document: str
+    status: str
+    left_amount: str
+    right_amount: str
+    difference: str
+    left_records: list[StagedRecordOut]
+    right_records: list[StagedRecordOut]
+
+
+class QuarantineRefOut(Schema):
+    import_id: uuid.UUID
+    line_start: int
+    line_end: int
+    reason: str
+
+
+class DrilldownItemOut(Schema):
+    classification: str
+    amount: str
+    message: str
+    records: list[StagedRecordOut]
+
+
+class OpeningSummaryOut(Schema):
+    opening_control_balance: str
+    opening_aging_total: str
+    opening_unassigned: str
+
+
+class DrilldownOut(Schema):
+    """Contributors to one reconciliation line. Which sections are present depends on ``basis``."""
+
+    recon_id: str
+    grain: dict[str, str]
+    left_amount: str
+    right_amount: str
+    difference: str
+    unexplained_amount: str
+    status: str
+    currency: str
+    run_id: uuid.UUID
+    basis: str
+    """documents (R3/R4 families), accounts (R1/R2), reconciling_items (R5) or periods (R6)."""
+    limits: str | None = None
+    left_label: str | None = None
+    right_label: str | None = None
+    accounts: list[str] = []
+    documents: list[DocumentComparisonOut] = []
+    matched_document_count: int | None = None
+    opening: OpeningSummaryOut | None = None
+    control_balances: list[StagedRecordOut] = []
+    detail_line_count: int | None = None
+    detail_total: str | None = None
+    date_period_disagreements: list[StagedRecordOut] = []
+    quarantined_rows: list[QuarantineRefOut] = []
+    items: list[DrilldownItemOut] = []
+    extra: dict[str, Any] = {}

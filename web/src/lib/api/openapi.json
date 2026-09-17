@@ -1,6 +1,25 @@
 {
   "components": {
     "schemas": {
+      "AmountByNatureOut": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "nature": {
+            "title": "Nature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nature",
+          "amount"
+        ],
+        "title": "AmountByNatureOut",
+        "type": "object"
+      },
       "AuditEventOut": {
         "additionalProperties": false,
         "properties": {
@@ -136,6 +155,48 @@
         "title": "AuditEventOut",
         "type": "object"
       },
+      "BlockerOut": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLinkOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "evidence_count": {
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "gate_id": {
+            "title": "Gate Id",
+            "type": "string"
+          },
+          "observed": {
+            "title": "Observed",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gate_id",
+          "title",
+          "summary",
+          "observed",
+          "evidence_count",
+          "evidence"
+        ],
+        "title": "BlockerOut",
+        "type": "object"
+      },
       "CandidateOut": {
         "additionalProperties": false,
         "properties": {
@@ -228,6 +289,88 @@
           "problem"
         ],
         "title": "ChainVerificationOut",
+        "type": "object"
+      },
+      "ChangeRequestSummaryOut": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "kind",
+          "title",
+          "status"
+        ],
+        "title": "ChangeRequestSummaryOut",
+        "type": "object"
+      },
+      "ColumnProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "ambiguous_date_count": {
+            "title": "Ambiguous Date Count",
+            "type": "integer"
+          },
+          "blank_count": {
+            "title": "Blank Count",
+            "type": "integer"
+          },
+          "distinct_count": {
+            "title": "Distinct Count",
+            "type": "integer"
+          },
+          "distinct_count_capped": {
+            "title": "Distinct Count Capped",
+            "type": "boolean"
+          },
+          "max_length": {
+            "title": "Max Length",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pattern_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Pattern Counts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "blank_count",
+          "distinct_count",
+          "distinct_count_capped",
+          "max_length",
+          "pattern_counts",
+          "ambiguous_date_count"
+        ],
+        "title": "ColumnProfile",
         "type": "object"
       },
       "DatabaseStatus": {
@@ -339,6 +482,357 @@
         "title": "DatasetOut",
         "type": "object"
       },
+      "DatasetProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnProfile"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "profiler_version": {
+            "title": "Profiler Version",
+            "type": "integer"
+          },
+          "quarantined_count": {
+            "title": "Quarantined Count",
+            "type": "integer"
+          },
+          "row_count": {
+            "title": "Row Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "profiler_version",
+          "row_count",
+          "quarantined_count",
+          "columns"
+        ],
+        "title": "DatasetProfile",
+        "type": "object"
+      },
+      "DocumentComparisonOut": {
+        "additionalProperties": false,
+        "properties": {
+          "difference": {
+            "title": "Difference",
+            "type": "string"
+          },
+          "document": {
+            "title": "Document",
+            "type": "string"
+          },
+          "left_amount": {
+            "title": "Left Amount",
+            "type": "string"
+          },
+          "left_records": {
+            "items": {
+              "$ref": "#/components/schemas/StagedRecordOut"
+            },
+            "title": "Left Records",
+            "type": "array"
+          },
+          "right_amount": {
+            "title": "Right Amount",
+            "type": "string"
+          },
+          "right_records": {
+            "items": {
+              "$ref": "#/components/schemas/StagedRecordOut"
+            },
+            "title": "Right Records",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "status",
+          "left_amount",
+          "right_amount",
+          "difference",
+          "left_records",
+          "right_records"
+        ],
+        "title": "DocumentComparisonOut",
+        "type": "object"
+      },
+      "DrilldownItemOut": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "classification": {
+            "title": "Classification",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/StagedRecordOut"
+            },
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "classification",
+          "amount",
+          "message",
+          "records"
+        ],
+        "title": "DrilldownItemOut",
+        "type": "object"
+      },
+      "DrilldownOut": {
+        "additionalProperties": false,
+        "description": "Contributors to one reconciliation line. Which sections are present depends on ``basis``.",
+        "properties": {
+          "accounts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Accounts",
+            "type": "array"
+          },
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "control_balances": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StagedRecordOut"
+            },
+            "title": "Control Balances",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "date_period_disagreements": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StagedRecordOut"
+            },
+            "title": "Date Period Disagreements",
+            "type": "array"
+          },
+          "detail_line_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail Line Count"
+          },
+          "detail_total": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail Total"
+          },
+          "difference": {
+            "title": "Difference",
+            "type": "string"
+          },
+          "documents": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DocumentComparisonOut"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "extra": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Extra",
+            "type": "object"
+          },
+          "grain": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Grain",
+            "type": "object"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DrilldownItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "left_amount": {
+            "title": "Left Amount",
+            "type": "string"
+          },
+          "left_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left Label"
+          },
+          "limits": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limits"
+          },
+          "matched_document_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Document Count"
+          },
+          "opening": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpeningSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quarantined_rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/QuarantineRefOut"
+            },
+            "title": "Quarantined Rows",
+            "type": "array"
+          },
+          "recon_id": {
+            "title": "Recon Id",
+            "type": "string"
+          },
+          "right_amount": {
+            "title": "Right Amount",
+            "type": "string"
+          },
+          "right_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Right Label"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "unexplained_amount": {
+            "title": "Unexplained Amount",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recon_id",
+          "grain",
+          "left_amount",
+          "right_amount",
+          "difference",
+          "unexplained_amount",
+          "status",
+          "currency",
+          "run_id",
+          "basis"
+        ],
+        "title": "DrilldownOut",
+        "type": "object"
+      },
+      "EvidenceLinkOut": {
+        "additionalProperties": false,
+        "properties": {
+          "issue_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issue Id"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "line_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Id"
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ],
+        "title": "EvidenceLinkOut",
+        "type": "object"
+      },
       "ExceptionOut": {
         "additionalProperties": false,
         "properties": {
@@ -436,6 +930,30 @@
         "title": "ExceptionOut",
         "type": "object"
       },
+      "FindingChangeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fingerprint",
+          "rule_id",
+          "message"
+        ],
+        "title": "FindingChangeOut",
+        "type": "object"
+      },
       "FingerprintOut": {
         "additionalProperties": false,
         "properties": {
@@ -484,6 +1002,13 @@
             "title": "Evidence",
             "type": "array"
           },
+          "evidence_links": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceLinkOut"
+            },
+            "title": "Evidence Links",
+            "type": "array"
+          },
           "gate_id": {
             "title": "Gate Id",
             "type": "string"
@@ -528,6 +1053,7 @@
           "threshold",
           "summary",
           "evidence",
+          "evidence_links",
           "waiver_id"
         ],
         "title": "GateOut",
@@ -1120,6 +1646,276 @@
         "title": "MigrationOut",
         "type": "object"
       },
+      "MigrationSummaryOut": {
+        "additionalProperties": false,
+        "properties": {
+          "bank_clearing_window_days": {
+            "title": "Bank Clearing Window Days",
+            "type": "integer"
+          },
+          "company_name": {
+            "title": "Company Name",
+            "type": "string"
+          },
+          "cutover_date": {
+            "format": "date",
+            "title": "Cutover Date",
+            "type": "string"
+          },
+          "days_to_go_live": {
+            "title": "Days To Go Live",
+            "type": "integer"
+          },
+          "failing_gate_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failing Gate Count"
+          },
+          "functional_currency": {
+            "title": "Functional Currency",
+            "type": "string"
+          },
+          "gate_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Count"
+          },
+          "go_live_date": {
+            "format": "date",
+            "title": "Go Live Date",
+            "type": "string"
+          },
+          "history_start_date": {
+            "format": "date",
+            "title": "History Start Date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "opening_balance_date": {
+            "format": "date",
+            "title": "Opening Balance Date",
+            "type": "string"
+          },
+          "overall": {
+            "title": "Overall",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "unresolved_exposure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unresolved Exposure"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "company_name",
+          "status",
+          "functional_currency",
+          "opening_balance_date",
+          "history_start_date",
+          "cutover_date",
+          "go_live_date",
+          "bank_clearing_window_days",
+          "overall",
+          "failing_gate_count",
+          "gate_count",
+          "unresolved_exposure",
+          "days_to_go_live"
+        ],
+        "title": "MigrationSummaryOut",
+        "type": "object"
+      },
+      "OpeningSummaryOut": {
+        "additionalProperties": false,
+        "properties": {
+          "opening_aging_total": {
+            "title": "Opening Aging Total",
+            "type": "string"
+          },
+          "opening_control_balance": {
+            "title": "Opening Control Balance",
+            "type": "string"
+          },
+          "opening_unassigned": {
+            "title": "Opening Unassigned",
+            "type": "string"
+          }
+        },
+        "required": [
+          "opening_control_balance",
+          "opening_aging_total",
+          "opening_unassigned"
+        ],
+        "title": "OpeningSummaryOut",
+        "type": "object"
+      },
+      "OverviewOut": {
+        "additionalProperties": false,
+        "properties": {
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/BlockerOut"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "failing_gate_count": {
+            "title": "Failing Gate Count",
+            "type": "integer"
+          },
+          "gate_count": {
+            "title": "Gate Count",
+            "type": "integer"
+          },
+          "migration": {
+            "$ref": "#/components/schemas/MigrationOut"
+          },
+          "my_approvals": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeRequestSummaryOut"
+            },
+            "title": "My Approvals",
+            "type": "array"
+          },
+          "my_issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "My Issues",
+            "type": "array"
+          },
+          "open_issue_amounts_by_nature": {
+            "items": {
+              "$ref": "#/components/schemas/AmountByNatureOut"
+            },
+            "title": "Open Issue Amounts By Nature",
+            "type": "array"
+          },
+          "open_issue_count": {
+            "title": "Open Issue Count",
+            "type": "integer"
+          },
+          "overall": {
+            "title": "Overall",
+            "type": "string"
+          },
+          "recent_activity": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventOut"
+            },
+            "title": "Recent Activity",
+            "type": "array"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "run_is_current": {
+            "title": "Run Is Current",
+            "type": "boolean"
+          },
+          "run_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Sequence"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageOut"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "top_issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "Top Issues",
+            "type": "array"
+          },
+          "unresolved_exposure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unresolved Exposure"
+          }
+        },
+        "required": [
+          "migration",
+          "run_id",
+          "run_sequence",
+          "run_is_current",
+          "overall",
+          "gate_count",
+          "failing_gate_count",
+          "blockers",
+          "unresolved_exposure",
+          "open_issue_count",
+          "open_issue_amounts_by_nature",
+          "top_issues",
+          "my_issues",
+          "my_approvals",
+          "stages",
+          "recent_activity",
+          "currency"
+        ],
+        "title": "OverviewOut",
+        "type": "object"
+      },
       "Page_AuditEventOut_": {
         "additionalProperties": false,
         "properties": {
@@ -1263,6 +2059,36 @@
           "next_cursor"
         ],
         "title": "Page[SourceRowOut]",
+        "type": "object"
+      },
+      "QuarantineRefOut": {
+        "additionalProperties": false,
+        "properties": {
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "line_end": {
+            "title": "Line End",
+            "type": "integer"
+          },
+          "line_start": {
+            "title": "Line Start",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "import_id",
+          "line_start",
+          "line_end",
+          "reason"
+        ],
+        "title": "QuarantineRefOut",
         "type": "object"
       },
       "QuarantinedRowOut": {
@@ -1602,6 +2428,20 @@
             "title": "Run Id",
             "type": "string"
           },
+          "source_header": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Header"
+          },
           "source_row": {
             "anyOf": [
               {
@@ -1618,6 +2458,7 @@
           "record",
           "data",
           "source_row",
+          "source_header",
           "related_issue_ids"
         ],
         "title": "RecordOut",
@@ -1710,6 +2551,77 @@
           "missing_datasets"
         ],
         "title": "RuleRunOut",
+        "type": "object"
+      },
+      "RunDiffOut": {
+        "additionalProperties": false,
+        "properties": {
+          "base_run_id": {
+            "format": "uuid",
+            "title": "Base Run Id",
+            "type": "string"
+          },
+          "changed_fingerprint_components": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Fingerprint Components",
+            "type": "array"
+          },
+          "entity_candidates_after": {
+            "title": "Entity Candidates After",
+            "type": "integer"
+          },
+          "entity_candidates_before": {
+            "title": "Entity Candidates Before",
+            "type": "integer"
+          },
+          "findings_added": {
+            "items": {
+              "$ref": "#/components/schemas/FindingChangeOut"
+            },
+            "title": "Findings Added",
+            "type": "array"
+          },
+          "findings_removed": {
+            "items": {
+              "$ref": "#/components/schemas/FindingChangeOut"
+            },
+            "title": "Findings Removed",
+            "type": "array"
+          },
+          "gate_changes": {
+            "items": {
+              "$ref": "#/components/schemas/StatusChangeOut"
+            },
+            "title": "Gate Changes",
+            "type": "array"
+          },
+          "other_run_id": {
+            "format": "uuid",
+            "title": "Other Run Id",
+            "type": "string"
+          },
+          "reconciliation_changes": {
+            "items": {
+              "$ref": "#/components/schemas/StatusChangeOut"
+            },
+            "title": "Reconciliation Changes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "base_run_id",
+          "other_run_id",
+          "changed_fingerprint_components",
+          "findings_added",
+          "findings_removed",
+          "reconciliation_changes",
+          "gate_changes",
+          "entity_candidates_before",
+          "entity_candidates_after"
+        ],
+        "title": "RunDiffOut",
         "type": "object"
       },
       "RunOut": {
@@ -1858,6 +2770,227 @@
           "values"
         ],
         "title": "SourceRowOut",
+        "type": "object"
+      },
+      "StageOut": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "status",
+          "detail"
+        ],
+        "title": "StageOut",
+        "type": "object"
+      },
+      "StagedRecordOut": {
+        "additionalProperties": false,
+        "properties": {
+          "account_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Code"
+          },
+          "counted_by_entry_date": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counted By Entry Date"
+          },
+          "counted_by_posting_period": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counted By Posting Period"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "entry_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Number"
+          },
+          "functional_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Functional Amount"
+          },
+          "lineage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LineageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "natural_key": {
+            "title": "Natural Key",
+            "type": "string"
+          },
+          "open_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Amount"
+          },
+          "party_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Party Code"
+          },
+          "posting_period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posting Period"
+          },
+          "record_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Date"
+          },
+          "record_type": {
+            "title": "Record Type",
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          }
+        },
+        "required": [
+          "natural_key",
+          "record_type",
+          "account_code",
+          "party_code",
+          "document_number",
+          "entry_number",
+          "record_date",
+          "posting_period",
+          "functional_amount",
+          "lineage"
+        ],
+        "title": "StagedRecordOut",
+        "type": "object"
+      },
+      "StatusChangeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "before",
+          "after"
+        ],
+        "title": "StatusChangeOut",
         "type": "object"
       },
       "UserOut": {
@@ -2215,9 +3348,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Profile Api V1 Imports  Import Id  Profile Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/DatasetProfile"
                 }
               }
             },
@@ -2499,6 +3630,7 @@
     },
     "/api/v1/migrations": {
       "get": {
+        "description": "Portfolio: each migration's readiness on its latest run (stale when inputs changed).",
         "operationId": "list_migrations_api_v1_migrations_get",
         "parameters": [
           {
@@ -2525,7 +3657,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/MigrationOut"
+                    "$ref": "#/components/schemas/MigrationSummaryOut"
                   },
                   "title": "Response List Migrations Api V1 Migrations Get",
                   "type": "array"
@@ -3043,19 +4175,61 @@
           },
           {
             "in": "query",
-            "name": "cursor",
+            "name": "nature",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "format": "uuid",
+                  "maxLength": 32,
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Cursor"
+              "title": "Nature"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fingerprint",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fingerprint"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "key",
+              "enum": [
+                "key",
+                "amount"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
             }
           },
           {
@@ -3111,6 +4285,67 @@
           }
         },
         "summary": "List Issues",
+        "tags": [
+          "workspace"
+        ]
+      }
+    },
+    "/api/v1/migrations/{migration_id}/overview": {
+      "get": {
+        "description": "What is blocking this migration from going live, with links to the evidence.",
+        "operationId": "get_overview_api_v1_migrations__migration_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "migration_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Migration Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Overview",
         "tags": [
           "workspace"
         ]
@@ -3367,6 +4602,77 @@
           }
         },
         "summary": "Get Run",
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/api/v1/pipeline-runs/{run_id}/diff/{other_run_id}": {
+      "get": {
+        "description": "Changes from ``run_id`` to ``other_run_id``: inputs, findings, reconciliations, gates.",
+        "operationId": "diff_runs_api_v1_pipeline_runs__run_id__diff__other_run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "other_run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Other Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Relay-User",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 254,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Relay-User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDiffOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Diff Runs",
         "tags": [
           "runs"
         ]
@@ -3694,7 +5000,7 @@
     },
     "/api/v1/reconciliation-lines/{line_id}/drilldown": {
       "get": {
-        "description": "Both sides' contributing records with lineage to source rows. Amounts are strings.",
+        "description": "Both sides' contributing records, with lineage to source rows.",
         "operationId": "drilldown_api_v1_reconciliation_lines__line_id__drilldown_get",
         "parameters": [
           {
@@ -3742,9 +5048,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Drilldown Api V1 Reconciliation Lines  Line Id  Drilldown Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/DrilldownOut"
                 }
               }
             },

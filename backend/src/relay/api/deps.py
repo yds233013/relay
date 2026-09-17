@@ -9,6 +9,7 @@ from fastapi import Depends, Header, Request
 from sqlalchemy.orm import Session, sessionmaker
 
 from relay.core.actor import Actor
+from relay.core.clock import Clock
 from relay.core.config import Settings
 from relay.core.db import session_scope
 from relay.identity import service as identity
@@ -35,7 +36,13 @@ def get_blob_store(request: Request) -> BlobStore:
     return store
 
 
+def get_clock(request: Request) -> Clock:
+    clock: Clock = request.app.state.clock
+    return clock
+
+
 SessionDep = Annotated[Session, Depends(get_session)]
+ClockDep = Annotated[Clock, Depends(get_clock)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 BlobStoreDep = Annotated[BlobStore, Depends(get_blob_store)]
 

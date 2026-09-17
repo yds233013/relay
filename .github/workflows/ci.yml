@@ -46,6 +46,14 @@ jobs:
           make up
           make smoke
 
+      - name: Seed Brightwater and run end-to-end tests
+        env:
+          RELAY_API_HOST_PORT: "8000"
+          RELAY_WEB_HOST_PORT: "3000"
+        run: |
+          make demo-seed
+          make test-e2e
+
       - name: Compose logs on failure
         if: failure()
         run: docker compose logs --no-color

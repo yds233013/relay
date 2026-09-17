@@ -100,7 +100,7 @@ db-revision: ## Create an empty migration: make db-revision m="add imports table
 
 # ------------------------------------------------------------------------------------ run
 
-.PHONY: dev dev-api dev-web worker up down logs smoke
+.PHONY: dev dev-api dev-web worker up down logs smoke test-e2e
 dev: db-migrate ## Run API (reload) and web (next dev) on the host against Compose PostgreSQL
 	@trap 'kill 0' EXIT INT TERM; \
 		$(MAKE) dev-api & \
@@ -128,14 +128,17 @@ down: ## Stop the Compose stack (data volume is kept)
 logs: ## Follow Compose logs
 	docker compose logs -f
 
-smoke: ## Verify a running stack end to end: web page shows API and database healthy
+smoke: ## Verify a running stack end to end: the web status page shows API and database healthy
 	@curl -fsS http://127.0.0.1:$(RELAY_API_HOST_PORT)/health >/dev/null
 	@curl -fsS http://127.0.0.1:$(RELAY_API_HOST_PORT)/health/ready >/dev/null
-	@page=$$(curl -fsS http://127.0.0.1:$(RELAY_WEB_HOST_PORT)/); \
+	@page=$$(curl -fsS http://127.0.0.1:$(RELAY_WEB_HOST_PORT)/status); \
 		count=$$(grep -o 'UP (HTTP <!-- -->200<!-- -->)\|UP (HTTP 200)' <<<"$$page" | wc -l | tr -d ' '); \
 		if [ "$$count" -ne 2 ]; then echo "smoke: expected 2 healthy checks on web page, found $$count"; exit 1; fi; \
 		grep -q 'at_head' <<<"$$page" || { echo "smoke: migrations not at head"; exit 1; }
 	@echo "smoke: web -> api -> database OK"
+
+test-e2e: ## Playwright end-to-end tests against the running, seeded stack (`make up`, `make demo-seed`); uses local Chrome
+	cd web && E2E_BASE_URL=http://127.0.0.1:$(RELAY_WEB_HOST_PORT) npx playwright test
 
 # ------------------------------------------------------------------------------------ demo data
 

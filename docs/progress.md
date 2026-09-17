@@ -257,3 +257,48 @@ See decisions P-01 to P-18. The most visible: one semi-typed staged records tabl
 ### Next
 
 M4: web shell and evidence views over this API.
+
+---
+
+## M4 — Web shell and evidence views
+
+Status: **Complete** (commit `feat: build Relay evidence workspace`). Decisions: [decisions/0005-web-evidence-workspace.md](decisions/0005-web-evidence-workspace.md).
+
+### Built
+
+- **Shell**: development user switcher (HTTP-only cookie set by a Server Function), portfolio, migration navigation, skip link, error boundary.
+- **Views**:
+  - Overview: readiness banner, blockers with evidence links, amount at risk, my queue, pipeline stages, recent activity
+  - Data: datasets, imports, row viewer anchored to a row, quarantine with raw text, profile
+  - Runs: list, fingerprint, counts and stage timings, diff between runs
+  - Validation: rule runs and findings
+  - Reconciliation: results, lines with status filter, drill-down by basis (documents with source lineage, accounts with date/period disagreements, reconciling items, quarantined rows)
+  - Record inspector: source row in file column order with line numbers, canonical record, related issues
+  - Issues: filters and ordering by amount; read-only detail with subjects, latest finding and lineage
+  - Readiness: gates with typed evidence links
+  - Audit log: filters, before/after, chain verification
+- **Shared components**: `Money` (server strings, parentheses for negatives, currency always shown), `BusinessDate`, `Timestamp` (local time with UTC on hover), `StatusChip` (icon and text), `RecordRef`, `SourceLocation`, `DataTable`, `EvidenceLink`, filter forms.
+- **API additions** for the UI (decision W-05), generated TypeScript types (W-06).
+- **Tests**: Playwright E2E-1 with axe accessibility checks (`make test-e2e`, also in CI after the smoke test); web unit tests for formatting, URLs, API type drift and the no-money-arithmetic guard; backend integration tests for overview evidence links and run diff.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| E2E-1 against the Compose stack with seeded Brightwater | passed. Overview shows NOT READY with 9 of 12 gates failing (G1, G3, G5–G10, G12); `R3:party=C-0233` leads to `INV-10877` left only, then to the record inspector with the GL source row `JE-AR-10877` and its line number |
+| axe (WCAG 2 A/AA, serious or critical) on Overview, drill-down, record inspector, Reconciliation | 0 violations |
+| Lighthouse 13.1.0 accessibility, local headless Chrome, final build | Overview 100, Reconciliation 100, no failing audits |
+| No money arithmetic in `web/` | guarded by a test |
+| `make smoke` against the rebuilt stack | OK (status page moved to `/status`) |
+
+### Known limitations and debt
+
+- The CI E2E step relies on Chrome being preinstalled on the GitHub Ubuntu runner; it has not run in CI yet.
+- Entities, Mappings, Approvals and Settings views are not built (M5–M7 scope).
+- Issue detail is read-only; ownership and workflow transitions arrive with M6.
+- Dates on the portfolio's "days to go-live" use the server's UTC date. The Brightwater go-live date (2026-07-01) is in the past relative to the development machine's clock, so the value is negative.
+
+### Next
+
+M5: mappings, change requests and approvals in the UI and API.
+
