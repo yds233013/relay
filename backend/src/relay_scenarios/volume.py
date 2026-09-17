@@ -377,7 +377,9 @@ def _account_row(code: str) -> tuple[str, str, str, str, str]:
     return (code, spec.name, spec.ledgerpro_type, spec.detail_type, "Yes")
 
 
-def export_volume_migration(migration: VolumeMigration) -> dict[str, bytes]:
+def export_volume_migration(
+    migration: VolumeMigration, company: str = "Harborline Supply Co."
+) -> dict[str, bytes]:
     lp = "ledgerpro/"
     files: dict[str, bytes] = {}
     files[lp + "ledgerpro_chart_of_accounts.csv"] = ledgerpro_csv(
@@ -734,11 +736,11 @@ def export_volume_migration(migration: VolumeMigration) -> dict[str, bytes]:
             for code in ACCOUNTS
         ],
     )
-    files["migration.json"] = _descriptor()
+    files["migration.json"] = _descriptor(company)
     return dict(sorted(files.items()))
 
 
-def _descriptor() -> bytes:
+def _descriptor(company: str) -> bytes:
     lp, bank, impl = "ledgerpro/", "firstcascade/", "implementation/"
     systems = [
         ("ledgerpro", "HarborERP 2013", "legacy_erp"),
@@ -767,7 +769,7 @@ def _descriptor() -> bytes:
         "fictional": True,
         "notice": "Synthetic volume data for performance tests. Names and figures are invented.",
         "company": {
-            "name": "Harborline Supply Co.",
+            "name": company,
             "functional_currency": "USD",
             "fiscal_year_start_month": 1,
         },

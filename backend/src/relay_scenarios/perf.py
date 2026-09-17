@@ -137,6 +137,8 @@ def measure_pipeline(
         )
 
     migration_id, run_id = result.migration_id, result.run_id
+    if run_id is None:
+        raise RuntimeError("the seed produced no pipeline run to measure")
     with session_scope(factory) as session:
         parse = [
             (i.completed_at - i.started_at).total_seconds()

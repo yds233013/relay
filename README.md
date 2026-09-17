@@ -2,213 +2,194 @@
 
 **Migration operations for ERP implementations: prove the data is right before go-live.**
 
-> **Status:** milestones M0 to M7 are implemented: foundation; canonical model and the Brightwater demo scenario; the deterministic validation and reconciliation engine; persistence, imports, pipeline runs, audit and the read API; the web evidence workspace; governed mappings, change requests, approvals and record overrides; issue workflow, entity decisions, dispositions, re-imports and new migrations; readiness waivers and sign-off. See [docs/progress.md](docs/progress.md) for exactly what exists.
+Moving a company onto a new ERP is not importing CSVs. Legacy exports quietly drop records.
+Mappings put contra-accounts in the wrong place. Old books carry duplicate vendors and double
+payments. Fixes happen in spreadsheets nobody can audit. And the go-live decision usually comes down
+to "looks good" in a meeting.
+
+Relay replaces that meeting with evidence: deterministic validation and reconciliation against
+independent control reports, every fix routed through an approved change request, an append-only
+hash-chained audit trail, and explicit readiness gates bound to a reproducible pipeline run. An AI
+investigator helps explain discrepancies, with read-only tools and verified citations — and removing
+it removes no correctness.
+
+> **Status:** M0–M8 complete, M9 (hardening and demo rehearsal) in progress. See
+> [docs/progress.md](docs/progress.md) for what exists, what was measured, and what was cut.
+> The demo customer, **Brightwater Provisions, Inc.**, is fictional; so is every figure in it.
+
+![Overview: nine of twelve gates failing, each blocker linked to its evidence](docs/images/overview.png)
 
 ---
 
-## What Relay will be
-
-Moving a company onto a new ERP isn't just importing CSVs. Legacy exports quietly drop inactive records. Mappings put contra-accounts in the wrong place. Old books carry duplicate vendors and double payments. Fixes get made in spreadsheets nobody can audit. And the go-live decision often comes down to "looks good" in a meeting.
-
-Relay is designed as an internal command center for implementation teams:
-
-- **Import** legacy ledgers, subledgers, control reports and bank data. Raw rows stay immutable, and every row keeps its file and line lineage.
-- **Map** source fields and legacy accounts onto a canonical model and a target chart of accounts, using versioned, approved mappings.
-- **Validate** with a deterministic, extensible rules engine.
-- **Reconcile** extracted detail against independent control reports (trial balance, AR/AP agings, bank statement), and source against staged data. Every discrepancy drills down to the records behind it.
-- **Govern** fixes as change requests with segregation of duties and an append-only, hash-chained audit log.
-- **Investigate** with an AI agent that has read-only tools and must cite verifiable evidence.
-- **Decide** go-live with deterministic readiness gates bound to a reproducible pipeline run.
-
-The planned demo is **Brightwater Provisions, Inc.**, a fictional food distributor whose data includes 13 realistic seeded defects. See [docs/demo-scenario.md](docs/demo-scenario.md).
-
-## What exists today (M0)
-
-| Area | Contents |
-|---|---|
-| `backend/` | FastAPI app with `GET /health` and `GET /health/ready` (database reachable and migrations at head); settings validation; structured JSON logging; problem+json errors; SQLAlchemy and Alembic (empty baseline revision) |
-| `backend/src/relay/core/` | Financial primitives: `Money` (Decimal-only, explicit currency, no silent rounding), FX conversion, source amount parsing, debit/credit sign convention; business dates vs. UTC system timestamps; UUIDv7; canonical hashing; database column types that enforce these invariants |
-| `web/` | Next.js + TypeScript (strict) development page that shows backend and database health |
-| `docker-compose.yml` | PostgreSQL 16, a one-shot migration job, API, web |
-| `.github/workflows/ci.yml` | Runs `make check`, then builds and smoke-tests the stack |
-
-Design decisions for money handling are in [docs/decisions/0001-money-representation.md](docs/decisions/0001-money-representation.md).
-
-## Brightwater demo data (M1)
-
-A deterministic, fictional migration with clean books, independent control reports, 13 seeded issues and 5 legitimate look-alike patterns. Layout:
-
-| Path | What | Who may read it |
-|---|---|---|
-| `fixtures/demo/brightwater/` | Source-style files Relay ingests: LedgerPro exports (Windows-1252), First Cascade Bank statement and FX rates, target chart and account mapping, `migration.json`, `SHA256SUMS` | Anyone, including runtime code |
-| `evaluation/brightwater/golden_manifest.toml` | Hand-authored ground truth: what is wrong, expected reconciliation discrepancies and issues, and what must stay silent | Tests and evaluation tooling only |
-| `backend/src/relay_scenarios/` | Generator (clean books, controls, exports, injectors) | Tests and demo tooling only |
-| `backend/src/relay_evaluation/` | Manifest loader, reference oracle, verifier | Tests and evaluation tooling only |
-
-Import-linter contracts and tests prevent runtime code (`relay`) from importing the generator or the evaluation truth. They also prevent runtime code from containing scenario-specific identifiers or amounts.
-
-Regenerate the fixtures and print a summary (no answers):
-
-```bash
-make demo-data
-```
-
-Check that the committed fixtures are byte-identical to a fresh generation:
-
-```bash
-make demo-check
-```
-
-Evaluation only (reveals expected answers):
-
-```bash
-make demo-verify
-```
-
-```bash
-make demo-manifest
-```
-
-Generation is deterministic: every value comes from named random streams derived from seed `20260630`, using integer arithmetic only.
-
-## Deterministic engine (M2)
-
-A pure Python engine (no database, clock or network) reads the source files with line-level lineage, quarantines malformed rows, applies an approved column mapping set, and runs 32 validation rules, reconciliations R1–R6, duplicate-party candidates and readiness gates G1–G12. Every result is bound to an input fingerprint.
-
-```bash
-make engine-run
-```
-
-On Brightwater Run #1 the engine's findings and reconciliation discrepancies match the hand-authored golden manifest exactly. The documented resolutions reach "all gates pass except sign-off". The engine has no Brightwater-specific code: the same rules give zero findings on a synthetic clean company, and each rule is tested there with a planted defect and a legitimate look-alike.
-
-## Persistence, pipeline runs and audit (M3)
-
-Imports keep every raw row immutable, with file and line lineage. Pipeline runs are idempotent on an input fingerprint and persist staged records, findings, reconciliations and readiness in one transaction. Every governed change writes a hash-chained audit event in the same transaction.
-
-Start the stack, load Brightwater at the "day 9" state (imports, approved column mappings through change requests, Run #1), then verify the audit chains:
-
-```bash
-make up
-```
-
-```bash
-make demo-seed
-```
-
-```bash
-make verify-audit
-```
-
-Open http://127.0.0.1:3000, choose a user, and follow a blocker from the Overview to the reconciliation drill-down and the exact source row behind it. End-to-end tests for that path:
-
-```bash
-make test-e2e
-```
-
-The API documents itself at http://127.0.0.1:8000/api/v1/docs. Development identity: send `X-Relay-User: maya.chen@relay.example` (seeded users only; refused outside local and test).
-
-Measure throughput on a synthetic clean 250,000-line migration:
-
-```bash
-make engine-perf
-```
-
-Measured once on an Apple M2 (16 GB): 34.6 s, about 1 GB peak memory. See [docs/progress.md](docs/progress.md) for details and [docs/decisions/0003-deterministic-engine.md](docs/decisions/0003-deterministic-engine.md) for design decisions.
-
-## Prerequisites
-
-- [uv](https://docs.astral.sh/uv/) 0.12 or newer. It installs Python 3.12 if needed.
-- Node.js 24 with npm.
-- Docker with Compose v2.
-- GNU Make, or the BSD make that ships with macOS.
-
-## Setup
+## The ten-minute demo
 
 ```bash
 make setup
 ```
 
-This installs backend dependencies from `backend/uv.lock` and web dependencies from `web/package-lock.json`.
-
-Optional: to change host ports or the local database password, copy `.env.example` to `.env` and edit it. By default the database listens on `127.0.0.1:55432`, the API on `127.0.0.1:8000` and the web app on `127.0.0.1:3000`.
-
-## Run
-
-Full stack in Docker (db, migrations, API, web), then verify end to end:
-
 ```bash
 make up
 ```
 
 ```bash
-make smoke
+make demo-reset
 ```
 
-Open http://127.0.0.1:3000 for the app (run `make demo-seed` for data) or http://127.0.0.1:3000/status for the health page. The API docs are at http://127.0.0.1:8000/api/v1/docs.
+`make demo-reset` recreates the local database and loads Brightwater at its "day 9" state through
+the real services — uploads, approved column mappings, an approved account mapping, a pipeline run —
+acting as the seeded people, never writing tables directly. Optionally add two more fictional
+migrations (one signed off, one in its first week) with `make demo-portfolio`.
 
-To stop the stack (the database volume is kept):
+Open http://127.0.0.1:3000 and sign in as any of the seeded people (development identity, local
+only: Maya the implementation specialist, Daniel the lead, Priya the customer controller, Sam a
+viewer, Alex an admin).
 
-```bash
-make down
-```
+| # | Step | What it shows |
+|---|---|---|
+| 1 | **Portfolio → Brightwater** | Readiness per migration, days to go-live, exposure |
+| 2 | **Overview blockers** | Nine of twelve gates failing, each with the evidence behind it |
+| 3 | **Reconciliation → R3** | AR subledger vs GL: `party=unassigned` differs by (38,400.00), `C-0233` by 9,340.00 |
+| 4 | **Drill into `C-0233`** | Down to invoice `INV-10877`, present in the GL and the aging, missing from the invoice export — with the source file and line number |
+| 5 | **Mappings** | Legacy 1205 (an allowance, a contra-asset) mapped into 1200 Accounts Receivable, flagged as a subtype conflict |
+| 6 | **Propose the fix** | Maya drafts and submits a change request. She cannot approve it — the button is absent and the API refuses. Daniel and Priya approve; the run re-queues automatically |
+| 7 | **Re-upload the corrected invoice export** | The same file twice changes nothing; the corrected export supersedes the active import and R3b ties |
+| 8 | **Entities** | Merging two vendor records reveals a double payment that was hidden by the duplicate; disposition it as a carry-forward adjustment |
+| 9 | **Audit log** | Who changed what, when, why, with before/after and both approvers; the hash chain verifies |
+| 10 | **Readiness → sign-off** | `make demo-fast-forward` applies the remaining documented fixes as the seeded people; sign off, and watch a later policy change invalidate the sign-off |
 
-Alternatively, run the API and web app on the host with auto-reload, using Compose only for PostgreSQL:
+Steps 2–10 are covered end to end by the Playwright suite (`make test-e2e`, 12 specs, about three
+minutes on this machine), so the demo path is tested, not rehearsed prose.
 
-```bash
-make dev
-```
+| | |
+|---|---|
+| ![Portfolio](docs/images/portfolio.png) | ![Reconciliation R3 with its discrepancy lines](docs/images/reconciliation.png) |
+| ![Readiness gates](docs/images/readiness.png) | ![Audit log with a verified hash chain](docs/images/audit-log.png) |
 
-## Verify
+---
+
+## What it does
+
+- **Import** legacy ledgers, subledgers, control reports and bank data. Source rows are immutable
+  and keep their file and line lineage; malformed rows are quarantined, never guessed at.
+- **Map** source columns and legacy accounts onto a canonical model and a target chart of accounts,
+  through versioned mapping sets that only an approved change request can activate.
+- **Validate** with 32 deterministic rules (balanced entries, period vs date, duplicates, unapplied
+  cash, FX consistency, instruction-like text in free fields, …).
+- **Reconcile** against independent control reports: trial balance vs GL detail, legacy balances
+  through the mapping, AR and AP subledgers and agings, cash vs the bank statement, and source rows
+  vs staged lines. Every discrepancy drills down to the records behind it.
+- **Govern** every correction as a change request with segregation of duties, staleness detection,
+  atomic apply and an audit event written in the same transaction.
+- **Investigate** with an AI agent that reads through read-only tools, cites evidence the server
+  verifies, and can only propose: a person becomes the requester of record, and a different person
+  approves.
+- **Decide** go-live with twelve gates evaluated on a reproducible run, scope-bound waivers that
+  lapse when the waived amounts change, and a sign-off invalidated by any later input change.
+
+Nothing in the engine knows anything about Brightwater: the demo's defects are found by general
+rules, and import-linter contracts plus scenario tests keep it that way.
+
+---
+
+## Verification
 
 ```bash
 make check
 ```
 
-`make check` runs, in order:
-- format check (ruff, prettier)
-- lint (ruff, import-linter contracts, eslint)
-- type checks (mypy `--strict`, `tsc`)
-- backend unit, property and scenario tests, web unit tests
-- Brightwater fixture determinism and golden-manifest verification
-- integration tests against PostgreSQL (started automatically)
-- Next.js production build
-- Docker Compose config validation
-
-Individual steps: `make fmt-check`, `make lint`, `make typecheck`, `make test`, `make test-integration`, `make build-web`, `make compose-config`.
-
-## Database
+Formatting, lint, import contracts, `mypy --strict`, `tsc`, backend unit/property/scenario tests,
+web unit tests, fixture determinism, golden-manifest verification, integration tests against real
+PostgreSQL, the Next.js production build and Compose config validation.
 
 ```bash
-make db-migrate
+make test-all
 ```
 
-Other database targets:
-- `make db-current` shows the current revision.
-- `make db-downgrade` rolls back one revision.
-- `make db-revision m="message"` creates a new revision, auto-formatted with ruff.
+Everything above, then the stack built and seeded, smoke-tested, and the full Playwright suite.
 
-Integration tests use a separate `relay_test` database, which is dropped and recreated on each run.
+Most recent run on this machine (Apple M2, 8 cores, 16 GB, macOS 14.5):
 
-## All commands
+| Suite | Result |
+|---|---|
+| Unit, property and scenario | 1,008 passed |
+| Integration (real PostgreSQL) | 99 passed |
+| Web unit | 43 passed |
+| Golden manifest | 115 of 115 checks |
+| End to end (Playwright, seeded stack) | 12 specs passed |
 
-```bash
-make help
-```
+The golden manifest is hand-authored from the accounting specification and is never updated to match
+the engine; [docs/decisions/0002](docs/decisions/0002-brightwater-spec-corrections.md) records the
+one time truth changed, and why.
+
+Measured performance on a synthetic 250,000-line migration (`make pipeline-perf`,
+`make engine-perf`) is in [docs/progress.md](docs/progress.md#m9--hardening-and-demo-rehearsal).
+
+---
+
+## How it is put together
+
+| Layer | Contents |
+|---|---|
+| `backend/src/relay/` | Modular monolith. Pure core (`core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine`), database modules (`imports`, `mapping_sets`, `changes`, `issues`, `pipeline`, `investigations`, `audit`, `identity`, `workspace`, `jobs`), edges (`api`, `worker.py`, `cli.py`), and `ai` — which may import read models only |
+| `backend/src/relay_scenarios/` | The fictional data generators and demo tooling (they know the planted defects) |
+| `backend/src/relay_evaluation/` | Golden manifest, reference oracle, verifier, investigator evals (never imported by runtime code) |
+| `web/` | Next.js App Router over the API: Server Components for reads, Server Functions for governed writes, no client-side money arithmetic |
+| `docs/` | Specifications, decision records, progress log, requirement traceability |
+
+Import-linter enforces the layering, and the runtime package may not import the scenario or
+evaluation packages at all.
+
+Stack: Python 3.12, FastAPI, SQLAlchemy 2.0 (sync), PostgreSQL 16, Alembic, Pydantic v2;
+Next.js 16, React 19, TypeScript strict, Tailwind 4; Docker Compose; uv and npm with committed
+lockfiles.
+
+---
+
+## Running it
+
+**Prerequisites:** [uv](https://docs.astral.sh/uv/) 0.12+, Node.js 24 with npm, Docker with
+Compose v2, GNU make (or macOS make).
+
+| Command | What it does |
+|---|---|
+| `make setup` | Install backend and web dependencies from the lockfiles |
+| `make up` / `make down` | Build and start (or stop) the whole stack; `make smoke` checks it end to end |
+| `make demo-reset` | Recreate the database and seed Brightwater at its day-9 state |
+| `make demo-portfolio` | Add two more fictional migrations (one signed off, one early stage) |
+| `make demo-fast-forward` | Apply the documented resolutions as the seeded people, leaving only sign-off |
+| `make dev` | API and web on the host with reload, PostgreSQL in Compose |
+| `make test-e2e` | Playwright against the running, seeded stack (uses local Chrome) |
+| `make verify-audit` | Recompute every audit hash chain |
+| `make eval-ai-scripted` | Investigator evals with the scripted provider (no model calls) |
+| `make help` | Everything else |
+
+Host ports default to 3000 (web), 8000 (API) and 55432 (database); override them in `.env`.
+
+AI is **off** unless configured: set `RELAY_AI_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`, and
+record the customer's consent for a migration as an approved policy change. With no provider, every
+workflow still works — that is asserted by an end-to-end test.
+
+> Relay is a portfolio project built to production standards, not a deployed product. The
+> development identity is not authentication; do not put real data in it. Known limitations are
+> listed in [docs/traceability.md](docs/traceability.md).
+
+---
 
 ## Documentation
 
 | Doc | Contents |
 |---|---|
-| [CLAUDE.md](CLAUDE.md) | Rules for contributors and AI coding sessions |
-| [docs/progress.md](docs/progress.md) | What has been built, measured results, deviations from the plan |
-| [docs/product-spec.md](docs/product-spec.md) | Problem, critique of the original brief, MVP scope, UX |
+| [docs/progress.md](docs/progress.md) | What has been built per milestone, measured results, deviations |
+| [docs/product-spec.md](docs/product-spec.md) | Problem, critique of the brief, MVP scope, UX |
 | [docs/architecture.md](docs/architecture.md) | System design, modules, pipeline, API, jobs |
 | [docs/data-model.md](docs/data-model.md) | Domain model and schema |
-| [docs/validation-and-reconciliation.md](docs/validation-and-reconciliation.md) | Rules engine, reconciliations, entity resolution |
+| [docs/validation-and-reconciliation.md](docs/validation-and-reconciliation.md) | Rules, reconciliations, entity resolution |
 | [docs/governance.md](docs/governance.md) | Issues, change requests, approvals, audit, readiness gates |
-| [docs/ai-safety.md](docs/ai-safety.md) | AI tools, verification, threat model, evals |
-| [docs/demo-scenario.md](docs/demo-scenario.md) | Brightwater scenario and expected results |
-| [docs/testing.md](docs/testing.md) | Test strategy |
-| [docs/security-and-correctness.md](docs/security-and-correctness.md) | Requirement IDs for correctness and security |
+| [docs/ai-safety.md](docs/ai-safety.md) | AI boundaries, tools, verification, threat model, evals |
+| [docs/demo-scenario.md](docs/demo-scenario.md) | The Brightwater scenario and its expected results |
+| [docs/testing.md](docs/testing.md) | Test strategy and layers |
+| [docs/security-and-correctness.md](docs/security-and-correctness.md) | Requirement IDs |
+| [docs/traceability.md](docs/traceability.md) | Every requirement ID mapped to its tests or a stated limitation |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Milestones and acceptance criteria |
-| [docs/decisions/](docs/decisions/) | Architecture decision records |
+| [docs/decisions/](docs/decisions/) | Decision records (0001–0010) |
+| [CLAUDE.md](CLAUDE.md) | Working rules for contributors and AI coding sessions |

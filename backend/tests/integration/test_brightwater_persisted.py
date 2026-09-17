@@ -53,6 +53,7 @@ def test_persisted_run1_matches_the_golden_manifest(
     seeded: tuple[SeedResult, sessionmaker[Session]], manifest: Manifest
 ) -> None:
     result, factory = seeded
+    assert result.run_id is not None
     with session_scope(factory) as session:
         stored = persisted.load(session, result.run_id)
     report = compare_run1(stored, _read_fixtures(BRIGHTWATER_FIXTURES), manifest)
@@ -64,6 +65,7 @@ def test_persisted_gates_and_issues(
     seeded: tuple[SeedResult, sessionmaker[Session]], manifest: Manifest
 ) -> None:
     result, factory = seeded
+    assert result.run_id is not None
     with session_scope(factory) as session:
         stored = read_model.readiness_for_run(session, result.run_id)
         assert stored is not None
@@ -183,6 +185,7 @@ def test_run_diff_of_a_run_with_itself_is_empty(
     from relay.pipeline import overview  # noqa: PLC0415
 
     result, factory = seeded
+    assert result.run_id is not None
     with session_scope(factory) as session:
         diff = overview.run_diff(session, result.run_id, result.run_id)
     assert diff["changed_fingerprint_components"] == []

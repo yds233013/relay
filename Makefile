@@ -143,7 +143,7 @@ test-e2e: ## Playwright end-to-end tests against a freshly seeded stack (`make u
 
 # ------------------------------------------------------------------------------------ demo data
 
-.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-fast-forward demo-seed-host verify-audit eval-ai eval-ai-scripted
+.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-portfolio demo-fast-forward demo-seed-host verify-audit eval-ai eval-ai-scripted
 demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
 	$(UV) relay-demo generate
 
@@ -158,6 +158,11 @@ demo-reset: ## DESTROYS the local Compose database, recreates it, and seeds Brig
 	docker compose run --rm migrate
 	docker compose up -d --wait api worker
 	$(MAKE) demo-seed
+
+demo-portfolio: ## With the stack up and seeded: add two more fictional migrations (one signed off, one early stage)
+	docker compose run --rm --no-deps -v "$(CURDIR)/fixtures:/fixtures:ro" api \
+		relay-demo seed-portfolio \
+		--mapping-set /fixtures/demo/brightwater_config/column_mapping_set_v1.json
 
 demo-fast-forward: ## Apply the documented resolutions to the seeded Brightwater stack as the seeded users (demo step 10); needs `make up` and a seed
 	docker compose run --rm --no-deps api relay-demo fast-forward --to before-signoff
@@ -208,7 +213,7 @@ pipeline-perf: db-up ## Measure imports, runs, readiness and reads on a syntheti
 
 # ------------------------------------------------------------------------------------ build & verify
 
-.PHONY: build build-web compose-config compose-build check clean
+.PHONY: build build-web compose-config compose-build check test-all clean
 build: build-web compose-build ## Production web build and Docker images
 
 build-web: ## Next.js production build
@@ -222,6 +227,14 @@ compose-build: ## Build Docker images
 
 check: fmt-check lint typecheck test demo-check demo-verify test-integration build-web compose-config ## Full verification (CI runs this)
 	@echo "make check: all checks passed"
+
+test-all: ## Everything, from a clean clone: make check, then build the stack, seed it and run the end-to-end suite
+	$(MAKE) check
+	$(MAKE) up
+	$(MAKE) smoke
+	$(MAKE) demo-reset
+	$(MAKE) test-e2e
+	@echo "make test-all: checks, stack and end-to-end suite all passed"
 
 clean: ## Remove caches and build output (keeps dependencies and database volume)
 	rm -rf backend/.mypy_cache backend/.ruff_cache backend/.pytest_cache backend/.hypothesis backend/.import_linter_cache

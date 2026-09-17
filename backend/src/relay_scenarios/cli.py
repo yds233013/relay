@@ -37,6 +37,7 @@ from relay_scenarios.brightwater.scenario import (
 )
 from relay_scenarios.brightwater.seed import seed
 from relay_scenarios.perf import measure_pipeline
+from relay_scenarios.portfolio import seed_portfolio
 from relay_scenarios.volume import build_volume_migration, export_volume_migration
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -67,6 +68,25 @@ def seed_database(fixtures: Path, mapping_set: Path) -> int:
     sys.stdout.write(
         f"Seeded Brightwater (fictional): migration {result.migration_id}, run {result.run_id}\n"
         "Users: " + ", ".join(sorted(result.users)) + "\n"
+    )
+    return 0
+
+
+def seed_portfolio_database(mapping_set_path: Path) -> int:
+    """Add the two extra fictional migrations to the database named by RELAY_DATABASE_URL."""
+    settings = get_settings()
+    configure_logging("WARNING", settings.log_format)
+    factory = create_session_factory(create_db_engine(settings))
+    result = seed_portfolio(
+        factory,
+        LocalBlobStore(settings.storage_dir),
+        ImportLimits(settings.max_upload_bytes, settings.max_rows_per_import),
+        mapping_set_path,
+    )
+    sys.stdout.write(
+        "Seeded two more fictional migrations:\n"
+        f"  launched     {result.launched} ({result.launched_status})\n"
+        f"  early stage  {result.early} (imports only)\n"
     )
     return 0
 
@@ -224,6 +244,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     seed_parser.add_argument("--fixtures", type=Path, default=DEFAULT_OUT)
     seed_parser.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
+    portfolio = sub.add_parser(
+        "seed-portfolio",
+        help="add two more fictional migrations (one signed off, one early stage) to the database",
+    )
+    portfolio.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
     forward = sub.add_parser(
         "fast-forward",
         help="apply the documented resolutions as the seeded users (demo walkthrough step 10)",
@@ -233,6 +258,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "fast-forward":
         return fast_forward_database()
+
+    if args.command == "seed-portfolio":
+        return seed_portfolio_database(args.mapping_set)
 
     if args.command == "seed":
         return seed_database(args.fixtures, args.mapping_set)

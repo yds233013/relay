@@ -13,7 +13,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -54,7 +54,8 @@ PEOPLE: Final = (
 @dataclass(frozen=True, slots=True)
 class SeedResult:
     migration_id: uuid.UUID
-    run_id: uuid.UUID
+    run_id: uuid.UUID | None
+    """``None`` when seeding stopped before any mapping was approved."""
     users: dict[str, uuid.UUID]
 
 
@@ -106,7 +107,15 @@ def seed(
     limits: imports.ImportLimits,
     migration_dir: Path,
     mapping_set_path: Path,
+    migration_name: str = "LedgerPro to new ERP",
+    issue_key_prefix: str = "BWP",
+    stop_after: Literal["imports", "run"] = "run",
 ) -> SeedResult:
+    """Load a migration through the services as the seeded people.
+
+    ``stop_after="imports"`` leaves it where a real project sits in its first week: files uploaded
+    and profiled, no mapping approved, no run.
+    """
     descriptor: dict[str, Any] = json.loads((migration_dir / "migration.json").read_text("utf-8"))
     mapping_config: dict[str, Any] = json.loads(mapping_set_path.read_text("utf-8"))
     context = WorkerContext(session_factory=session_factory, blob_store=blob_store, limits=limits)
@@ -138,9 +147,9 @@ def seed(
             session,
             actor=lead,
             company=company,
-            name="LedgerPro to new ERP",
+            name=migration_name,
             plan=workspace.ConversionPlanInput(**plan),
-            issue_key_prefix="BWP",
+            issue_key_prefix=issue_key_prefix,
             lead_user_id=lead.user_id,
         )
         migration_id = migration.id
@@ -188,6 +197,8 @@ def seed(
                 limits=limits,
             )
     _wait_for_imports(session_factory, context, list(datasets.values()))
+    if stop_after == "imports":
+        return SeedResult(migration_id=migration_id, run_id=None, users=users)
 
     for file_name, dataset_id in datasets.items():
         with session_scope(session_factory) as session:

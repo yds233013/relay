@@ -521,7 +521,14 @@ issue-heavy reads are not represented.
 | Whole suite under `TZ=Australia/Adelaide` | 892 unit, 99 integration, 115/115 manifest |
 | E2E-6 and the CSP check against the running stack | pass |
 
+- **Portfolio**: `make demo-portfolio` (`relay-demo seed-portfolio`) adds two more fictional
+  migrations through the same services — Harborline Supply Co. (clean books, every gate passing,
+  signed off by the lead and the controller) and Northwind Timber Co. (files uploaded and profiled,
+  nothing mapped or run). The synthetic generator takes a company name, and the seed can stop after
+  imports.
+- **README** rewritten as a demo-led guide with screenshots of the real seeded state
+  (`docs/images/`), and `make test-all` (checks, stack, smoke, reseed, end-to-end suite).
+
 ### Remaining
 
-Two extra seeded migrations for the portfolio, the full E2E suite on a rebuilt stack, README demo
-guide, rehearsed walkthrough timing, and the retrospective.
+Walkthrough rehearsal timing and the retrospective.

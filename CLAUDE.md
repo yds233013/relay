@@ -101,10 +101,12 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make demo-reset` | **Destroys** the local Compose database, recreates it, migrates and seeds Brightwater again |
 | `make eval-ai-scripted` | Investigator evals E1–E6 with the scripted provider against the local seeded database (no model calls; at most 20 investigations per person per hour) |
 | `make eval-ai` | **Manual, costs money**: live investigator evals against the local seeded database; needs `ANTHROPIC_API_KEY` (refuses without it, verified); writes `evals/results/investigator-<timestamp>.json`. Never in CI. Not yet run with a key |
+| `make demo-portfolio` | With the stack up and seeded: add two more fictional migrations (Harborline signed off, Northwind early stage) so the portfolio shows a spread of states |
 | `make demo-fast-forward` | With the stack up and seeded: apply the documented resolutions as the seeded users so only sign-off remains (`relay-demo fast-forward --to before-signoff`) |
 | `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
 | `make pipeline-perf` | Measure the **persisted** pipeline (imports, runs, readiness, read endpoints) on a synthetic 250,000-line migration in a throwaway database it creates and drops (several minutes) |
 | `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
+| `make test-all` | `make check`, then build and start the stack, smoke-test it, reseed the demo and run the Playwright suite (the M9 acceptance command) |
 | `make clean` | Remove caches and build output |
 
 Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY_DB_HOST_PORT`, `RELAY_API_HOST_PORT` and `RELAY_WEB_HOST_PORT` in the environment or `.env`.
@@ -113,7 +115,7 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 
 | Command | Purpose | Milestone |
 |---|---|---|
-| `make test-all` | Full suite from a clean clone via Docker Compose | M9 |
+| _(none: every planned command is implemented)_ | | |
 
 ---
 
