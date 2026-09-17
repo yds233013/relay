@@ -1,6 +1,6 @@
 # Relay — Testing Strategy
 
-Status: **M0–M1 implemented**: pytest + Hypothesis unit/property tests, PostgreSQL integration tests, Vitest, and Brightwater scenario tests (`backend/tests/scenario`: clean-book invariants, per-injector isolation, traps, golden manifest, determinism, answer leakage, runtime boundary). Engine, contract, AI and e2e layers are planned.
+Status: **M0–M1 implemented**: pytest + Hypothesis unit/property tests, PostgreSQL integration tests, Vitest, and Brightwater scenario tests (`backend/tests/scenario`: clean-book invariants, per-injector isolation, traps, golden manifest, determinism, answer leakage, runtime boundary). Every layer below is implemented: engine and rule-catalog tests, contract tests over the generated OpenAPI client, AI tests with the scripted provider, and twelve Playwright specs against the seeded stack.
 
 Related: [security-and-correctness.md](security-and-correctness.md) · [demo-scenario.md](demo-scenario.md) · [ai-safety.md](ai-safety.md)
 
@@ -108,6 +108,11 @@ own for migration round trips, so downgrades cannot touch what other modules see
 | E2E-6 Audit trail | Audit log shows before/after and approvers for E2E-2; chain verification passes |
 | E2E-7 No-AI mode | With AI disabled, all flows above pass and AI controls are absent |
 | E2E-8 New migration from CSV | Create migration, upload a small CSV set, map columns, run pipeline, see issues |
+| Security headers | Pages are served under a nonce-based CSP with no `unsafe-inline`; the API forbids everything; the app runs under it with no violations |
+| Overrides through the UI | DS-08, DS-11 and DS-05 corrected by approved record overrides and a quarantine repair |
+| Entity decisions and dispositions | DS-06 keeps the second store distinct; DS-10 dispositions six bank fees at once |
+
+Twelve specs in eight files. They change demo state, so `make demo-reset` before rerunning.
 
 ---
 
@@ -121,13 +126,12 @@ Implemented in M0 (see CLAUDE.md for the full list):
 | `make test-integration` | Backend integration tests against Compose PostgreSQL |
 | `make check` | Full verification: format, lint, types, all of the above, web build, Compose config |
 
-Planned:
-
-| Command | Purpose | Milestone |
-|---|---|---|
-| `make test-e2e` | Playwright against compose stack with seeded demo | M4 |
-| `make test-all` | Everything, including e2e | M4 |
-| `make eval-ai` | Live-model evals (requires API key; manual) | M8 |
+| `make test-e2e` | Playwright against the running, seeded stack |
+| `make test-all` | `make check`, then the stack, smoke check, a reseed and the Playwright suite |
+| `make eval-ai-scripted` | Investigator evals E1–E6 with the scripted provider (no model calls) |
+| `make eval-ai` | Live-model evals (manual, needs a provider key; never in CI) |
+| `make pipeline-perf` | Measure the persisted pipeline on a synthetic 250,000-line migration |
+| `make demo-portfolio` | Seed two more fictional migrations (one signed off, one early stage) |
 
 ---
 

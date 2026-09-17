@@ -273,11 +273,19 @@ Duplicate natural keys within an import produce `NORM.DUPLICATE_NATURAL_KEY` and
 ## 9. Pipeline runs & results
 
 ### `pipeline_runs`
-`id, migration_id, sequence int, fingerprint char(64), fingerprint_components jsonb, status (queued|running|succeeded|failed), error jsonb, triggered_by_user_id nullable, trigger (manual|change_request_applied|import_activated), change_request_id nullable, stage_timings jsonb, counts jsonb, started_at, finished_at, staged_records_pruned_at nullable`
-Unique partial: `(migration_id, fingerprint) WHERE status='succeeded'`.
+`id, migration_id, sequence int, fingerprint text, fingerprint_components jsonb, result_fingerprint text nullable, status (queued|running|succeeded|failed|superseded), error jsonb nullable, trigger (manual|change_request_applied|import_activated), triggered_by_user_id nullable, change_request_id nullable, stage_timings jsonb, counts jsonb, requested_at, started_at nullable, finished_at nullable`
+
+Unique on `(migration_id, sequence)`; unique partial on `(migration_id, fingerprint)` for `succeeded`
+and again for active (`queued`, `running`) runs, so one fingerprint can only be in flight once.
+**`superseded`** means the inputs changed between the request and the worker starting it: results for
+a fingerprint that is no longer current are never computed, and the change that moved the inputs
+requested its own run (M9; Alembic `0008_superseded_runs`).
 
 ### `rule_runs`
-`id, run_id, rule_id text, rule_version int, status (passed|failed|not_applicable|errored), exception_count, duration_ms, params jsonb`
+`id, run_id, rule_id text, rule_version int, title text, status (passed|failed|not_applicable|errored), exception_count int, missing_datasets text[], error text nullable`
+
+`errored` carries the exception type and message of a rule that raised; the run still completes and
+G4 fails with that stage as evidence (FC-10, Alembic `0007_errored_stages`).
 
 ### `rule_exceptions`
 | Column | Type | Notes |
@@ -296,23 +304,38 @@ Unique partial: `(migration_id, fingerprint) WHERE status='succeeded'`.
 | details | jsonb | rule-specific typed payload |
 
 ### `reconciliation_results`
-`id, run_id, recon_id, recon_version, grain text[], status (tied|tied_with_explained_items|discrepancy|not_applicable|errored), left_label, right_label, left_total, right_total, difference, explained_total, unexplained_total, tolerance_amount, currency`
+`id, run_id, recon_id, recon_version, title, purpose (completeness|accuracy), status (tied|tied_with_explained_items|discrepancy|not_applicable), applicable bool, left_label, right_label, tolerance numeric(20,4), line_count int, discrepancy_count int, note text`
+
+Unique on `(run_id, recon_id)`. A reconciliation that *raises* is not stored at all: it is reported
+as an errored stage on the run and fails G4.
 
 ### `reconciliation_lines`
-`id, result_id, grain_key jsonb (e.g. {"account":"1200","period":"2026-06"}), left_amount, right_amount, left_count, right_count, difference, explained_amount, unexplained_amount, status (tied|within_tolerance|explained|discrepancy|left_only|right_only)`
+`id, result_id, grain_key text, grain jsonb (e.g. {"account":"1200","period_end":"2026-06-30"}), left_amount, right_amount, difference, explained_amount, unexplained_amount, status (tied|within_tolerance|explained|discrepancy), extra jsonb`
+
+`extra` carries a reconciliation's secondary measures — R6's row counts and debit and credit totals.
+Unique on `(result_id, grain_key)`, indexed on `(result_id, status)`.
 
 ### `reconciling_items`
-`id, line_id, explainer_id, classification (outstanding_check|deposit_in_transit|bank_only_activity|single_account_contribution|timing|rounding), amount, record_refs jsonb, message`
+`id, line_id, classification (outstanding_check|deposit_in_transit|bank_only_activity|single_account_contribution|unmapped_source_account), amount, record_keys text[], message`
 
 ### `entity_candidates`
-`id, run_id, party_type, left_natural_key, right_natural_key, score numeric(5,4), features jsonb (name_similarity, address_similarity, tax_id_match, email_domain_match, shared_document_references[], …), status (open|decided_same|decided_distinct), decision_id nullable`
-Candidates with a matching decision are marked decided, not regenerated as open.
+`id, run_id, party_type, left_code, right_code, score numeric(5,4), strong bool, features jsonb (name, address, postal, email domain, tax id, conflicts, …), status (open|decided_same|decided_distinct)`
+
+Unique on `(run_id, party_type, left_code, right_code)`. Candidates with a matching decision are
+marked decided, not regenerated as open.
 
 ### `readiness_evaluations`
-`id, run_id unique, policy_version, overall (ready|not_ready), evaluated_at`
+`id, run_id, sequence int, trigger (run|governance), policy_version, overall (ready|not_ready), unresolved_exposure numeric(20,4), facts jsonb, evaluated_at`
+
+Unique on `(run_id, sequence)`: one run is evaluated again whenever governance changes without
+changing the inputs (a waiver, a sign-off, a pending change request), and the engine must reproduce
+the same result fingerprint (M7).
 
 ### `gate_results`
-`id, evaluation_id, gate_id, gate_version, status (pass|fail|waived|not_evaluated), blocking bool, observed jsonb, threshold jsonb, summary text, evidence_refs jsonb, waiver_change_request_id nullable`
+`id, evaluation_id, gate_id, gate_version, title, status (pass|fail|waived), blocking bool, observed text, threshold text, summary text, evidence text[], waiver_id text nullable, scope jsonb nullable`
+
+`scope` is what a waiver of this gate's current failure would cover, so a waiver lapses when the
+waived amounts change (M7).
 
 ---
 
@@ -334,10 +357,13 @@ Candidates with a matching decision are marked decided, not regenerated as open.
 | status | text | see [governance.md](governance.md#issue-lifecycle) |
 | owner_user_id | fk nullable | |
 | amount_at_risk | numeric(20,4) | from latest run |
+| subjects | text[] | the natural keys the finding is about |
 | first_seen_run_id, last_seen_run_id, verified_absent_run_id | fk nullable | |
-| disposition_id | fk nullable | |
-| gate_ids | text[] | gates this issue contributes to |
-| version | int | |
+| version | int | optimistic concurrency (GV-08) |
+
+Dispositions live in their own table keyed by fingerprint; an issue's gates are derived from the
+gate evidence of the evaluation, not stored on the issue. The API additionally returns `owner_name`,
+resolved from `users` for display.
 
 ### `issue_occurrences`
 `issue_id, rule_exception_id, run_id` — links an issue to its exceptions in each run.
@@ -433,9 +459,6 @@ Trigger rejects `UPDATE`, `DELETE`, `TRUNCATE`. The application DB role has `INS
 | verification_report | jsonb | per evidence item |
 | review_status | text | `proposed`, `accepted`, `dismissed` |
 | reviewed_by, reviewed_at, review_comment | | |
-
-### `ai_suggestions`
-`id, migration_id, kind (column_mapping|account_mapping|entity_explanation), subject jsonb, suggestion jsonb, supporting_signals jsonb (deterministic), provider, model, prompt_version, status (open|accepted|rejected), created_at`
 
 ---
 

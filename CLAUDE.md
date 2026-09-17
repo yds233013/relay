@@ -25,6 +25,8 @@ Canonical documents (read the relevant one before working in an area):
 | Security & correctness requirement IDs | `docs/security-and-correctness.md` |
 | Milestones and acceptance criteria | `docs/implementation-plan.md` |
 | What has actually been built | `docs/progress.md` (created in M0) |
+| Requirement-by-requirement verification | `docs/traceability.md` |
+| Independent review passes and what they changed | `docs/review-findings.md` |
 
 ---
 
@@ -45,6 +47,11 @@ Implemented milestones (see `docs/progress.md` for status, commits and verificat
 - **M8**: AI investigation layer: providers (`disabled`, `scripted`, `anthropic` over the standard library), 15 read-only tools with redaction, investigator loop with budgets, provenance verification, findings to operator-owned draft change requests, consent through `policy_change` (`ai_enabled`), `run_investigation` jobs (`relay.investigations`), investigation UI, scripted evals E1–E6 (`relay_evaluation.ai`); E2E-7. No live eval run recorded (no key). Decisions: `docs/decisions/0009-ai-investigation-layer.md`.
 
 - **M9**: security review against every requirement ID (`docs/traceability.md`), errored rule and reconciliation stages (FC-10), the over-explanation invariant (FC-11), CSP, upload rate limiting, route inventory and static guards, measured pipeline performance (`make pipeline-perf`) and the read-path fix behind it, two more seeded migrations, E2E-6, `make test-all`, README demo guide and the retrospective. Decisions: `docs/decisions/0010-m9-hardening.md`.
+
+After M9, six review passes went over the finished system (accounting correctness, adversarial,
+anti-cheating, code quality, UX, documentation). They changed real behaviour — superseded runs,
+stricter G5, a real R6 source side, ASCII-only numerals, a nonce CSP — so read
+`docs/review-findings.md` alongside the milestone log.
 
 `docs/progress.md` is the recovery log: read it first in a new session.
 
@@ -128,7 +135,7 @@ Host ports default to db 55432, API 8000 and web 3000. Override them with `RELAY
 3. **Corrections are overlays.** Mapping versions, record overrides, entity decisions, dispositions and policy versions — each created only by applying an approved change request.
 4. **Every governed mutation writes an audit event in the same transaction.**
 5. **Lineage everywhere.** Staged record → source row (file, line). Exception → records. Issue → exceptions. Gate → evidence.
-6. **Modular monolith** with enforced import contracts. Domain modules (`*/domain.py`, `validation`, `reconciliation`, `entity_resolution`, `readiness` domain) are pure: no DB, no I/O, no clock reads, no randomness.
+6. **Modular monolith** with enforced import contracts. The pure core (`core`, `canonical`, `ingestion`, `mapping`, `profiling`, `engine` — which holds validation, reconciliation, entity resolution and readiness) does no DB, no I/O, no clock reads and no randomness; `*/domain.py` in the database modules is pure for the same reason.
 7. **Don't add infrastructure** (brokers, caches, services) without a measured need and a docs update.
 
 ---

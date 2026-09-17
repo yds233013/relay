@@ -542,6 +542,22 @@ listed in `docs/traceability.md` and decision 0010.
 
 ---
 
+## Review passes (after M9)
+
+Six independent passes over the finished system, each from a different point of view. Findings and
+what was done about them: [review-findings.md](review-findings.md).
+
+| Pass | Result |
+|---|---|
+| 1 — accounting correctness | **Seven genuine defects**, all fixed with tests and none changing the golden manifest: R6 could not detect a lost source row; open items "at cutover" included later-dated documents; three FX conversions rounded the wrong way; a dispositioned critical passed G5; R2 lost the opening balance on a sparse trial balance; an aging row whose sign contradicted its kind was flipped silently; losing a whole journal entry was reported as `high` with no amount. Added `TB.PERIOD_COVERAGE` and four date-window rules |
+| 2 — adversarial | **One defect**: amounts and dates written in non-ASCII digits parsed (mixed scripts included). Sixteen attacks held and became regressions (`test_adversarial.py`) |
+| 3 — anti-cheating | Runtime clean. The boundary scan itself was too narrow: it now covers the migrations and the web app across every product file type, which immediately found two demo amounts in a web test |
+| 4 — code quality | Dead drill-down duplicating the live one, three other dead functions, an N+1 behind the portfolio (444 ms → 184 ms), a full scan for a primary-key lookup, duplicated `links_for`, divergent ordering, a failed job losing its traceback, and a sleep-based test that could pass vacuously |
+| 5 — UX | Runs superseded rather than failed (Alembic `0008`), owner on the issues list, issue titles that read as English, formatted gate amounts; and a queueing limitation found under load, recorded with two candidate fixes |
+| 6 — documentation | README verified from a **fresh clone** with only the documented commands; the shared Compose project name documented; documents checked against the code |
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.

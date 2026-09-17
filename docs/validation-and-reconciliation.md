@@ -46,7 +46,7 @@ class ExceptionDraft:
 - Rules are registered with `@rule(spec)` in `validation/rules/<area>.py`; the registry is imported explicitly (no filesystem discovery magic).
 - `RuleContext` exposes read-only typed accessors over the `RunSnapshot`: `journal_entries()`, `lines_by_entry()`, `accounts(side)`, `parties(type)`, `clusters(type)`, `documents(type)`, `payments()`, `applications()`, `fx_rate(date, from, to)`, `conversion_plan`, `policy`. No DB, no clock, no randomness.
 - Rules must be **pure and deterministic**: same snapshot and params ⇒ identical exceptions in identical order (engine sorts by fingerprint anyway).
-- A rule that raises is recorded as `rule_run.status=errored` with the error; the run still completes, but gate G5 fails with "rule errored" — errors never silently pass.
+- A rule that raises is recorded as `rule_run.status=errored` with the error, and the stage is listed on the engine result; the run still completes, but **gate G4** fails with that stage as evidence — errors never silently pass (FC-10).
 - **Effective severity** = policy override (if any, via approved `policy_change`) else `severity_override` else `default_severity`.
 - **Fingerprint** = `sha256(rule_id ‖ sorted(subject natural keys) ‖ discriminator)`. Amounts and run ids are excluded so that an exception whose amount changes remains the same issue.
 - **Rule versioning**: bumping `version` changes the rule set hash → changes the fingerprint → existing runs become stale. Issue fingerprints do not include the version, so issues survive rule improvements.
@@ -68,7 +68,9 @@ class ExceptionDraft:
 |---|---|---|---|---|
 | `NORM.MALFORMED_ROW` | Quarantined physical row(s) in an import | critical | migration_defect | n/a (unknown) |
 | `NORM.REQUIRED_FIELD_MISSING` | Required canonical field empty | high | migration_defect | record amount if known |
-| `NORM.PARSE_FAILURE` | Value fails declared transform (date/decimal/currency) | high | migration_defect | — |
+| `NORM.UNREADABLE_FILE` | The file cannot be read at all (not text, NUL bytes, no header) | critical | migration_defect | — |
+| `NORM.PARSE_FAILURE` | Value fails declared transform (date/decimal/currency). **Critical** when a whole journal entry is discarded because its lines disagree on date, period or type: the ledger loses that activity | high (critical for a discarded entry) | migration_defect | entry debit total when an entry is lost |
+| `NORM.AGING_SIGN_CONFLICT` | An aging row's sign contradicts its kind — a credit typed as a document, or a positive unapplied payment. The reconciliation takes the sign from the kind, so the row would otherwise be flipped silently | high | source_anomaly | — |
 | `NORM.DUPLICATE_NATURAL_KEY` | Same natural key twice in an import | high | migration_defect | amount of duplicate |
 | `OVERRIDE.STALE` | Override's `expected_current_value` no longer matches | high | migration_defect | — |
 
@@ -123,7 +125,6 @@ class ExceptionDraft:
 
 | ID | What | Sev |
 |---|---|---|
-| `CUR.CODE_VALID` | Not ISO 4217 | high |
 | `CUR.PARTY_CURRENCY_MISMATCH` | Document currency ≠ party default currency, and the party has ≥ 3 documents in its default currency | high |
 | `CUR.FUNCTIONAL_AMOUNT_CONSISTENT` | `\|amount × rate − functional_amount\| > rounding tolerance` using `fx_rates` on document date | high |
 | `CUR.MISSING_FX_RATE` | Foreign-currency document with no rate within N days | high |

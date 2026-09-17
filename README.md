@@ -73,7 +73,7 @@ minutes on this machine), so the demo path is tested, not rehearsed prose.
   and keep their file and line lineage; malformed rows are quarantined, never guessed at.
 - **Map** source columns and legacy accounts onto a canonical model and a target chart of accounts,
   through versioned mapping sets that only an approved change request can activate.
-- **Validate** with 32 deterministic rules (balanced entries, period vs date, duplicates, unapplied
+- **Validate** with 37 deterministic rules (balanced entries, period vs date, duplicates, unapplied
   cash, FX consistency, instruction-like text in free fields, …).
 - **Reconcile** against independent control reports: trial balance vs GL detail, legacy balances
   through the mapping, AR and AP subledgers and agings, cash vs the bank statement, and source rows
@@ -165,6 +165,10 @@ Compose v2, GNU make (or macOS make).
 
 Host ports default to 3000 (web), 8000 (API) and 55432 (database); override them in `.env`.
 
+The Compose project is named `relay`, so every clone of this repository shares one stack: running
+`make up` from a second clone replaces the first one's containers, and `docker compose down -v`
+destroys the shared database volume. Work from one clone, or set `COMPOSE_PROJECT_NAME` yourself.
+
 AI is **off** unless configured: set `RELAY_AI_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`, and
 record the customer's consent for a migration as an approved policy change. With no provider, every
 workflow still works — that is asserted by an end-to-end test.
@@ -190,6 +194,7 @@ workflow still works — that is asserted by an end-to-end test.
 | [docs/testing.md](docs/testing.md) | Test strategy and layers |
 | [docs/security-and-correctness.md](docs/security-and-correctness.md) | Requirement IDs |
 | [docs/traceability.md](docs/traceability.md) | Every requirement ID mapped to its tests or a stated limitation |
+| [docs/review-findings.md](docs/review-findings.md) | The six review passes: what was found, fixed, or deliberately left |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Milestones and acceptance criteria |
 | [docs/decisions/](docs/decisions/) | Decision records (0001–0010) |
 | [CLAUDE.md](CLAUDE.md) | Working rules for contributors and AI coding sessions |

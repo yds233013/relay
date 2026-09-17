@@ -279,3 +279,48 @@ minutes and says why, and the limitation is listed in [traceability.md](traceabi
 The evidence trail is the strongest part of the product and needed nothing: blocker → reconciliation
 line → drill-down → source row, with amounts server-computed and shown with their currency, statuses
 never carried by colour alone, and every AI element absent when AI is off.
+
+---
+
+## Pass 6 — documentation
+
+### Verified from scratch
+
+The README's setup path was run against a **fresh clone** with nothing but the documented
+commands: `make setup`, `make up`, `make smoke`, `make demo-reset`. All four succeeded, the smoke
+check reported web → API → database healthy, and Brightwater seeded. The only thing the README did
+not say was that `docker-compose.yml` fixes the Compose project name to `relay`, so a second clone's
+`make up` takes over the first clone's containers and `docker compose down -v` destroys the shared
+volume — which is exactly what happened while verifying this. The README now says so.
+
+### Documents corrected against the code
+
+An audit of every document against the implementation found the specifications had drifted where
+the code moved fastest. The corrections:
+
+- **Four documents still said "Planned"** — governance.md, ai-safety.md, architecture.md and
+  testing.md — for work finished milestones ago. That is the most misleading thing a reader could
+  hit, and it is fixed.
+- **architecture.md** described modules that do not exist (`validation/`, `reconciliation/`,
+  `entity_resolution/`, `readiness/` are all inside `engine/`), a retention and pruning scheme that
+  was never built, `If-Match`/`412` and an `Idempotency-Key` header that the API does not use, a
+  `prune_runs` job kind that does not exist while omitting `evaluate_readiness`, a stale worker
+  note, and a configuration table missing the M8 and M9 settings. Each is now either corrected or
+  marked as not implemented.
+- **data-model.md** had drifted furthest: `pipeline_runs` without `superseded` or `result_fingerprint`
+  but with a pruning column that does not exist; `rule_runs` with `duration_ms`/`params` instead of
+  `title`/`missing_datasets`/`error`; readiness tables from before M7's repeated evaluations and
+  waiver scopes; reconciliation and candidate tables whose columns were mostly invented; an
+  `ai_suggestions` table for the feature that was cut. All rewritten from the live schema.
+- **validation-and-reconciliation.md** said an errored rule fails **G5**; it fails G4. It also
+  omitted `NORM.UNREADABLE_FILE` and `NORM.AGING_SIGN_CONFLICT`, and listed `CUR.CODE_VALID`, which
+  was never implemented. Every registered rule now appears in the catalog.
+- **governance.md**'s action taxonomy listed fourteen actions the code never writes and missed
+  seventeen it does. Replaced with the real set.
+- **README** claimed 32 rules (37) and did not mention that the Compose project name is shared
+  across clones.
+- **ai-safety.md**'s package tree and `ToolSpec` predated the built layer; **testing.md** listed
+  commands as planned that exist, and omitted three end-to-end specs.
+- **SEC-15** asked for "CORS restricted to the web origin"; the browser never calls the API, so the
+  requirement is now stated as no cross-origin access at all, which is what the code does.
+- `docs/review-findings.md` and `docs/traceability.md` were not linked from the README or CLAUDE.md.

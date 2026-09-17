@@ -1,6 +1,6 @@
 # Relay — Governance: Issues, Change Requests, Approvals, Audit, Readiness
 
-Status: **Planned.**
+Status: **Implemented** across M3 to M9 (issue lifecycle, nine change request kinds with segregation of duties, hash-chained audit, gates G1–G12, waivers and sign-off). Decisions: [0004](decisions/0004-persistence-and-pipeline.md), [0006](decisions/0006-governed-changes.md), [0007](decisions/0007-issue-workflow-and-decisions.md), [0008](decisions/0008-readiness-waivers-signoff.md).
 
 Related: [data-model.md](data-model.md) · [validation-and-reconciliation.md](validation-and-reconciliation.md) · [ai-safety.md](ai-safety.md)
 
@@ -127,7 +127,7 @@ Rules that are not configurable:
 | Every governed mutation is logged | Services call `audit.record(...)` inside the unit of work; a test asserts that each service method that commits emits ≥ 1 event (instrumented UoW). |
 | No logged-but-not-applied or applied-but-not-logged | Same transaction. Rollback test in integration suite. |
 | Append-only | No update/delete code path; DB trigger rejects UPDATE/DELETE/TRUNCATE; app role lacks those privileges. |
-| Tamper-evident | Per-migration hash chain; `GET /audit-events/verify` and `relay verify-audit` recompute and report the first broken link. |
+| Tamper-evident | Per-migration hash chain; `GET /migrations/{migration_id}/audit-events/verify` and `relay verify-audit` recompute and report the first broken link. |
 | Ordered | `migration_seq` assigned under a per-migration advisory lock. |
 | Honest limits | A DB superuser can rewrite the table and chain. Documented; post-MVP option: periodic anchoring of chain heads to external storage. |
 
@@ -143,23 +143,33 @@ Rules that are not configurable:
 | Was approval required? | `change_request_id` present; CR `required_approvals` |
 | Who approved? | `change_request.approved` events + `approvals` rows |
 
-### 3.3 Action taxonomy (initial)
+### 3.3 Action taxonomy
+
+Every action the code writes, by area (`backend/src/relay/**` is authoritative):
 
 ```
-migration.created | migration.conversion_plan_changed | migration.status_changed
-source_system.created | dataset.created
-import.uploaded | import.duplicate_upload_ignored | import.parsed | import.failed | import.activated | import.superseded
-mapping_set.draft_created | mapping_set.draft_updated | mapping_set.approved | mapping_set.superseded
-pipeline_run.requested | pipeline_run.succeeded | pipeline_run.failed | pipeline_run.staged_records_pruned
-issue.created | issue.assigned | issue.status_changed | issue.reopened | issue.verified_resolved | issue.dispositioned | issue.commented
-change_request.drafted | .submitted | .approval_recorded | .approved | .rejected | .withdrawn | .stale | .applied | .failed_to_apply
-override.activated | override.reverted | entity_decision.activated | entity_decision.reverted
-policy.version_created | gate.waived | readiness.evaluated | readiness.signed_off | readiness.signoff_invalidated
-investigation.started | investigation.completed | investigation.failed
-finding.created | finding.accepted | finding.dismissed | finding.drafted_change_request
-ai.suggestion_created | ai.suggestion_accepted | ai.suggestion_rejected
-user.dev_identity_assumed   (local/test only)
+company.created | migration.created | migration.status_changed | migration.ai_enabled_changed
+source_system.created | dataset.created | user.created
+import.uploaded | import.duplicate_upload_ignored | import.parsed | import.failed
+import.activated | import.superseded
+mapping_set.draft_created | mapping_set.approved | mapping_set.superseded
+account_mapping_set.draft_created | account_mapping_set.approved | account_mapping_set.superseded
+pipeline_run.requested | pipeline_run.succeeded | pipeline_run.failed | pipeline_run.superseded
+issue.created | issue.updated | issue.workflow_updated | issue.reopened | issue.commented
+issue.links_created | issue.awaiting_verification | issue.verified_resolved
+issue.verification_failed | issue.dispositioned | issue.disposition_reverted
+change_request.drafted | .draft_updated | .submitted | .approval_recorded | .approved
+change_request.rejected | .withdrawn | .stale | .applied
+override.activated | entity_decision.activated | disposition.activated
+policy.version_created | gate_waiver.activated | gate_waiver.lapsed
+readiness.evaluated | readiness.signed_off | readiness.signoff_invalidated
+investigation.requested | investigation.finished
+finding.reviewed | finding.drafted_change_request
 ```
+
+A reverted overlay is not a separate action: reverting deactivates the overlay through an approved
+`revert` change request, which writes `change_request.applied` plus the overlay's own activation
+record for the replacement (`issue.disposition_reverted` for dispositions).
 
 `before`/`after` hold minimal, typed diffs — not full row dumps — and never raw source row values beyond the specific field changed.
 

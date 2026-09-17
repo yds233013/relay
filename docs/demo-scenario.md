@@ -233,7 +233,12 @@ Each defect lists the planted data, detection signals, expected issues, and the 
 
 ## 6. Expected state
 
-### 6.1 Initial run (Run #1)
+### 6.1 Initial run
+
+"Run #1" below means the migration's first *evaluated* run — the state the golden manifest describes.
+In a seeded stack its sequence number is higher: `relay-demo seed` approves a column mapping per
+dataset, each approval requests a run, and each of those is superseded by the next approval before a
+worker starts it (sixteen superseded requests, then the run that is evaluated).
 
 | Gate | Status | Driven by |
 |---|---|---|

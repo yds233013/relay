@@ -1,6 +1,6 @@
 # Relay — AI Architecture & Safety Boundaries
 
-Status: **Planned.**
+Status: **Implemented in M8**, except the mapping suggestion tasks of §5, which were cut. No live-model eval run is recorded. Decisions: [0009](decisions/0009-ai-investigation-layer.md).
 
 Related: [architecture.md](architecture.md) · [governance.md](governance.md) · [security-and-correctness.md](security-and-correctness.md) · [testing.md](testing.md)
 
@@ -35,10 +35,15 @@ ai/
 │   ├── scripted.py    deterministic provider replaying recorded/authored transcripts (tests, CI, offline demo)
 │   └── disabled.py    raises AIDisabled; callers check capability first
 ├── tools/             registry + tool implementations over read models
-├── investigator/      agent loop, budgets, transcript persistence
-├── suggestions/       mapping suggestion tasks (single-shot, structured output)
-├── verification.py    finding schema validation + provenance verification
-└── prompts/           versioned templates (prompt_version recorded on every call)
+├── investigator.py    agent loop, budgets, step transcript
+├── findings.py        finding schema and the closed set of suggested actions
+├── redaction.py       the redaction policy applied to every tool result
+├── references.py      existence checks for provenance verification
+├── verification.py    provenance verification of a submission
+└── prompts.py         versioned system prompt (prompt_version recorded on every call)
+
+Persistence of investigations, steps and findings lives in `relay.investigations`, because
+`relay.ai` may not import models (decision 0009). Mapping suggestion tasks (§5) were cut.
 ```
 
 ### 2.1 Provider protocol
@@ -75,9 +80,9 @@ class ToolSpec:
     name: str
     description: str                  # written for the model; states limits
     input_model: type[BaseModel]      # strict, extra="forbid"
-    output_model: type[BaseModel]
     max_items: int                    # hard cap on rows returned
-    redaction: RedactionPolicy
+    max_items: int
+    terminal: bool          # submit_findings ends the loop
 
 def handler(ctx: ToolContext, args: InputModel) -> OutputModel
 ```

@@ -1,6 +1,6 @@
 # Relay — Architecture
 
-Status: **Target design. M0 (repository foundation) is implemented; everything else is planned.** See [progress.md](progress.md) for what exists. Update this document when implementation diverges, and record why.
+Status: **Implemented (M0–M9)**, with the deviations recorded in [decisions/](decisions/) and in [progress.md](progress.md). Sections still describing a target rather than the code are marked inline. See [progress.md](progress.md) for what exists. Update this document when implementation diverges, and record why.
 
 Related: [data-model.md](data-model.md) · [validation-and-reconciliation.md](validation-and-reconciliation.md) · [governance.md](governance.md) · [ai-safety.md](ai-safety.md) · [security-and-correctness.md](security-and-correctness.md)
 
@@ -46,7 +46,7 @@ Related: [data-model.md](data-model.md) · [validation-and-reconciliation.md](va
 └────────────────┘
 ```
 
-Docker Compose services: `db` (postgres:16), `migrate` (one-shot `alembic upgrade head`), `api`, `web` — implemented in M0. The `worker` service is added in M3 together with the jobs table; until then there is deliberately no worker process.
+Docker Compose services: `db` (postgres:16), `migrate` (one-shot `alembic upgrade head`), `api`, `worker` and `web`. The Compose project is named `relay`, so one machine runs one stack.
 
 ### 2.1 Why these choices
 
@@ -92,13 +92,15 @@ backend/src/relay/
 ├── profiling/          # profilers → DatasetProfile
 ├── canonical/          # Canonical Accounting Model types, natural keys, lineage       (M1)
 ├── mapping/            # column/account mapping sets, transforms, deterministic suggesters
-├── entity_resolution/  # blocking, features, scoring, decisions applier
-├── validation/         # engine, registry, RuleContext, rules/*.py
-├── reconciliation/     # engine, definitions/*.py, explainers/*.py, drilldown
-├── pipeline/           # orchestrator, stages, input fingerprint, staging writer, run diff
-├── issues/             # fingerprints → issues, lifecycle, comments, exposure
+├── engine/             # the pure deterministic core, as built: snapshot (normalization),
+│                       # rules, reconciliation (definitions, explainers), entities, readiness
+│                       # (gates, waivers, sign-off binding), overlays, policy, inputs
+├── imports/            # uploads, blob store, source rows, parsing
+├── mapping_sets/       # column and account mapping sets, deterministic suggestions
+├── pipeline/           # orchestrator, input fingerprint, staging writer, run diff, read models
+├── issues/             # fingerprints → issues, lifecycle, comments, links
 ├── changes/            # change requests, approval policy, appliers per kind
-├── readiness/          # gate registry, evaluation, waivers, sign-off binding
+├── investigations/     # AI investigations, steps, findings, review, drafts
 ├── audit/              # event writer, hash chain, verification, query
 ├── ai/
 │   ├── providers/      # LLMProvider protocol; anthropic.py, scripted.py, disabled.py
@@ -201,7 +203,10 @@ Stages 2–6 and 8–9's decision logic are pure functions over a `RunSnapshot`;
 
 ### 4.4 Retention
 
-Staged records are stored per run. Keep: the latest 5 runs, any run referenced by a sign-off, a readiness evaluation shown in audit, or a finding. Older runs keep summary rows (exceptions counts, recon results, gate results) but drop staged records. Pruning is itself audited.
+**Not implemented.** Every run keeps its staged records, so the database grows with each run; a
+250,000-line migration stages about 620,000 records per run. Pruning older runs (keeping those a
+sign-off, a readiness evaluation or a finding refers to) is the obvious next step and would itself
+be audited.
 
 ---
 
@@ -247,12 +252,17 @@ CSV upload is the MVP connector. A connector produces the same `source_rows` sha
 - **IDs** are UUIDv7 strings. Natural keys are separate fields.
 - **Errors**: RFC 9457 `application/problem+json` with a stable `code` (`import.duplicate_header`, `change_request.stale`, `approval.segregation_of_duties`, …), `detail`, and `errors[]` for field validation.
 - **Pagination**: cursor-based (`?cursor=&limit=`, max 500). Responses include `next_cursor`.
-- **Concurrency**: mutable resources expose `version`; updates require `If-Match`; mismatch → `412` with `code=concurrency.version_mismatch`.
-- **Idempotency**: `Idempotency-Key` header accepted on POSTs that create change requests, approvals, pipeline runs and investigations; replays return the original response.
+- **Concurrency**: mutable resources expose `version`, and an update sends the version it loaded in the request body; a mismatch is `409` (`issue.version_conflict`, `change_request.stale`). Not `If-Match`/`412`: see [traceability.md](traceability.md) GV-08 and [decisions/0010](decisions/0010-m9-hardening.md) H-10.
+- **Idempotency**: no `Idempotency-Key` header. Requests are idempotent by construction instead: a pipeline run is keyed by its input fingerprint, an upload by its content hash, and a job by its dedupe key.
 - **Long-running work** returns `202` with a resource that has a `status`; the client polls the resource (no websockets in MVP).
 - **Authorization** in one place: every router depends on `current_actor()` and a `require(permission)` guard; policy checks for approvals live in `changes.service`.
 
 ### 6.2 Endpoint map
+
+The map below is the intended shape. The generated `web/src/lib/api/openapi.json` is authoritative:
+a few paths differ (mapping previews and suggestions hang off `/datasets/{id}`, record inspection
+off `/pipeline-runs/{id}/records/{natural_key}`), and the policy, dispositions, entity decisions,
+record overrides, account mapping and issue link endpoints are not listed here.
 
 ```
 Identity
@@ -356,7 +366,7 @@ jobs(id, kind, payload jsonb, dedupe_key unique nullable, status queued|running|
      created_at, finished_at)
 ```
 
-- Kinds: `parse_import`, `profile_import`, `run_pipeline`, `run_investigation`, `prune_runs`.
+- Kinds: `parse_import`, `profile_import`, `run_pipeline`, `evaluate_readiness`, `run_investigation`.
 - Worker: `SELECT … WHERE status='queued' AND run_after<=now() ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1`.
 - Heartbeats; a job with a stale heartbeat is re-queued (attempts++). Handlers must be idempotent: `run_pipeline` is keyed by fingerprint, `parse_import` by import id + status check.
 - `run_pipeline` jobs for the same migration are serialized with a Postgres advisory lock on the migration id.
@@ -398,7 +408,7 @@ Frontend rules: no money arithmetic in TypeScript; server-state only via TanStac
 
 ## 10. Configuration
 
-`pydantic-settings`, env-prefixed `RELAY_`. M0 implements `RELAY_ENV`, `RELAY_DATABASE_URL`, `RELAY_DB_POOL_SIZE`, `RELAY_DB_CONNECT_TIMEOUT_SECONDS`, `RELAY_LOG_LEVEL` and `RELAY_LOG_FORMAT`; the rest arrive with the code that reads them. Planned variables:
+`pydantic-settings`, env-prefixed `RELAY_`. `backend/src/relay/core/config.py` is authoritative; `.env.example` documents the local-development ones.
 
 | Variable | Default | Notes |
 |---|---|---|
@@ -407,12 +417,16 @@ Frontend rules: no money arithmetic in TypeScript; server-state only via TanStac
 | `RELAY_STORAGE_DIR` | `/data/blobs` | BlobStore root |
 | `RELAY_MAX_UPLOAD_BYTES` | `52428800` | 50 MB |
 | `RELAY_MAX_ROWS_PER_IMPORT` | `500000` | |
-| `RELAY_MAX_FIELD_CHARS` | `10000` | |
+| `RELAY_MAX_UPLOADS_PER_HOUR` | `300` | per person, checked before any bytes are read (SEC-17) |
+| `RELAY_DEV_IDENTITY_ENABLED` | `true` outside production | the `X-Relay-User` header; refused when `RELAY_ENV=production` |
 | `RELAY_AI_PROVIDER` | `disabled` | `disabled`, `anthropic`, `scripted` |
 | `RELAY_AI_MODEL` | — | e.g. a current Claude model id; verify at implementation time |
 | `ANTHROPIC_API_KEY` | — | only read by the anthropic provider |
 | `RELAY_AI_MAX_TOOL_CALLS` | `15` | per investigation |
-| `RELAY_AI_TIMEOUT_SECONDS` | `120` | per investigation |
+| `RELAY_AI_MAX_SECONDS` | `120` | wall clock per investigation |
+| `RELAY_AI_MAX_TOTAL_TOKENS` | | budget per investigation |
+| `RELAY_AI_SCRIPTS_DIR` | — | transcripts for the `scripted` provider |
+| `RELAY_AI_API_BASE_URL` | Anthropic's | HTTPS only |
 | `RELAY_LOG_LEVEL` | `INFO` | |
 
 ---

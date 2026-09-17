@@ -67,7 +67,7 @@ Related: [data-model.md](data-model.md) · [governance.md](governance.md) · [ai
 | SEC-12 | Strict Pydantic input models (`extra="forbid"`), bounded string lengths and list sizes. |
 | SEC-13 | Parameterized SQL only (SQLAlchemy); no string-built SQL. |
 | SEC-14 | Problem responses never include stack traces, SQL, or row values outside `local`. |
-| SEC-15 | CORS restricted to the web origin; security headers (CSP without `unsafe-inline` for scripts, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`). |
+| SEC-15 | No cross-origin access: the browser never calls the API directly, so no CORS headers are sent at all. Security headers on every response: a nonce-based CSP without `unsafe-inline` for scripts on the web, `default-src 'none'` on the API, plus `X-Content-Type-Options`, `Referrer-Policy` and `frame-ancestors 'none'`. |
 | SEC-16 | User-originated and data-originated text rendered as text in React (no `dangerouslySetInnerHTML`). |
 | SEC-17 | Rate limiting on upload and investigation endpoints (simple per-user token bucket in MVP). |
 
