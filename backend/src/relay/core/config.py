@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     storage_dir: Path = Path("/data/blobs")
     max_upload_bytes: int = Field(default=52_428_800, ge=1024, le=1_073_741_824)
     max_rows_per_import: int = Field(default=500_000, ge=1, le=2_000_000)
+    max_uploads_per_hour: int = Field(default=300, ge=1, le=10_000)
     dev_identity_enabled: bool | None = Field(
         default=None,
         description=(

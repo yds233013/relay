@@ -40,25 +40,40 @@ def resolve_evidence(
 ) -> list[dict[str, Any]]:
     """Turn gate evidence strings into typed links (issues, reconciliation lines, candidates)."""
     fingerprints = [e for e in evidence if _FINGERPRINT.fullmatch(e)]
-    issues = {
-        issue.fingerprint: issue
-        for issue in session.scalars(
-            select(Issue).where(
-                Issue.migration_id == migration_id, Issue.fingerprint.in_(fingerprints)
+    issues = (
+        {
+            issue.fingerprint: issue
+            for issue in session.scalars(
+                select(Issue).where(
+                    Issue.migration_id == migration_id, Issue.fingerprint.in_(fingerprints)
+                )
             )
-        )
-    }
-    lines = {
-        line.grain_key: line
-        for line in session.scalars(
-            select(ReconciliationLineRow)
-            .join(
-                ReconciliationResultRow,
-                ReconciliationLineRow.result_id == ReconciliationResultRow.id,
+        }
+        if fingerprints
+        else {}
+    )
+    # Only the cited lines: a gate's evidence names a handful, and a run can hold hundreds of
+    # thousands of them.
+    wanted = {item: _line_key(item) for item in evidence}
+    keys = {key for key in wanted.values() if key}
+    lines = (
+        {
+            line.grain_key: line
+            for line in session.scalars(
+                select(ReconciliationLineRow)
+                .join(
+                    ReconciliationResultRow,
+                    ReconciliationLineRow.result_id == ReconciliationResultRow.id,
+                )
+                .where(
+                    ReconciliationResultRow.run_id == run_id,
+                    ReconciliationLineRow.grain_key.in_(keys),
+                )
             )
-            .where(ReconciliationResultRow.run_id == run_id)
-        )
-    }
+        }
+        if keys
+        else {}
+    )
     links: list[dict[str, Any]] = []
     for item in evidence:
         if item in issues:
@@ -67,10 +82,8 @@ def resolve_evidence(
                 {"kind": "issue", "label": f"{issue.key} {issue.title}", "issue_id": issue.id}
             )
             continue
-        recon = re.fullmatch(r"(R\d[a-z]?):(\{.*\})", item)
-        if recon:
-            grain = _grain_from_repr(recon.group(2))
-            key = "recon:" + recon.group(1) + ":" + ",".join(f"{k}={v}" for k, v in grain.items())
+        key = wanted[item]
+        if key:
             line = lines.get(key)
             links.append(
                 {
@@ -86,6 +99,15 @@ def resolve_evidence(
             continue
         links.append({"kind": "text", "label": item})
     return links
+
+
+def _line_key(item: str) -> str | None:
+    """The reconciliation line an evidence string names, if it names one."""
+    recon = re.fullmatch(r"(R\d[a-z]?):(\{.*\})", item)
+    if recon is None:
+        return None
+    grain = _grain_from_repr(recon.group(2))
+    return "recon:" + recon.group(1) + ":" + ",".join(f"{k}={v}" for k, v in grain.items())
 
 
 def _grain_from_repr(text: str) -> dict[str, str]:

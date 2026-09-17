@@ -13,21 +13,24 @@ import threading
 import time
 from collections import Counter
 from collections.abc import Iterator
+from dataclasses import replace
 from decimal import Decimal
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, select, text
+from sqlalchemy import Engine, func, select, text
 
 from relay.api.app import create_app
 from relay.audit.models import AuditEvent
 from relay.audit.service import advisory_lock_key
-from relay.changes.models import ChangeRequest
+from relay.changes.kinds import KINDS
+from relay.changes.models import ChangeRequest, ChangeRequestKind
 from relay.core.config import Settings
 from relay.core.db import session_scope
 from relay.engine.overlays import AccountMappingChange, Overlays
 from relay.engine.pipeline import EngineResult, run_engine
+from relay.workspace import service as workspace
 from relay_evaluation.brightwater import persisted, resolution
 from relay_evaluation.cli import _read_fixtures
 from relay_evaluation.paths import BRIGHTWATER_FIXTURES
@@ -214,6 +217,120 @@ def test_a_lead_cannot_approve_their_own_change(client: TestClient, story: Story
         client.post(
             f"/api/v1/change-requests/{change['id']}/withdraw", json={}, headers=headers(DANIEL)
         )
+    )
+
+
+def test_editing_a_draft_someone_else_changed_is_refused(client: TestClient, story: Story) -> None:
+    """GV-08: optimistic concurrency on a mutable resource. Two editors, one loaded copy each."""
+    migration_id = story[0].migration_id
+    change = ok(
+        client.post(
+            f"/api/v1/migrations/{migration_id}/change-requests",
+            json={
+                "kind": "policy_change",
+                "title": "Concurrent edit",
+                "payload": {"changes": {"duplicate_window_days": 8}},
+            },
+            headers=headers(MAYA),
+        ),
+        201,
+    )
+    assert change["version"] == 1
+    first = ok(
+        client.put(
+            f"/api/v1/change-requests/{change['id']}",
+            json={"version": 1, "title": "Edited first"},
+            headers=headers(MAYA),
+        )
+    )
+    assert (first["version"], first["title"]) == (2, "Edited first")
+    stale = client.put(
+        f"/api/v1/change-requests/{change['id']}",
+        json={"version": 1, "title": "Edited from a stale copy"},
+        headers=headers(MAYA),
+    )
+    assert stale.status_code == 409
+    assert "reload" in stale.json()["detail"]
+    current = ok(client.get(f"/api/v1/change-requests/{change['id']}", headers=headers(SAM)))
+    assert current["change_request"]["title"] == "Edited first"
+    ok(
+        client.post(
+            f"/api/v1/change-requests/{change['id']}/withdraw", json={}, headers=headers(MAYA)
+        )
+    )
+
+
+def test_an_applier_that_fails_rolls_back_the_approval_with_it(
+    client: TestClient, story: Story, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GV-04: approve and apply are one transaction. The failure is injected in the applier."""
+    migration_id = story[0].migration_id
+    change = draft_and_submit(
+        client, migration_id,
+        {"kind": "policy_change", "title": "Applier fails",
+         "payload": {"changes": {"duplicate_window_days": 9}}},
+        "Probe that a failing apply leaves nothing behind.",
+    )  # fmt: skip
+    # The lead approves normally; the controller's approval is the one that applies the change.
+    ok(
+        client.post(
+            f"/api/v1/change-requests/{change['id']}/approve", json={}, headers=headers(DANIEL)
+        )
+    )
+    handler = KINDS[ChangeRequestKind.POLICY_CHANGE]
+    apply_policy = handler.apply
+
+    def explode(*args: Any, **kwargs: Any) -> Any:
+        apply_policy(*args, **kwargs)  # the applier's real writes, and then a failure after them
+        raise RuntimeError("injected failure")
+
+    with session_scope(story[1]) as session:
+        policy_row = workspace.current_policy(session, migration_id)
+        before_policy, before_window = (
+            policy_row.version,
+            policy_row.policy["duplicate_window_days"],
+        )
+        before_events = session.scalar(
+            select(func.count())
+            .select_from(AuditEvent)
+            .where(AuditEvent.migration_id == migration_id)
+        )
+    monkeypatch.setitem(KINDS, ChangeRequestKind.POLICY_CHANGE, replace(handler, apply=explode))
+    with pytest.raises(RuntimeError, match="injected failure"):
+        client.post(
+            f"/api/v1/change-requests/{change['id']}/approve", json={}, headers=headers(PRIYA)
+        )
+    monkeypatch.undo()
+
+    detail = ok(client.get(f"/api/v1/change-requests/{change['id']}", headers=headers(SAM)))
+    assert detail["change_request"]["status"] == "submitted"
+    assert [a["reviewer_name"] for a in detail["approvals"]] == ["Daniel Okafor"]
+    with session_scope(story[1]) as session:
+        assert workspace.current_policy(session, migration_id).version == before_policy
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(AuditEvent)
+                .where(AuditEvent.migration_id == migration_id)
+            )
+            == before_events
+        )
+    # Nothing was consumed: the same approval applies the change once the applier works.
+    outcome = ok(
+        client.post(
+            f"/api/v1/change-requests/{change['id']}/approve", json={}, headers=headers(PRIYA)
+        )
+    )
+    assert outcome["change_request"]["status"] == "applied"
+    # Put the policy back where the module found it, so later tests see the same state.
+    restore = draft_and_submit(
+        client, migration_id,
+        {"kind": "policy_change", "title": "Restore the duplicate window",
+         "payload": {"changes": {"duplicate_window_days": before_window}}},
+        "Undo the probe's policy change.",
+    )  # fmt: skip
+    assert approve_all(client, restore["id"], [DANIEL, PRIYA])["change_request"]["status"] == (
+        "applied"
     )
 
 

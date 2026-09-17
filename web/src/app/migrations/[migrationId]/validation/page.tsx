@@ -48,7 +48,12 @@ export default async function ValidationPage(
             { header: "Title", cell: (r) => r.title },
             {
               header: "Status",
-              cell: (r) => <StatusChip status={r.status} label={r.status.replace("_", " ")} />,
+              cell: (r) => (
+                <>
+                  <StatusChip status={r.status} label={r.status.replace("_", " ")} />
+                  {r.error ? <p className="text-xs text-red-900">{r.error}</p> : null}
+                </>
+              ),
             },
             {
               header: "Findings",

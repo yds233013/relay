@@ -45,6 +45,14 @@ class SkippedRule:
 
 
 @dataclass(frozen=True, slots=True)
+class ErroredStage:
+    """A rule or reconciliation that raised: its findings are unknown, so G4 fails (FC-10)."""
+
+    stage: str
+    error: str
+
+
+@dataclass(frozen=True, slots=True)
 class EngineResult:
     input_fingerprint: str
     snapshot: RunSnapshot
@@ -53,6 +61,7 @@ class EngineResult:
     exceptions: tuple[RuleException, ...]
     reconciliations: tuple[ReconResult, ...]
     skipped_rules: tuple[SkippedRule, ...]
+    errored_stages: tuple[ErroredStage, ...] = ()
 
     @property
     def result_fingerprint(self) -> str:
@@ -70,6 +79,12 @@ class EngineResult:
                 ),
                 "candidates": sorted(
                     f"{c.party_type}:{c.left}:{c.right}:{c.score}" for c in self.candidates
+                ),
+                # Only for a run that errored, so an error-free result keeps the identity it had.
+                **(
+                    {"errored": sorted(e.stage for e in self.errored_stages)}
+                    if self.errored_stages
+                    else {}
                 ),
             }
         )
@@ -129,6 +144,11 @@ def _severity(policy: Policy, exception: RuleException) -> RuleException:
     return replace(exception, severity=Severity(override))
 
 
+def _error_text(error: Exception) -> str:
+    """Type and message only: an engine result must never carry a traceback or row values."""
+    return f"{type(error).__name__}: {error}"[:200]
+
+
 def run_engine(
     inputs: MigrationInputs, overlays: Overlays | None = None, policy: Policy | None = None
 ) -> EngineResult:
@@ -153,15 +173,21 @@ def run_engine(
     )
     found: list[RuleException] = list(snapshot.exceptions)
     skipped: list[SkippedRule] = []
+    errored: list[ErroredStage] = []
     for rule_id in sorted(REGISTRY):
         spec, function = REGISTRY[rule_id]
         missing = tuple(sorted(spec.requires - snapshot.datasets_present))
         if missing:
             skipped.append(SkippedRule(rule_id, missing))
             continue
-        found.extend(function(context, spec))
-    reconciliations, recon_exceptions = reconcile(snapshot, policy)
+        try:
+            found.extend(function(context, spec))
+        except Exception as error:  # noqa: BLE001 - one broken rule must not hide the others
+            # FC-10: the rule's findings are unknown. Keep the rest of the evidence and fail G4.
+            errored.append(ErroredStage(f"rule:{rule_id}", _error_text(error)))
+    reconciliations, recon_exceptions, recon_errors = reconcile(snapshot, policy)
     found.extend(recon_exceptions)
+    errored.extend(ErroredStage(stage, _error_text(error)) for stage, error in recon_errors)
 
     unique: dict[str, RuleException] = {}
     for raw in found:
@@ -181,6 +207,7 @@ def run_engine(
         exceptions=tuple(ordered),
         reconciliations=tuple(reconciliations),
         skipped_rules=tuple(skipped),
+        errored_stages=tuple(sorted(errored, key=lambda e: e.stage)),
     )
 
 

@@ -16,6 +16,7 @@ const STYLES: Record<string, { icon: string; className: string }> = {
   explained: { icon: "✓", className: "border-green-700 text-green-900 bg-green-50" },
   fail: { icon: "✕", className: "border-red-700 text-red-900 bg-red-50" },
   failed: { icon: "✕", className: "border-red-700 text-red-900 bg-red-50" },
+  errored: { icon: "✕", className: "border-red-700 text-red-900 bg-red-50" },
   not_ready: { icon: "✕", className: "border-red-700 text-red-900 bg-red-50" },
   discrepancy: { icon: "✕", className: "border-red-700 text-red-900 bg-red-50" },
   critical: { icon: "▲", className: "border-red-700 text-red-900 bg-red-50" },

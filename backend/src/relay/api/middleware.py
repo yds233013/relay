@@ -20,6 +20,9 @@ _SECURITY_HEADERS: Final = {
     "referrer-policy": "no-referrer",
     "x-frame-options": "DENY",
     "cache-control": "no-store",
+    # SEC-15: the API answers with JSON only. Nothing it returns may load or embed anything, and
+    # nothing may embed it. The web app sets its own nonce-based policy for rendered pages.
+    "content-security-policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
 }
 
 _log = get_logger("relay.api.request")

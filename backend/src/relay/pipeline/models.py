@@ -53,6 +53,8 @@ class RuleRunStatus(StrEnum):
     PASSED = "passed"
     FAILED = "failed"
     NOT_APPLICABLE = "not_applicable"
+    ERRORED = "errored"
+    """The rule raised: its findings are unknown and readiness fails (FC-10)."""
 
 
 class LineStatus(StrEnum):
@@ -151,6 +153,7 @@ class RuleRun(Base):
     status: Mapped[str] = mapped_column(Text, nullable=False)
     exception_count: Mapped[int] = mapped_column(Integer, nullable=False)
     missing_datasets: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
+    error: Mapped[str | None] = mapped_column(Text)
 
 
 class RuleExceptionRow(Base):

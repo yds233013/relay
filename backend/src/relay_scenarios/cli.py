@@ -36,6 +36,7 @@ from relay_scenarios.brightwater.scenario import (
     write_fixtures,
 )
 from relay_scenarios.brightwater.seed import seed
+from relay_scenarios.perf import measure_pipeline
 from relay_scenarios.volume import build_volume_migration, export_volume_migration
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -125,6 +126,32 @@ def perf_engine(lines: int, mapping_set_path: Path) -> int:
     return 0 if not result.exceptions and discrepancies == 0 else 1
 
 
+def perf_pipeline(lines: int, mapping_set_path: Path) -> int:
+    """Measure the persisted pipeline against RELAY_DATABASE_URL (use a throwaway database)."""
+    settings = get_settings()
+    configure_logging("WARNING", settings.log_format)
+    factory = create_session_factory(create_db_engine(settings))
+    report = measure_pipeline(
+        factory,
+        settings,
+        LocalBlobStore(settings.storage_dir),
+        ImportLimits(settings.max_upload_bytes, settings.max_rows_per_import),
+        mapping_set_path,
+        lines,
+    )
+    machine = (
+        f"{platform.platform()}; {platform.machine()}; {os.cpu_count()} logical CPUs; "
+        f"Python {platform.python_version()}"
+    )
+    sys.stdout.write(
+        "Persisted pipeline on a synthetic clean migration (Harborline Supply Co., fictional)\n"
+        f"  machine              {machine}\n"
+        + "".join(f"  {line}\n" for line in report)
+        + f"  peak RSS MiB         {_peak_rss_mib():.0f} (whole process, including generation)\n"
+    )
+    return 0
+
+
 def summary(scenario: Scenario, out_dir: Path | None) -> str:
     u = scenario.universe
     exported_customers = sum(1 for c in u.customers.values() if c.is_active)
@@ -184,6 +211,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     perf.add_argument("--lines", type=int, default=250_000)
     perf.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
+    perf_pipeline_parser = sub.add_parser(
+        "perf-pipeline",
+        help="measure imports, runs, readiness and reads against RELAY_DATABASE_URL "
+        "(loads a synthetic migration; use a throwaway database)",
+    )
+    perf_pipeline_parser.add_argument("--lines", type=int, default=250_000)
+    perf_pipeline_parser.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
     seed_parser = sub.add_parser(
         "seed",
         help="load Brightwater into the database named by RELAY_DATABASE_URL (day-9 state)",
@@ -202,6 +236,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "seed":
         return seed_database(args.fixtures, args.mapping_set)
+
+    if args.command == "perf-pipeline":
+        return perf_pipeline(args.lines, args.mapping_set)
 
     if args.command == "perf-engine":
         return perf_engine(args.lines, args.mapping_set)

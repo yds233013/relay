@@ -95,13 +95,13 @@ def test_migrations_upgrade_downgrade_upgrade(
 ) -> None:
     database_url, _, engine = migration_database
     head = head_revision()
-    assert head == "0006_investigations"
+    assert head == "0007_errored_stages"
 
     _upgrade(database_url)
     assert current_revision(engine) == head
 
     _downgrade(database_url, "-1")
-    assert current_revision(engine) == "0005_readiness"
+    assert current_revision(engine) == "0006_investigations"
     _upgrade(database_url)
     assert current_revision(engine) == head
 
@@ -124,7 +124,7 @@ def test_ready_endpoint_against_real_database(
             "reachable": True,
             "migrations": "not_at_head",
             "current_revision": None,
-            "head_revision": "0006_investigations",
+            "head_revision": "0007_errored_stages",
         }
 
         _upgrade(database_url)
@@ -135,11 +135,11 @@ def test_ready_endpoint_against_real_database(
             "database": {
                 "reachable": True,
                 "migrations": "at_head",
-                "current_revision": "0006_investigations",
-                "head_revision": "0006_investigations",
+                "current_revision": "0007_errored_stages",
+                "head_revision": "0007_errored_stages",
             },
         }
-    assert current_revision(engine) == "0006_investigations"
+    assert current_revision(engine) == "0007_errored_stages"
 
 
 # --------------------------------------------------------------------------- column types

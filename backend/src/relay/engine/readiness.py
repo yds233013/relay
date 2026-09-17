@@ -39,7 +39,6 @@ class GovernanceFacts:
     current_fingerprint: str | None = None
     """``None`` means the evaluated result is the current run."""
     pending_change_requests: int = 0
-    errored_stages: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -207,11 +206,13 @@ def evaluate_readiness(
         _gate(
             "G4",
             "Results current",
-            current and not facts.errored_stages,
-            "current" if current else "stale",
+            current and not result.errored_stages,
+            "current"
+            if current and not result.errored_stages
+            else ("stale" if not current else f"{len(result.errored_stages)} errored"),
             "current, no errors",
             "The evaluated run reflects the current inputs and completed without errors",
-            facts.errored_stages,
+            [f"{e.stage} — {e.error}" for e in result.errored_stages],
         )
     )
     blocking = [e for e in unresolved if e.severity in {Severity.CRITICAL, Severity.HIGH}]

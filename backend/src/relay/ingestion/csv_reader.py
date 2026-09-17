@@ -18,6 +18,7 @@ from relay.core.errors import InvalidInputError
 
 MAX_FIELD_CHARS: Final = 10_000
 MAX_ROWS: Final = 2_000_000
+MAX_COLUMNS: Final = 512
 MAX_RECORD_LINES: Final = 20
 QUARANTINE_TEXT_LIMIT: Final = 4_000
 
@@ -83,6 +84,16 @@ def _read_record(physical: list[str], index: int, delimiter: str) -> tuple[list[
     return None, 1
 
 
+def _read_header(line: str, delimiter: str) -> tuple[str, ...]:
+    header = tuple(field.strip() for field in next(csv.reader([line], delimiter=delimiter)))
+    if len(set(header)) != len(header) or any(not h for h in header):
+        raise SourceFileError("header has blank or duplicate column names")
+    if len(header) > MAX_COLUMNS:
+        # SEC-01: a pathological header would otherwise size every row's dict and every profile.
+        raise SourceFileError(f"file has {len(header)} columns; at most {MAX_COLUMNS} are read")
+    return header
+
+
 def read_csv(file_name: str, content: bytes, *, encoding: str, delimiter: str = ",") -> RawTable:
     text = decode(content, encoding)
     if "\x00" in text:
@@ -90,10 +101,7 @@ def read_csv(file_name: str, content: bytes, *, encoding: str, delimiter: str = 
     physical = text.splitlines(keepends=True)
     if not physical:
         raise SourceFileError("file is empty")
-    header_fields = next(csv.reader([physical[0]], delimiter=delimiter))
-    header = tuple(field.strip() for field in header_fields)
-    if len(set(header)) != len(header) or any(not h for h in header):
-        raise SourceFileError("header has blank or duplicate column names")
+    header = _read_header(physical[0], delimiter)
 
     rows: list[SourceRow] = []
     quarantined: list[QuarantinedRow] = []

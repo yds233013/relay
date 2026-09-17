@@ -9,6 +9,7 @@ from __future__ import annotations
 import uuid
 from itertools import pairwise
 from pathlib import Path
+from typing import Any
 
 import pytest
 from sqlalchemy import Engine, func, select, text
@@ -21,9 +22,11 @@ from relay.changes.models import Approval, ApprovalDecision, ChangeRequest, Chan
 from relay.core.actor import Actor
 from relay.core.db import create_session_factory, session_scope
 from relay.core.ids import uuid7
+from relay.engine.rules import REGISTRY
 from relay.imports import service as imports
 from relay.imports.blob_store import LocalBlobStore, UploadTooLargeError
 from relay.imports.models import Import, ImportStatus, QuarantinedRow, SourceRow, StoredFile
+from relay.imports.service import ImportLimits
 from relay.jobs import service as jobs
 from relay.jobs.models import JobKind
 from relay.mapping_sets import service as mapping_sets
@@ -32,7 +35,13 @@ from relay.pipeline.models import PipelineRun
 from relay.worker import drain
 from relay.workspace import service as workspace
 from relay.workspace.models import SourceSystemKind
-from tests.integration.support import LIMITS, Workspace, ensure_head, make_workspace, worker_context
+from tests.integration.support import (
+    LIMITS,
+    Workspace,
+    ensure_head,
+    make_workspace,
+    worker_context,
+)
 
 CSV = (
     b"Customer ID,Customer Name\r\nC-1,Alpha Foods\r\nC-2,Beta Market\r\nC-3,broken\r\n"
@@ -273,6 +282,41 @@ def test_upload_limits_and_content_checks(
     assert list((blob_root / "tmp").iterdir()) == []  # SEC-06: temporary files are removed
 
 
+def test_uploads_are_rate_limited_per_person(
+    factory: sessionmaker[Session], space: Workspace, blob_root: Path
+) -> None:
+    """SEC-17: the limit is checked before any bytes are read, and counts this person's uploads."""
+    limited = ImportLimits(max_upload_bytes=1_000_000, max_rows=10_000, max_uploads_per_hour=2)
+
+    def upload(content: bytes) -> None:
+        with session_scope(factory) as session:
+            imports.upload(
+                session,
+                actor=space.specialist,
+                dataset=workspace.get_dataset(session, space.dataset_id),
+                filename="customers.csv",
+                chunks=[content],
+                blob_store=LocalBlobStore(blob_root),
+                limits=limited,
+            )
+
+    upload(b"Customer ID,Customer Name\r\nC-9,Nine\r\n")
+    upload(b"Customer ID,Customer Name\r\nC-8,Eight\r\n")
+    with pytest.raises(imports.UploadRateLimitedError, match="2 uploads per person per hour"):
+        upload(b"Customer ID,Customer Name\r\nC-7,Seven\r\n")
+    # Someone else is unaffected.
+    with session_scope(factory) as session:
+        imports.upload(
+            session,
+            actor=space.lead,
+            dataset=workspace.get_dataset(session, space.dataset_id),
+            filename="customers.csv",
+            chunks=[b"Customer ID,Customer Name\r\nC-6,Six\r\n"],
+            blob_store=LocalBlobStore(blob_root),
+            limits=limited,
+        )
+
+
 def test_path_traversal_in_file_names_is_inert(
     factory: sessionmaker[Session], space: Workspace, blob_root: Path
 ) -> None:
@@ -391,6 +435,47 @@ def test_pipeline_request_is_idempotent_on_the_fingerprint(
         )
     assert not after.created
     assert after.run.id == first.run.id
+
+
+def test_a_rule_that_raises_is_persisted_as_errored_and_blocks_readiness(
+    factory: sessionmaker[Session],
+    space: Workspace,
+    blob_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FC-10: the run still records its evidence, names the errored rule, and G4 fails."""
+    _upload(factory, space, blob_root, CSV)
+    context = worker_context(factory, blob_root)
+    drain(context)
+    rule_id = "PARTY.UNRESOLVED_DUPLICATE_CANDIDATE"  # applicable without any dataset
+    spec, _ = REGISTRY[rule_id]
+
+    def broken(_context: Any, _spec: Any) -> list[Any]:
+        raise ZeroDivisionError("division by zero")
+
+    monkeypatch.setitem(REGISTRY, rule_id, (spec, broken))
+    with session_scope(factory) as session:
+        run_id = pipeline.request_run(
+            session, actor=space.specialist, migration_id=space.migration_id
+        ).run.id
+    drain(context)
+    with session_scope(factory) as session:
+        run = session.get_one(PipelineRun, run_id)
+        assert run.status == "succeeded"
+        errored = session.execute(
+            text("SELECT status, error FROM rule_runs WHERE run_id = :run AND rule_id = :rule"),
+            {"run": run_id, "rule": rule_id},
+        ).one()
+        assert errored == ("errored", "ZeroDivisionError: division by zero")
+        gate = session.execute(
+            text(
+                "SELECT status, evidence FROM gate_results g JOIN readiness_evaluations e"
+                " ON e.id = g.evaluation_id WHERE e.run_id = :run AND g.gate_id = 'G4'"
+            ),
+            {"run": run_id},
+        ).one()
+    assert gate[0] == "fail"
+    assert gate[1] == [f"rule:{rule_id} — ZeroDivisionError: division by zero"]
 
 
 def test_run_fails_cleanly_when_inputs_change_after_the_request(

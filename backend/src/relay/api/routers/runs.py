@@ -106,7 +106,9 @@ async def upload_import(
     The body is read in chunks and refused as soon as it exceeds the configured limit; the file
     name header is percent-decoded and used for display only.
     """
-    limits = imports.ImportLimits(settings.max_upload_bytes, settings.max_rows_per_import)
+    limits = imports.ImportLimits(
+        settings.max_upload_bytes, settings.max_rows_per_import, settings.max_uploads_per_hour
+    )
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > limits.max_upload_bytes:
         raise UploadTooLargeError(f"uploads are limited to {limits.max_upload_bytes} bytes")
@@ -278,6 +280,7 @@ def list_rule_runs(run_id: uuid.UUID, _actor: ReaderDep, session: SessionDep) ->
             status=r.status,
             exception_count=r.exception_count,
             missing_datasets=list(r.missing_datasets),
+            error=r.error,
         )
         for r in runs_read.rule_runs(session, run_id)
     ]

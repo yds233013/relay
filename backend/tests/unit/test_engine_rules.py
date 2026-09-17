@@ -10,12 +10,16 @@ from __future__ import annotations
 from dataclasses import replace
 from decimal import Decimal
 
+import pytest
+
 from relay.canonical.enums import PartyType
 from relay.engine.exceptions import Severity
 from relay.engine.overlays import EntityDecision, Overlays, QuarantineRepair, RecordOverride
 from relay.engine.pipeline import input_fingerprint, run_engine
 from relay.engine.policy import Policy
 from relay.engine.readiness import GovernanceFacts, evaluate_readiness, unresolved_exposure
+from relay.engine.reconciliation import LineStatus, OverExplainedLineError, ReconLine
+from relay.engine.rules import REGISTRY, RuleContext, RuleSpec
 from relay_scenarios.volume import OPENING_CASH
 from tests.unit.engine_support import (
     BANK,
@@ -457,3 +461,70 @@ def test_a_repair_for_a_file_the_run_did_not_read_is_reported_stale() -> None:
     stale = [e for e in result.exceptions if e.rule_id == "OVERRIDE.STALE"]
     assert [e.subjects for e in stale] == [("override:QR-GONE",)]
     assert rules_fired(result) == {"OVERRIDE.STALE": 1}
+
+
+def _line(left: str, right: str, explained: str) -> ReconLine:
+    return ReconLine((("account", "1010"),), Decimal(left), Decimal(right), Decimal(explained))
+
+
+def test_a_reconciliation_line_may_explain_part_of_its_difference() -> None:
+    # FC-11: explaining part of the difference, in its direction, leaves the rest unexplained.
+    partial = _line("100.00", "40.00", "25.00")
+    assert partial.unexplained == Decimal("35.00")
+    assert _line("-100.00", "-40.00", "-60.00").unexplained == 0
+    assert _line("100.00", "100.00", "0").status(Decimal("0.01")) is LineStatus.TIED
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "explained"),
+    [
+        ("100.00", "40.00", "80.00"),  # beyond the difference
+        ("100.00", "40.00", "-10.00"),  # against the difference
+        ("100.00", "100.00", "5.00"),  # with nothing to explain
+    ],
+)
+def test_a_reconciliation_line_may_not_explain_more_than_its_difference(
+    left: str, right: str, explained: str
+) -> None:
+    # FC-11: over-explaining means the explainer matched the wrong records; the run must fail.
+    with pytest.raises(OverExplainedLineError, match="explain"):
+        _line(left, right, explained)
+
+
+def test_a_rule_that_raises_is_recorded_and_fails_readiness(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # FC-10: the other evidence survives, the errored rule is named, and G4 fails.
+    rule_id = "GL.JE_BALANCED"
+    spec, _ = REGISTRY[rule_id]
+
+    def broken(_context: RuleContext, _spec: RuleSpec) -> list[object]:
+        raise ZeroDivisionError("division by zero")
+
+    monkeypatch.setitem(REGISTRY, rule_id, (spec, broken))
+    result = run(base_files())
+    assert [(e.stage, e.error) for e in result.errored_stages] == [
+        (f"rule:{rule_id}", "ZeroDivisionError: division by zero")
+    ]
+    assert result.reconciliations  # the rest of the run still produced evidence
+    assert not any(e.rule_id == rule_id for e in result.exceptions)
+    readiness = evaluate_readiness(
+        result, Overlays(), Policy(), GovernanceFacts(required_datasets=frozenset())
+    )
+    g4 = next(g for g in readiness.gates if g.gate_id == "G4")
+    assert g4.status.value == "fail"
+    assert g4.evidence == (f"rule:{rule_id} — ZeroDivisionError: division by zero",)
+    assert not readiness.ready
+
+
+def test_a_reconciliation_that_raises_leaves_the_others_intact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def broken(_snapshot: object, _policy: object) -> object:
+        raise ValueError("bad grain")
+
+    monkeypatch.setattr("relay.engine.reconciliation.r6_activity_totals", broken)
+    result = run(base_files())
+    assert [e.stage for e in result.errored_stages] == ["reconciliation:R6"]
+    assert {r.recon_id for r in result.reconciliations} >= {"R1", "R2", "R3", "R5"}
+    assert "R6" not in {r.recon_id for r in result.reconciliations}

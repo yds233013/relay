@@ -740,6 +740,11 @@ def export_volume_migration(migration: VolumeMigration) -> dict[str, bytes]:
 
 def _descriptor() -> bytes:
     lp, bank, impl = "ledgerpro/", "firstcascade/", "implementation/"
+    systems = [
+        ("ledgerpro", "HarborERP 2013", "legacy_erp"),
+        ("firstcascade", "First Cascade Bank (account ending 4471)", "bank"),
+        ("implementation", "Implementation team", "other"),
+    ]
     datasets = [
         ("legacy_coa", lp + "ledgerpro_chart_of_accounts.csv", "cp1252", None),
         ("trial_balance", lp + "ledgerpro_trial_balance_by_period.csv", "cp1252", None),
@@ -773,8 +778,15 @@ def _descriptor() -> bytes:
             "go_live_date": "2026-07-01",
             "bank_clearing_window_days": 15,
         },
+        "source_systems": [{"id": i, "name": n, "kind": k} for i, n, k in systems],
         "datasets": [
-            {"dataset_type": t, "file": f, "encoding": e, **({"as_of": a.isoformat()} if a else {})}
+            {
+                "dataset_type": t,
+                "source_system": f.split("/", 1)[0],
+                "file": f,
+                "encoding": e,
+                **({"as_of": a.isoformat()} if a else {}),
+            }
             for t, f, e, a in datasets
         ],
     }

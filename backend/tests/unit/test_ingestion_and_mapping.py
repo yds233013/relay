@@ -9,6 +9,7 @@ import pytest
 
 from relay.core.currency import Currency
 from relay.ingestion.csv_reader import (
+    MAX_COLUMNS,
     MAX_RECORD_LINES,
     SourceFileError,
     read_csv,
@@ -66,6 +67,15 @@ def test_a_stray_quote_cannot_swallow_the_rest_of_the_file() -> None:
     assert len(table.rows) >= MAX_RECORD_LINES + 9
     assert len(table.quarantined) == 1
     assert table.quarantined[0].line_start == 2
+
+
+def test_a_header_with_too_many_columns_is_rejected() -> None:
+    # SEC-01: limits are on bytes, rows, fields and now columns.
+    header = ",".join(f"c{n}" for n in range(MAX_COLUMNS + 1))
+    with pytest.raises(SourceFileError, match="columns"):
+        read_csv("f.csv", f"{header}\n".encode(), encoding="utf-8")
+    widest = ",".join(f"c{n}" for n in range(MAX_COLUMNS))
+    assert read_csv("f.csv", f"{widest}\n".encode(), encoding="utf-8").header[-1] == "c511"
 
 
 def test_unreadable_files_are_rejected() -> None:

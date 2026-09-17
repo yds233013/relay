@@ -461,3 +461,67 @@ See 0009: `sent_fields` is not a field-level inventory; the scripted provider re
 ### Next
 
 M9: hardening and demo rehearsal.
+
+---
+
+## M9 — Hardening and demo rehearsal
+
+Status: **In progress.** Decisions: [decisions/0010-m9-hardening.md](decisions/0010-m9-hardening.md).
+Requirement traceability: [traceability.md](traceability.md).
+
+### Built so far
+
+- **Security review** of every requirement ID against the code, written up in `docs/traceability.md`.
+  Fixes: nonce-based CSP on the web and a deny-everything CSP on the API (SEC-15), per-person upload
+  rate limiting (SEC-17), a 512-column CSV header limit (SEC-01), bound parameters in the AI
+  read-only session's statement timeout (SEC-13), a route inventory test for default deny and
+  governed mutations (SEC-10, GV-01), static guards for SEC-04/13/23/30/31/32, an audit-chain
+  property test (GV-06), an applier failure-injection test (GV-04), a draft concurrency test (GV-08)
+  and CI running the whole suite under `TZ=Australia/Adelaide` (FC-06).
+- **Engine correctness**: a rule or reconciliation that raises is recorded as an errored stage and
+  fails G4 instead of destroying the run (FC-10, Alembic `0007_errored_stages`); a reconciliation
+  line refuses to explain more than its difference (FC-11).
+- **Performance**: `make pipeline-perf` measures the persisted pipeline end to end; gate evidence
+  now resolves only the lines it names.
+- **E2E-6** (audit trail) and a CSP end-to-end check.
+
+### Measured (this machine: Apple M2, 8 cores, 16 GB, macOS 14.5, Python 3.12.10, Compose PostgreSQL 16)
+
+One run of `make pipeline-perf` on a synthetic clean 250,000-line migration (620,890 staged records,
+50.8 MB of source files), loaded through the same services as the demo seed:
+
+| Phase | Measured |
+|---|---|
+| Seed (users, 16 uploads, parse jobs, approved mappings, first run) | 168.9 s |
+| Import parsing | 22.1 s total, slowest file 12.0 s |
+| Run #1 | load 0.2 s, engine 53.3 s, persist 74.7 s, issues 0.01 s (total 128.2 s) |
+| Governed policy change and its rerun | 146.9 s (engine 64.7 s, persist 80.3 s) |
+| Readiness re-evaluation (reruns the engine) | 47.8 s |
+| Peak RSS (whole process, including generation) | 1,520 MiB |
+
+Read endpoints at that size, in process, median of 5 (before → after the evidence fix):
+
+| Endpoint | Median |
+|---|---|
+| Overview | 0.80 s → about 0.12 s |
+| Readiness | 5.83 s → about 0.09 s |
+| Issues, datasets, reconciliations, rule runs, run diff, audit page, chain verification | 7–24 ms |
+| Reconciliation lines (first page of 100), drill-down, record inspector | 17–101 ms |
+| Source rows (pages of 200) | 13–25 ms |
+
+The after figures were measured on a 60,000-line migration with the same tool and profiler; the
+before figures are from the 250,000-line run. A clean synthetic migration produces no findings, so
+issue-heavy reads are not represented.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| `make check` | 1,008 unit and scenario tests, 99 integration tests, 43 web tests, 115/115 manifest checks |
+| Whole suite under `TZ=Australia/Adelaide` | 892 unit, 99 integration, 115/115 manifest |
+| E2E-6 and the CSP check against the running stack | pass |
+
+### Remaining
+
+Two extra seeded migrations for the portfolio, the full E2E suite on a rebuilt stack, README demo
+guide, rehearsed walkthrough timing, and the retrospective.

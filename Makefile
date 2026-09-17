@@ -185,7 +185,7 @@ demo-manifest: ## EVALUATION ONLY: print the golden manifest (reveals expected a
 
 # ------------------------------------------------------------------------------------ engine
 
-.PHONY: engine-run engine-perf openapi
+.PHONY: engine-run engine-perf pipeline-perf openapi
 engine-run: ## Run the deterministic engine over the Brightwater fixtures (Run #1) and print gates and findings
 	$(UV) relay engine run --migration ../fixtures/demo/brightwater --mapping-set ../fixtures/demo/brightwater_config/column_mapping_set_v1.json
 
@@ -194,6 +194,17 @@ openapi: ## Regenerate web/src/lib/api/openapi.json from the API (a unit test fa
 
 engine-perf: ## Measure the engine on a synthetic clean 250,000-line migration (about a minute)
 	$(UV) relay-demo perf-engine --lines 250000
+
+PERF_DB_ENV = RELAY_ENV=local RELAY_DATABASE_URL='$(PERF_DATABASE_URL)' RELAY_STORAGE_DIR=.data/perf-blobs
+PERF_DATABASE_URL := postgresql+psycopg://relay:$(RELAY_DB_PASSWORD)@127.0.0.1:$(RELAY_DB_HOST_PORT)/relay_perf
+pipeline-perf: db-up ## Measure imports, runs, readiness and reads on a synthetic 250,000-line migration in a throwaway database (several minutes)
+	docker compose exec -T db psql -U relay -d postgres -c 'DROP DATABASE IF EXISTS relay_perf WITH (FORCE)'
+	docker compose exec -T db psql -U relay -d postgres -c 'CREATE DATABASE relay_perf'
+	rm -rf backend/.data/perf-blobs
+	$(UV) env $(PERF_DB_ENV) alembic upgrade head
+	$(UV) env $(PERF_DB_ENV) relay-demo perf-pipeline --lines 250000
+	rm -rf backend/.data/perf-blobs
+	docker compose exec -T db psql -U relay -d postgres -c 'DROP DATABASE IF EXISTS relay_perf WITH (FORCE)'
 
 # ------------------------------------------------------------------------------------ build & verify
 

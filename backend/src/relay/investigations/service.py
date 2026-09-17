@@ -170,7 +170,11 @@ def read_only_session(factory: sessionmaker[Session]) -> Iterator[Session]:
     session = factory()
     try:
         session.execute(text("SET TRANSACTION READ ONLY"))
-        session.execute(text(f"SET LOCAL statement_timeout = {TOOL_STATEMENT_TIMEOUT_MS}"))
+        # set_config takes a bound value; `SET LOCAL` would need the number in the statement.
+        session.execute(
+            text("SELECT set_config('statement_timeout', :ms, true)"),
+            {"ms": str(TOOL_STATEMENT_TIMEOUT_MS)},
+        )
         yield session
     finally:
         session.rollback()

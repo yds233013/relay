@@ -12,6 +12,7 @@ import unicodedata
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import ClassVar, Final
 
 from psycopg.types.json import Jsonb
@@ -52,6 +53,12 @@ _BINARY_SIGNATURES: Final = (
 _DELIMITERS: Final = (",", ";", "\t", "|")
 
 
+class UploadRateLimitedError(RelayError):
+    code: ClassVar[str] = "import.rate_limited"
+    title: ClassVar[str] = "Too many uploads"
+    http_status: ClassVar[int] = 429
+
+
 class UnsupportedContentError(RelayError):
     code: ClassVar[str] = "import.unsupported_content"
     title: ClassVar[str] = "File type is not supported"
@@ -74,6 +81,12 @@ class UploadOutcome:
 class ImportLimits:
     max_upload_bytes: int
     max_rows: int
+    max_uploads_per_hour: int = 300
+    """SEC-17: per person, counted across every migration.
+
+    Loading one migration uploads a file per dataset, and re-imports repeat some of them, so this
+    bounds runaway automation rather than an implementer's day.
+    """
 
 
 def sanitize_filename(raw: str) -> str:
@@ -94,6 +107,24 @@ def _check_content(filename: str, head: bytes) -> None:
         raise UnsupportedContentError("file content is not delimited text")
 
 
+def _check_upload_rate(
+    session: Session, actor: Actor, limits: ImportLimits, clock: Clock | None
+) -> None:
+    """SEC-17: bound how fast one person can add files, before any bytes are read."""
+    if actor.user_id is None:
+        return
+    since = (clock or SystemClock()).now() - timedelta(hours=1)
+    recent = session.scalar(
+        select(func.count())
+        .select_from(Import)
+        .where(Import.created_by == actor.user_id, Import.created_at >= since)
+    )
+    if (recent or 0) >= limits.max_uploads_per_hour:
+        raise UploadRateLimitedError(
+            f"at most {limits.max_uploads_per_hour} uploads per person per hour"
+        )
+
+
 def upload(
     session: Session,
     *,
@@ -106,6 +137,7 @@ def upload(
     clock: Clock | None = None,
 ) -> UploadOutcome:
     display_name = sanitize_filename(filename)
+    _check_upload_rate(session, actor, limits, clock)
     spooled = blob_store.spool(chunks, limits.max_upload_bytes)
     try:
         _check_content(display_name, spooled.head)

@@ -345,10 +345,13 @@ def _persist_results(
 
     counts = Counter(e.rule_id for e in result.exceptions)
     skipped = {s.rule_id: s.missing_datasets for s in result.skipped_rules}
+    errored = {e.stage.removeprefix("rule:"): e.error for e in result.errored_stages}
     rule_rows = []
     for rule_id, (spec, _) in sorted(REGISTRY.items()):
         status = (
-            RuleRunStatus.NOT_APPLICABLE
+            RuleRunStatus.ERRORED
+            if rule_id in errored
+            else RuleRunStatus.NOT_APPLICABLE
             if rule_id in skipped
             else RuleRunStatus.FAILED
             if counts[rule_id]
@@ -364,6 +367,7 @@ def _persist_results(
                 "status": status.value,
                 "exception_count": counts[rule_id],
                 "missing_datasets": list(skipped.get(rule_id, ())),
+                "error": errored.get(rule_id),
             }
         )
     _insert(session, RuleRun, rule_rows)

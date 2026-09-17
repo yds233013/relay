@@ -2853,6 +2853,8 @@ export interface components {
         };
         /** RuleRunOut */
         RuleRunOut: {
+            /** Error */
+            error?: string | null;
             /** Exception Count */
             exception_count: number;
             /** Missing Datasets */

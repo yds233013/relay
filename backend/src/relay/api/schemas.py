@@ -119,6 +119,7 @@ class RuleRunOut(Schema):
     status: str
     exception_count: int
     missing_datasets: list[str]
+    error: str | None = None
 
 
 class LineageOut(Schema):

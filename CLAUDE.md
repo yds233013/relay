@@ -103,6 +103,7 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make eval-ai` | **Manual, costs money**: live investigator evals against the local seeded database; needs `ANTHROPIC_API_KEY` (refuses without it, verified); writes `evals/results/investigator-<timestamp>.json`. Never in CI. Not yet run with a key |
 | `make demo-fast-forward` | With the stack up and seeded: apply the documented resolutions as the seeded users so only sign-off remains (`relay-demo fast-forward --to before-signoff`) |
 | `make engine-run` | Run the engine over the Brightwater fixtures: gates, reconciliation statuses, findings by rule. Direct form: `uv run relay engine run --migration DIR --mapping-set FILE [--overlays FILE] [--json OUT]` (from `backend/`) |
+| `make pipeline-perf` | Measure the **persisted** pipeline (imports, runs, readiness, read endpoints) on a synthetic 250,000-line migration in a throwaway database it creates and drops (several minutes) |
 | `make engine-perf` | Generate a synthetic clean 250,000-line migration and measure one engine run (about a minute); exits non-zero if the clean data produces any finding |
 | `make clean` | Remove caches and build output |
 

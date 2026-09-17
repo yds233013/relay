@@ -59,7 +59,7 @@ def test_ready_reports_unreachable_database_without_leaking_details(client: Test
     body = response.json()
     assert body["status"] == "unavailable"
     assert body["database"]["reachable"] is False
-    assert body["database"]["head_revision"] == "0006_investigations"
+    assert body["database"]["head_revision"] == "0007_errored_stages"
     assert "unused" not in response.text
     assert "127.0.0.1" not in response.text
 
@@ -69,6 +69,10 @@ def test_security_headers_and_request_id(client: TestClient) -> None:
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["referrer-policy"] == "no-referrer"
+    # SEC-15: a JSON API neither loads nor embeds anything, and nothing may frame it.
+    assert response.headers["content-security-policy"] == (
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    )
     assert len(response.headers["x-request-id"]) == 36
 
 

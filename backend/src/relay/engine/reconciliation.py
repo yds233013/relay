@@ -8,11 +8,12 @@ indicates an error remains unexplained.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from enum import StrEnum
-from typing import Final
+from typing import ClassVar, Final
 
 from relay.canonical import natural_keys as nk
 from relay.canonical.enums import (
@@ -23,7 +24,7 @@ from relay.canonical.enums import (
     PaymentDirection,
 )
 from relay.canonical.records import JournalEntry
-from relay.core.errors import InvalidInputError
+from relay.core.errors import InvalidInputError, RelayError
 from relay.engine.exceptions import Category, Nature, RuleException, Severity, make_exception
 from relay.engine.policy import Policy
 from relay.engine.snapshot import BankRecord, RunSnapshot
@@ -51,6 +52,14 @@ class ReconcilingItem:
     message: str
 
 
+class OverExplainedLineError(RelayError):
+    """A reconciliation explained more than the difference it was explaining (FC-11)."""
+
+    code: ClassVar[str] = "reconciliation.over_explained"
+    title: ClassVar[str] = "A reconciliation explained more than its difference"
+    http_status: ClassVar[int] = 500
+
+
 @dataclass(frozen=True, slots=True)
 class ReconLine:
     grain: tuple[tuple[str, str], ...]
@@ -59,6 +68,19 @@ class ReconLine:
     explained: Decimal = Decimal(0)
     items: tuple[ReconcilingItem, ...] = ()
     extra: dict[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # FC-11: an explainer may only account for part of the difference, in its direction. An
+        # explainer that goes further has matched the wrong records; fail loudly instead of
+        # reporting a smaller or reversed unexplained amount.
+        difference = self.left - self.right
+        if self.explained != 0 and (
+            (difference >= 0) != (self.explained > 0) or abs(self.explained) > abs(difference)
+        ):
+            raise OverExplainedLineError(
+                f"reconciling items explain {self.explained} of a difference of {difference} "
+                f"for {dict(self.grain)}"
+            )
 
     @property
     def difference(self) -> Decimal:
@@ -667,14 +689,24 @@ RECONCILIATIONS: Final = ("R1", "R2", "R3", "R3b", "R3o", "R4", "R4b", "R4o", "R
 
 def reconcile(
     snapshot: RunSnapshot, policy: Policy
-) -> tuple[list[ReconResult], list[RuleException]]:
-    results = [r1_tb_vs_gl_detail(snapshot, policy), r2_legacy_vs_staged(snapshot, policy)]
-    results += _subledger(snapshot, policy, _AR)
-    results += _subledger(snapshot, policy, _AP)
-    cash_results, exceptions = r5_cash_vs_bank(snapshot, policy)
-    results += cash_results
-    results.append(r6_activity_totals(snapshot))
-    results = [_with_hints(snapshot, result) for result in results]
+) -> tuple[list[ReconResult], list[RuleException], list[tuple[str, Exception]]]:
+    """Run every reconciliation. One that raises is reported, not allowed to hide the others."""
+    exceptions: list[RuleException] = []
+    errored: list[tuple[str, Exception]] = []
+    builders: list[tuple[str, Callable[[], list[ReconResult]]]] = [
+        ("R1", lambda: [r1_tb_vs_gl_detail(snapshot, policy)]),
+        ("R2", lambda: [r2_legacy_vs_staged(snapshot, policy)]),
+        ("R3", lambda: list(_subledger(snapshot, policy, _AR))),
+        ("R4", lambda: list(_subledger(snapshot, policy, _AP))),
+        ("R5", lambda: _cash(snapshot, policy, exceptions)),
+        ("R6", lambda: [r6_activity_totals(snapshot)]),
+    ]
+    results: list[ReconResult] = []
+    for recon_id, build in builders:
+        try:
+            results += [_with_hints(snapshot, result) for result in build()]
+        except Exception as error:  # noqa: BLE001 - the caller records the errored stage (FC-10)
+            errored.append((f"reconciliation:{recon_id}", error))
     for result in results:
         if not result.applicable:
             continue
@@ -704,7 +736,15 @@ def reconcile(
                     },
                 )
             )
-    return results, exceptions
+    return results, exceptions, errored
+
+
+def _cash(
+    snapshot: RunSnapshot, policy: Policy, exceptions: list[RuleException]
+) -> list[ReconResult]:
+    results, found = r5_cash_vs_bank(snapshot, policy)
+    exceptions.extend(found)
+    return results
 
 
 def _r6_amount(line: ReconLine) -> Decimal:

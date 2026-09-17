@@ -6,6 +6,7 @@ export const API = process.env.E2E_API_URL ?? "http://127.0.0.1:8000";
 export const MAYA = { name: "Maya Chen", email: "maya.chen@relay.example" };
 export const DANIEL = { name: "Daniel Okafor", email: "daniel.okafor@relay.example" };
 export const PRIYA = { name: "Priya Raman", email: "priya.raman@brightwater.example" };
+export const SAM = { name: "Sam Ortiz", email: "sam.ortiz@brightwater.example" };
 
 export interface Issue {
   id: string;

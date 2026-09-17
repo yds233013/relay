@@ -36,6 +36,10 @@ jobs:
         run: make setup
 
       - name: Full verification
+        env:
+          # FC-06: business dates and UTC timestamps must not move with the process timezone.
+          # A half-hour offset ahead of UTC would expose a date built from local time.
+          TZ: Australia/Adelaide
         run: make check
 
       - name: Build images and smoke-test the stack

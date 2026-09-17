@@ -5016,6 +5016,17 @@
       "RuleRunOut": {
         "additionalProperties": false,
         "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
           "exception_count": {
             "title": "Exception Count",
             "type": "integer"
