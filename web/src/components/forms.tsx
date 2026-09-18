@@ -1,5 +1,8 @@
 /** Form controls with visible labels. Forms post to Server Functions and work without JavaScript. */
-const CONTROL = "rounded border border-gray-400 bg-white px-2 py-1 text-sm text-gray-900";
+import { BUTTON_STYLES } from "@/components/ui";
+
+const CONTROL =
+  "rounded border border-[var(--border-strong)] bg-white px-2 py-1 text-sm text-[var(--ink)]";
 
 export function TextField({
   name,
@@ -18,7 +21,7 @@ export function TextField({
 }) {
   return (
     <label className={`flex flex-col gap-1 text-sm ${className}`}>
-      <span className="text-xs font-medium text-gray-700">{label}</span>
+      <span className="text-xs font-medium text-[var(--ink-muted)]">{label}</span>
       <input
         name={name}
         defaultValue={defaultValue}
@@ -47,7 +50,7 @@ export function TextArea({
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="text-xs font-medium text-gray-700">{label}</span>
+      <span className="text-xs font-medium text-[var(--ink-muted)]">{label}</span>
       <textarea
         name={name}
         defaultValue={defaultValue}
@@ -70,18 +73,8 @@ export function SubmitButton({
   name?: string;
   value?: string;
 }) {
-  const tones = {
-    primary: "border-blue-800 bg-blue-800 text-white hover:bg-blue-900",
-    secondary: "border-gray-400 bg-white text-gray-900 hover:bg-gray-100",
-    danger: "border-red-800 bg-white text-red-900 hover:bg-red-50",
-  };
   return (
-    <button
-      type="submit"
-      name={name}
-      value={value}
-      className={`rounded border px-3 py-1 text-sm font-medium ${tones[tone]}`}
-    >
+    <button type="submit" name={name} value={value} className={BUTTON_STYLES[tone]}>
       {children}
     </button>
   );

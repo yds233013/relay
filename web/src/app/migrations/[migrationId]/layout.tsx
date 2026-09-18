@@ -1,48 +1,40 @@
-import Link from "next/link";
-
+import { BusinessDate } from "@/components/dates";
+import { MigrationNav } from "@/components/migration-nav";
 import { apiGet, type Schemas } from "@/lib/api/client";
-
-const SECTIONS = [
-  ["", "Overview"],
-  ["/setup", "Setup"],
-  ["/data", "Data"],
-  ["/mappings", "Mappings"],
-  ["/runs", "Runs"],
-  ["/validation", "Validation"],
-  ["/reconciliation", "Reconciliation"],
-  ["/issues", "Issues"],
-  ["/entities", "Entities"],
-  ["/approvals", "Approvals"],
-  ["/overrides", "Overrides"],
-  ["/readiness", "Readiness"],
-  ["/audit", "Audit log"],
-  ["/settings", "Settings"],
-] as const;
 
 export default async function MigrationLayout(props: LayoutProps<"/migrations/[migrationId]">) {
   const { migrationId } = await props.params;
   const migration = await apiGet<Schemas["MigrationOut"]>(`/api/v1/migrations/${migrationId}`);
   return (
     <div className="flex min-h-[calc(100vh-41px)]">
-      <nav aria-label="Migration" className="w-48 shrink-0 border-r border-gray-200 bg-gray-50 p-3">
-        <p className="mb-3 text-sm">
-          <span className="block font-semibold text-gray-900">{migration.company_name}</span>
-          <span className="text-xs text-gray-700">{migration.name}</span>
-        </p>
-        <ul className="space-y-1 text-sm">
-          {SECTIONS.map(([suffix, label]) => (
-            <li key={label}>
-              <Link
-                href={`/migrations/${migrationId}${suffix}`}
-                className="block rounded px-2 py-1 text-gray-900 hover:bg-gray-200"
-              >
-                {label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <main className="min-w-0 flex-1 p-4">{props.children}</main>
+      <div className="w-56 shrink-0 border-r border-[var(--border)] bg-[var(--surface-sunken)] p-3">
+        <div className="mb-4 px-2">
+          <p className="text-sm font-semibold leading-tight text-[var(--ink)]">
+            {migration.company_name}
+          </p>
+          <p className="text-xs text-[var(--ink-muted)]">{migration.name}</p>
+          <dl className="mt-2 space-y-0.5 text-[11px] text-[var(--ink-subtle)]">
+            <div className="flex justify-between gap-2">
+              <dt>Cutover</dt>
+              <dd className="tabular-nums">
+                <BusinessDate value={migration.cutover_date} />
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt>Go-live</dt>
+              <dd className="tabular-nums">
+                <BusinessDate value={migration.go_live_date} />
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt>Books</dt>
+              <dd>{migration.functional_currency}</dd>
+            </div>
+          </dl>
+        </div>
+        <MigrationNav migrationId={migrationId} />
+      </div>
+      <main className="min-w-0 flex-1 bg-[var(--surface)] p-5">{props.children}</main>
     </div>
   );
 }

@@ -1,16 +1,69 @@
 @import "tailwindcss";
 
+/*
+ * Relay's visual language: an internal financial operations console.
+ *
+ * Restrained on purpose. Ink on paper, one accent for navigation and links, and semantic colour
+ * reserved for states that need a person to act. Everything that is merely informational stays
+ * neutral, so that red genuinely means "this blocks go-live" rather than "this is a number".
+ */
 :root {
   color-scheme: light;
+
+  --surface: #ffffff;
+  --surface-sunken: #f6f7f9;
+  --surface-raised: #fbfcfd;
+  --border: #d8dce3;
+  --border-strong: #b5bcc7;
+
+  --ink: #14181f;
+  --ink-muted: #545c6b;
+  --ink-subtle: #6f7784;
+
+  --accent: #1c4f8f;
+  --accent-ink: #123663;
+  --accent-soft: #eef3fa;
+
+  --critical: #9b1c1c;
+  --critical-soft: #fdf2f2;
+  --warning: #92400e;
+  --warning-soft: #fffaf0;
+  --positive: #14602f;
+  --positive-soft: #f1f8f3;
 }
 
 body {
-  background: #ffffff;
-  color: #111827;
+  background: var(--surface);
+  color: var(--ink);
   font-family:
     ui-sans-serif,
     system-ui,
     -apple-system,
     "Segoe UI",
     sans-serif;
+  font-feature-settings: "cv05", "ss01";
+}
+
+/* Numbers line up column to column wherever they appear. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* One focus treatment everywhere, visible against both the page and the sunken surfaces. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Links carry the accent everywhere; `no-underline` opts a control out. */
+a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--accent-ink) 30%, transparent);
+}
+
+a:hover {
+  text-decoration-color: currentColor;
 }
