@@ -99,6 +99,7 @@ export default async function SetupPage(props: PageProps<"/migrations/[migration
         >
           <Panel className="mb-3">
             <form action={createDataset} className="p-3">
+              <input type="hidden" name="migrationId" value={migrationId} />
               <div className="flex flex-wrap items-end gap-3">
                 <Select
                   name="sourceSystemId"
