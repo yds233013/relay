@@ -1,0 +1,7 @@
+﻿Party;Name;City;Country;Currency;Terms;Email;Tax Ref;Status;Remarks
+L-0001;Norrsken Components AB;Uppsala;SE;EUR;30;sales@norrsken-components.example;****5521;A;
+L-0002;Weierhof Kunststoff;Mainz;DE;EUR;45;buchhaltung@weierhof.example;****1094;A;
+L-0003;Pallas Calibration NV;Leuven;BE;EUR;30;finance@pallas-calibration.example;****7238;A;
+L-0004;Ridgeway Tooling Inc;Portland;US;USD;30;ar@ridgeway-tooling.example;****4415;A;
+L-0005;Storvik Eiendom AS;Bergen;NO;EUR;15;leie@storvik-eiendom.example;****2867;A;
+L-0006;Talvik Logistikk;Oslo;NO;EUR;30;faktura@talvik-logistikk.example;****9142;A;

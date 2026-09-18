@@ -249,10 +249,21 @@ All arithmetic is exact `Decimal`. Tolerance compares exact unexplained differen
 | `outstanding_checks` | GL disbursements dated ≤ cutover that are not in bank ≤ cutover but clear in the post-cutover window | Matched bank txn after cutover (amount + reference/check no.) |
 | `deposits_in_transit` | GL receipts ≤ cutover posted by bank within window after cutover | Matched bank txn |
 | `bank_only_activity` | Bank txns ≤ cutover with no GL match (fees, interest) | Explained for *reconciliation* but **also emits** `BANK.UNRECORDED_ACTIVITY` (medium, source_anomaly) needing disposition |
+| `ledger_only_movement` | GL cash movements ≤ cutover with no bank match, before or after the cutover (so not a timing item) | Explained for *reconciliation* but **also emits** `BANK.UNMATCHED_LEDGER_MOVEMENT` (high, migration_defect), which blocks G8 |
 | `single_account_contribution` | Difference exactly equals the balance contributed by one mapped legacy account | Hint only: explained_amount stays 0; attaches a `reconciling_item` with classification `single_account_contribution` so the evidence is visible. It **does not** make a line pass. |
 | `unmapped_source_account` | R2 unmapped bucket | Lists legacy accounts; does not make a line pass |
 
-Rule of thumb enforced in code review: an explainer may only reduce `unexplained` when the reconciling item is a legitimate timing difference backed by a matched record. Anything that indicates an error is a hint, not an explanation.
+**What "explained" means here.** A reconciling item may reduce `unexplained` only when it names the
+records it is about, and the identified items must together account for the difference and no more —
+`ReconLine` refuses to be built otherwise (FC-11). Identifying a difference is not the same as
+excusing it: an item that indicates an error (`bank_only_activity`, `ledger_only_movement`) must also
+emit a finding that keeps the gate failing until someone resolves or dispositions it. An item that
+merely *suggests* where to look (`single_account_contribution`, `unmapped_source_account`) is a hint:
+it never reduces `unexplained` and never makes a line pass.
+
+Both error-indicating classifications are needed for the arithmetic to hold: bank activity the ledger
+never recorded and ledger movements the bank never saw push the difference in opposite directions,
+and listing only one side can exceed the difference it is meant to explain.
 
 ---
 

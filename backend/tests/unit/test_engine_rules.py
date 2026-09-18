@@ -395,7 +395,14 @@ def test_payment_clearing_after_cutover_is_an_outstanding_timing_item() -> None:
     assert result.exceptions == ()
 
 
-def test_payment_that_never_clears_is_an_unexplained_cash_difference() -> None:
+def test_payment_that_never_clears_blocks_cash_and_is_named() -> None:
+    """The ledger moved cash the statement never shows: identified, reported, and blocking.
+
+    Found by the second company (docs/decisions/0011): listing only the bank-only side could
+    explain more than the difference, which FC-11 refuses. Each side is now an item with its own
+    finding, and G8 fails while either is open.
+    """
+
     def drop(rows: Rows) -> Rows:
         disbursement = max(
             (r for r in rows if r["Amount"].startswith("-")), key=lambda r: r["Posted Date"]
@@ -405,7 +412,11 @@ def test_payment_that_never_clears_is_an_unexplained_cash_difference() -> None:
     files = edit(base_files(), BANK, drop)
     recompute_bank_balances(files, OPENING_CASH)
     result = run(files)
-    assert rules_fired(result)["RECON.R5"] == 1
+    assert rules_fired(result)["BANK.UNMATCHED_LEDGER_MOVEMENT"] == 1
+    r5 = next(r for r in result.reconciliations if r.recon_id == "R5")
+    [line] = r5.lines
+    assert [i.classification for i in line.items].count("ledger_only_movement") == 1
+    assert line.unexplained == 0  # the difference is accounted for, item by item
     assert "G8" in evaluate_readiness(result, Overlays(), Policy(), FACTS).failing()
 
 

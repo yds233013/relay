@@ -143,7 +143,7 @@ test-e2e: ## Playwright end-to-end tests against a freshly seeded stack (`make u
 
 # ------------------------------------------------------------------------------------ demo data
 
-.PHONY: demo-data demo-check demo-verify demo-manifest demo-seed demo-reset demo-portfolio demo-fast-forward demo-seed-host verify-audit eval-ai eval-ai-scripted
+.PHONY: demo-data demo-kestrel demo-kestrel-check demo-kestrel-verify demo-check demo-verify demo-manifest demo-seed demo-reset demo-portfolio demo-fast-forward demo-seed-host verify-audit eval-ai eval-ai-scripted
 demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
 	$(UV) relay-demo generate
 
@@ -181,6 +181,15 @@ verify-audit: ## Verify every audit hash chain in the local database
 
 demo-check: ## Verify committed Brightwater fixtures match a fresh generation byte for byte
 	$(UV) relay-demo check
+
+demo-kestrel: ## Generate the second company's fixtures (generalization test) into fixtures/demo/kestrel
+	$(UV) relay-demo generate-kestrel
+
+demo-kestrel-check: ## Verify committed second-company fixtures match a fresh generation byte for byte
+	$(UV) relay-demo check-kestrel
+
+demo-kestrel-verify: ## EVALUATION ONLY: run the engine over the second company and compare with its expectations
+	$(UV) relay-eval verify-kestrel
 
 demo-verify: ## EVALUATION ONLY: verify fixtures against the golden manifest
 	$(UV) relay-eval verify-brightwater
@@ -225,7 +234,7 @@ compose-config: ## Validate docker-compose.yml
 compose-build: ## Build Docker images
 	docker compose build
 
-check: fmt-check lint typecheck test demo-check demo-verify test-integration build-web compose-config ## Full verification (CI runs this)
+check: fmt-check lint typecheck test demo-check demo-verify demo-kestrel-check demo-kestrel-verify test-integration build-web compose-config ## Full verification (CI runs this)
 	@echo "make check: all checks passed"
 
 test-all: ## Everything, from a clean clone: make check, then build the stack, seed it and run the end-to-end suite

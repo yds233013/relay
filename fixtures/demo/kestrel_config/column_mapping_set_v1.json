@@ -1,0 +1,1379 @@
+{
+  "notice": "Column mapping set for Kestrel Instruments Ltd (fictional). Configuration only: no expected results.",
+  "delimiter": ";",
+  "bank_account_links": [
+    {
+      "file": "nordbank/statement.csv",
+      "bank_account": "NB-8842",
+      "gl_account": "1010"
+    }
+  ],
+  "datasets": {
+    "tallyworks/accounts.csv": {
+      "dataset_type": "legacy_coa",
+      "fields": {
+        "account_code": {
+          "source": "Code",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Description",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "subtype": {
+          "source": "Category",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "is_active": {
+          "source": "Status",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_boolean",
+              "true": [
+                "A"
+              ],
+              "false": [
+                "I"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/balances.csv": {
+      "dataset_type": "trial_balance",
+      "fields": {
+        "account_code": {
+          "source": "Code",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "account_name": {
+          "source": "Description",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "period_end": {
+          "source": "Period End",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "balance": {
+          "source": "Balance",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/journal.csv": {
+      "dataset_type": "gl_detail",
+      "fields": {
+        "account_code": {
+          "source": "Code",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "entry_number": {
+          "source": "Entry",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "line_number": {
+          "source": "Line",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_integer"
+            }
+          ]
+        },
+        "entry_date": {
+          "source": "Posted",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "posting_period": {
+          "source": "Period",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_period",
+              "format": "MM.YYYY"
+            }
+          ]
+        },
+        "source_module": {
+          "source": "Module",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "ar": "ar",
+                "ap": "ap",
+                "cash_receipts": "cash_receipts",
+                "cash_disbursements": "cash_disbursements",
+                "manual": "manual"
+              }
+            }
+          ]
+        },
+        "document_number": {
+          "source": "Document",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            }
+          ],
+          "required": false
+        },
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            }
+          ],
+          "required": false
+        },
+        "memo": {
+          "source": "Text",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "functional_amount": {
+          "source": "Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "foreign_amount": {
+          "source": "Foreign Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ],
+          "required": false
+        },
+        "reversal_of": {
+          "source": "Reverses",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "tallyworks/customers.csv": {
+      "dataset_type": "customers",
+      "fields": {
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "city": {
+          "source": "City",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "country": {
+          "source": "Country",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "default_currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ],
+          "required": false
+        },
+        "payment_terms_days": {
+          "source": "Terms",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_integer"
+            }
+          ],
+          "required": false
+        },
+        "email": {
+          "source": "Email",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "tax_id_last4": {
+          "source": "Tax Ref",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "([0-9]{4})$"
+            }
+          ],
+          "required": false
+        },
+        "is_active": {
+          "source": "Status",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_boolean",
+              "true": [
+                "A"
+              ],
+              "false": [
+                "I"
+              ]
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "tallyworks/suppliers.csv": {
+      "dataset_type": "vendors",
+      "fields": {
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "city": {
+          "source": "City",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "payment_terms_days": {
+          "source": "Terms",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_integer"
+            }
+          ],
+          "required": false
+        },
+        "tax_id_last4": {
+          "source": "Tax Ref",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "regex_extract",
+              "pattern": "([0-9]{4})$"
+            }
+          ],
+          "required": false
+        },
+        "is_active": {
+          "source": "Status",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_boolean",
+              "true": [
+                "A"
+              ],
+              "false": [
+                "I"
+              ]
+            }
+          ],
+          "required": false
+        },
+        "notes": {
+          "source": "Remarks",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "tallyworks/sales_invoices.csv": {
+      "dataset_type": "invoices",
+      "fields": {
+        "document_number": {
+          "source": "Invoice No",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "document_date": {
+          "source": "Issued",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "total": {
+          "source": "Gross",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        },
+        "fx_rate": {
+          "source": "Rate",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ","
+            }
+          ],
+          "required": false
+        },
+        "functional_total": {
+          "source": "Gross (EUR)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ],
+          "required": false
+        },
+        "open_amount": {
+          "source": "Outstanding",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/purchase_invoices.csv": {
+      "dataset_type": "bills",
+      "fields": {
+        "document_number": {
+          "source": "Bill No",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "document_date": {
+          "source": "Issued",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "total": {
+          "source": "Gross",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        },
+        "fx_rate": {
+          "source": "Rate",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ","
+            }
+          ],
+          "required": false
+        },
+        "functional_total": {
+          "source": "Gross (EUR)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ],
+          "required": false
+        },
+        "open_amount": {
+          "source": "Outstanding",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/settlements.csv": {
+      "dataset_type": "payments",
+      "fields": {
+        "payment_number": {
+          "source": "Ref",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "direction": {
+          "source": "Type",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Receipt": "received",
+                "Payment": "disbursed"
+              }
+            }
+          ]
+        },
+        "payment_date": {
+          "source": "Value Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "method": {
+          "source": "Method",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "ach": "ach",
+                "wire": "wire",
+                "check": "check"
+              }
+            }
+          ]
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "amount": {
+          "source": "Amount",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        },
+        "fx_rate": {
+          "source": "Rate",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ","
+            }
+          ]
+        },
+        "functional_amount": {
+          "source": "Amount (EUR)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        },
+        "applied_document": {
+          "source": "Against",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            }
+          ],
+          "required": false
+        },
+        "applied_amount": {
+          "source": "Allocated",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ],
+          "required": false
+        },
+        "unapplied_amount": {
+          "source": "On Account",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "empty_to_null"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ],
+          "required": false
+        },
+        "reference": {
+          "source": "Ref",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "nordbank/statement.csv": {
+      "dataset_type": "bank_transactions",
+      "fields": {
+        "posted_date": {
+          "source": "Booked",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "description": {
+          "source": "Narrative",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "reference": {
+          "source": "Reference",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "amount": {
+          "source": "Movement",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        },
+        "running_balance": {
+          "source": "Balance",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ],
+          "required": false
+        }
+      }
+    },
+    "nordbank/fx_usd_eur.csv": {
+      "dataset_type": "fx_rates",
+      "fields": {
+        "rate_date": {
+          "source": "Date",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "base_currency": {
+          "source": "From",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "quote_currency": {
+          "source": "To",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "rate": {
+          "source": "Rate",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ","
+            }
+          ]
+        }
+      }
+    },
+    "implementation/target_accounts.csv": {
+      "dataset_type": "target_coa",
+      "fields": {
+        "account_code": {
+          "source": "Account",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "name": {
+          "source": "Caption",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "subtype": {
+          "source": "Class",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        }
+      }
+    },
+    "implementation/mapping.csv": {
+      "dataset_type": "account_mapping",
+      "fields": {
+        "legacy_account_code": {
+          "source": "Old",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "target_account_code": {
+          "source": "New",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/debtors_ageing_20251231.csv": {
+      "dataset_type": "ar_aging",
+      "as_of": "2025-12-31",
+      "fields": {
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "kind": {
+          "source": "Kind",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Invoice": "document",
+                "Credit": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Reference",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Issued",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open (EUR)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/debtors_ageing_20260630.csv": {
+      "dataset_type": "ar_aging",
+      "as_of": "2026-06-30",
+      "fields": {
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "kind": {
+          "source": "Kind",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Invoice": "document",
+                "Credit": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Reference",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Issued",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open (EUR)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/creditors_ageing_20251231.csv": {
+      "dataset_type": "ap_aging",
+      "as_of": "2025-12-31",
+      "fields": {
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "kind": {
+          "source": "Kind",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Invoice": "document",
+                "Credit": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Reference",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Issued",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open (EUR)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        }
+      }
+    },
+    "tallyworks/creditors_ageing_20260630.csv": {
+      "dataset_type": "ap_aging",
+      "as_of": "2026-06-30",
+      "fields": {
+        "party_code": {
+          "source": "Party",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "party_name": {
+          "source": "Name",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ],
+          "required": false
+        },
+        "kind": {
+          "source": "Kind",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "value_map",
+              "mapping": {
+                "Invoice": "document",
+                "Credit": "unapplied_payment"
+              }
+            }
+          ]
+        },
+        "reference": {
+          "source": "Reference",
+          "steps": [
+            {
+              "step": "trim"
+            }
+          ]
+        },
+        "item_date": {
+          "source": "Issued",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ]
+        },
+        "due_date": {
+          "source": "Due",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_date",
+              "format": "DD.MM.YYYY"
+            }
+          ],
+          "required": false
+        },
+        "currency": {
+          "source": "Currency",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "currency"
+            }
+          ]
+        },
+        "functional_open_amount": {
+          "source": "Open (EUR)",
+          "steps": [
+            {
+              "step": "trim"
+            },
+            {
+              "step": "parse_decimal",
+              "decimal_separator": ",",
+              "thousands_separator": "."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

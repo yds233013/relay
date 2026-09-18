@@ -480,6 +480,52 @@ def _match(
     return chosen
 
 
+def _ledger_only_items(
+    unmatched: list[_CashMovement],
+    cleared: set[str],
+    exceptions: list[RuleException],
+) -> list[ReconcilingItem]:
+    """Cash the ledger moved that the statement never shows, before or after the cutover.
+
+    Listing these keeps the identified items equal to the difference (FC-11): the bank-only items
+    alone can exceed it, which is exactly what a ledger missing cash entries looks like. Each one is
+    also a finding, so nothing is explained away without being tracked.
+    """
+    items = []
+    for movement in unmatched:
+        if movement.entry_number in cleared:
+            continue
+        items.append(
+            ReconcilingItem(
+                "ledger_only_movement",
+                movement.amount,
+                (nk.journal_entry(movement.entry_number),),
+                f"{movement.entry_number} moves cash on {movement.entry_date} with nothing on "
+                "the statement, before or after the cutover",
+            )
+        )
+        exceptions.append(
+            make_exception(
+                rule_id="BANK.UNMATCHED_LEDGER_MOVEMENT",
+                rule_version=RECONCILIATION_VERSION,
+                severity=Severity.HIGH,
+                nature=Nature.MIGRATION_DEFECT,
+                category=Category.CASH,
+                subjects=[nk.journal_entry(movement.entry_number)],
+                message=(
+                    f"{movement.entry_number} moves {movement.amount} of cash on "
+                    f"{movement.entry_date}, and the bank statement has no such movement"
+                ),
+                amount_at_risk=abs(movement.amount),
+                details={
+                    "entry_date": movement.entry_date.isoformat(),
+                    "amount": str(movement.amount),
+                },
+            )
+        )
+    return items
+
+
 def r5_cash_vs_bank(
     snapshot: RunSnapshot, policy: Policy
 ) -> tuple[list[ReconResult], list[RuleException]]:
@@ -539,6 +585,7 @@ def r5_cash_vs_bank(
                 used.add(match.natural_key)
         items: list[ReconcilingItem] = []
         window_end = plan.cutover_date + timedelta(days=plan.bank_clearing_window_days)
+        cleared: set[str] = set()
         for movement in unmatched:
             clearing = _match(
                 movement,
@@ -550,6 +597,7 @@ def r5_cash_vs_bank(
             if clearing is None:
                 continue
             used.add(clearing.natural_key)
+            cleared.add(movement.entry_number)
             classification = "outstanding_check" if movement.amount < 0 else "deposit_in_transit"
             items.append(
                 ReconcilingItem(
@@ -592,6 +640,7 @@ def r5_cash_vs_bank(
                     },
                 )
             )
+        items += _ledger_only_items(unmatched, cleared, exceptions)
         explained = sum((item.amount for item in items), Decimal(0))
         line = ReconLine(
             (("bank_account", link.bank_account),),
@@ -729,6 +778,21 @@ def r6_activity_totals(snapshot: RunSnapshot) -> ReconResult:
                 credit_total + max(-amount, Decimal(0)),
             )
     lines = []
+    if unreconstructable:
+        # Rows that exist in the file but name no period belong to no line. Reporting them as their
+        # own line keeps the control honest: it must not tie while a source row is unaccounted for.
+        lines.append(
+            ReconLine(
+                (("period", "unreadable"),),
+                Decimal(unreconstructable),
+                Decimal(0),
+                extra={
+                    "count_difference": unreconstructable,
+                    "debit_difference": Decimal(0),
+                    "credit_difference": Decimal(0),
+                },
+            )
+        )
     for period in sorted(set(source) | set(staged)):
         s_count, s_debits, s_credits = source.get(period, zero)
         t_count, t_debits, t_credits = staged.get(period, zero)

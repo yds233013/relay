@@ -51,6 +51,7 @@ Related: [security-and-correctness.md](security-and-correctness.md) · [demo-sce
 - **Resolution sequence**: applying each scripted resolution in order produces the expected manifest after each run (including DS-02 appearing only after DS-01 merge) and ends READY after sign-off.
 - **Traps**: TN-01…TN-05 produce no issues.
 - **Determinism**: generator output byte-identical across two runs with the same seed; pipeline fingerprint and outputs identical across two runs.
+- **Generalization (a second company)**: `test_kestrel.py` runs the same unchanged engine over Kestrel Instruments Ltd — a different legacy system, delimiter, encoding, date and amount conventions, functional currency, fiscal year, chart of accounts and defects — and compares it with `evaluation/kestrel/expected.toml`: clean books silent, all six planted defects caught, no finding beyond the manifest, benign look-alikes silent ([0011](decisions/0011-second-company-generalization.md)).
 
 ### 2.4 Integration tests (`backend/tests/integration`, Postgres)
 
@@ -125,6 +126,8 @@ Implemented in M0 (see CLAUDE.md for the full list):
 | `make test` | Backend unit + property tests and web unit tests (no database) |
 | `make test-integration` | Backend integration tests against Compose PostgreSQL |
 | `make check` | Full verification: format, lint, types, all of the above, web build, Compose config |
+| `make demo-kestrel-check` | The second company's committed fixtures match a fresh generation |
+| `make demo-kestrel-verify` | The engine's second-company results against `evaluation/kestrel/expected.toml` |
 
 | `make test-e2e` | Playwright against the running, seeded stack |
 | `make test-all` | `make check`, then the stack, smoke check, a reseed and the Playwright suite |

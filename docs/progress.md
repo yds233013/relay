@@ -554,7 +554,70 @@ what was done about them: [review-findings.md](review-findings.md).
 | 3 — anti-cheating | Runtime clean. The boundary scan itself was too narrow: it now covers the migrations and the web app across every product file type, which immediately found two demo amounts in a web test |
 | 4 — code quality | Dead drill-down duplicating the live one, three other dead functions, an N+1 behind the portfolio (444 ms → 184 ms), a full scan for a primary-key lookup, duplicated `links_for`, divergent ordering, a failed job losing its traceback, and a sleep-based test that could pass vacuously |
 | 5 — UX | Runs superseded rather than failed (Alembic `0008`), owner on the issues list, issue titles that read as English, formatted gate amounts; and a queueing limitation found under load, recorded with two candidate fixes |
-| 6 — documentation | README verified from a **fresh clone** with only the documented commands; the shared Compose project name documented; documents checked against the code |
+| 6 — documentation | README verified from a **fresh clone** with only the documented commands; the shared Compose project name documented; four documents still said "Planned", architecture and data-model had drifted from the schema, and the rule catalog and action taxonomy were out of date — all corrected |
+
+Commits: `856978c` (passes 1–2), `5971bda` (passes 3–4), `41b9d85` (pass 5), `3e28b49` (pass 6).
+Verification after each: `make check` green (1,034 unit and scenario, 115 integration, 43 web,
+115/115 manifest checks) and, for passes 5 and 6, 12 of 12 Playwright specs on a freshly seeded
+stack.
+
+---
+
+## Second company — the generalization test
+
+Brightwater's manifest proves the engine agrees with a specification on Brightwater. It cannot prove
+the engine did not *learn* Brightwater. So a second fictional company was built and the same runtime
+engine, unchanged, was pointed at it: **Kestrel Instruments Ltd**, a precision instrument workshop
+exporting from Tallyworks 9 — semicolon-delimited UTF-8 with a byte-order mark, `DD.MM.YYYY` dates,
+`1.234,56` amounts, one signed GL amount column, EUR functional with USD suppliers, a July fiscal
+year, rows ordered by account and documents descending by number, six planted defects and three
+benign look-alikes. Nothing is shared with Brightwater: not a party, an account, an amount, a date,
+a file name or a defect. Its expectations (`evaluation/kestrel/expected.toml`) were hand-authored
+from the defect definitions and the reconciliation specification before the engine ever ran.
+
+### Built
+
+- `relay_scenarios/kestrel/`: clean books (`books.py`), the legacy export format (`exports.py`), the
+  six defects (`defects.py`), and the scenario assembly with its migration descriptor and checksums.
+- `fixtures/demo/kestrel/` (17 source files) and `fixtures/demo/kestrel_config/` (the approved
+  column mapping set for them — 16 datasets, semicolon, `utf-8-sig`).
+- `evaluation/kestrel/expected.toml` and `relay_evaluation/kestrel/verify.py`: 31 expectations.
+- `relay-demo generate-kestrel` / `check-kestrel`, `relay-eval verify-kestrel`, three `make` targets,
+  and `tests/scenario/test_kestrel.py`. `make check` runs the fixture check and the verifier.
+
+### What it found
+
+Six disagreements on the first run, each classified before anything changed
+([0011](decisions/0011-second-company-generalization.md)): **three manifest bugs** (a consequence of
+the mapping defect the manifest had missed, a second rule that fires on the same account, and a
+severity I guessed instead of reading from the catalog — all corrected against the specification and
+annotated in place) and **three engine bugs**, all fixed generally:
+
+- R5 could explain *more* than the cash difference, because ledger movements the statement never
+  shows were not modelled at all — only the bank-only side was. FC-11 refused the line, correctly.
+  New `ledger_only_movement` items with a `BANK.UNMATCHED_LEDGER_MOVEMENT` finding; G8 blocks on
+  both sides.
+- R6 tied while a quarantined row was unaccounted for: a row that names no period belonged to no
+  line and vanished from the control. It is now reported on a `period = "unreadable"` line.
+- `parse_period` accepted only `MM/YYYY` and `YYYY-MM`; it now also accepts `MM.YYYY` and `YYYY/MM`.
+
+One existing unit test (`test_payment_that_never_clears`) encoded the R5 bug. It was rewritten from
+§B.4 rather than deleted: the payment is now identified as a named item with its own finding, and
+G8 still fails — identifying a difference is not excusing it.
+
+### Verified
+
+- `make check` green on this machine after the change: 1,041 unit and scenario tests, 115 integration
+  tests against real PostgreSQL, 43 web tests, 115 of 115 Brightwater manifest checks, 31 of 31
+  Kestrel expectations, 22 Brightwater and 18 Kestrel fixture files byte-identical to a fresh
+  generation.
+- 31 of 31 Kestrel expectations, on the unchanged runtime engine: clean books produce no finding, no
+  reconciliation discrepancy and no errored stage; all six defects are caught by general rules and
+  controls; no finding beyond the manifest; the benign look-alikes stay silent.
+- Brightwater's golden manifest still passes 115 of 115 after the three engine changes. It has never
+  been edited to match output.
+- Kestrel's identifiers joined the anti-cheating scan: `relay.*`, the migrations and the web app
+  contain none of them.
 
 ---
 
@@ -574,8 +637,9 @@ Written at the end of M9, covering the whole build.
 | End-to-end tests | 967 |
 | Documentation | 4,211 |
 
-1,008 unit and scenario tests, 99 integration tests against real PostgreSQL, 43 web tests, 12
-end-to-end specs, 115 golden-manifest checks, 10 decision records.
+1,041 unit and scenario tests, 115 integration tests against real PostgreSQL, 43 web tests, 12
+end-to-end specs, 115 golden-manifest checks for Brightwater and 31 expectations for the second
+company, 11 decision records.
 
 ### What was cut, and why
 

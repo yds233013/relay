@@ -1,0 +1,17 @@
+﻿Code;Description;Category;Status
+1010;Nordbank current account;cash;A
+1200;Trade receivables;accounts_receivable;A
+1300;Instrument stock;inventory;A
+1400;Prepaid insurance;prepaid;A
+2000;Trade payables;accounts_payable;A
+2150;Customer deposits;accrued_liability;A
+2200;VAT payable;accrued_liability;A
+3000;Share capital;common_stock;A
+3900;Retained earnings;retained_earnings;A
+4000;Instrument sales;operating_revenue;A
+4100;Calibration services;operating_revenue;A
+4990;Scrap recoveries;other_income;A
+5000;Cost of instruments sold;cost_of_goods_sold;A
+6100;Workshop rent;operating_expense;A
+6200;Wages and salaries;operating_expense;A
+6900;Exchange differences;other_expense;A

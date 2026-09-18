@@ -111,15 +111,24 @@ Most recent run on this machine (Apple M2, 8 cores, 16 GB, macOS 14.5):
 
 | Suite | Result |
 |---|---|
-| Unit, property and scenario | 1,008 passed |
-| Integration (real PostgreSQL) | 99 passed |
+| Unit, property and scenario | 1,041 passed |
+| Integration (real PostgreSQL) | 115 passed |
 | Web unit | 43 passed |
-| Golden manifest | 115 of 115 checks |
+| Golden manifest (Brightwater) | 115 of 115 checks |
+| Second company (Kestrel) | 31 of 31 expectations |
 | End to end (Playwright, seeded stack) | 12 specs passed |
 
 The golden manifest is hand-authored from the accounting specification and is never updated to match
 the engine; [docs/decisions/0002](docs/decisions/0002-brightwater-spec-corrections.md) records the
 one time truth changed, and why.
+
+**A second company** answers the question the manifest cannot: did the engine generalize, or did it
+learn Brightwater? Kestrel Instruments Ltd exports from a different legacy system — semicolons and a
+byte-order mark, `DD.MM.YYYY`, `1.234,56`, one signed GL amount column, EUR with USD suppliers, a
+July fiscal year — with its own chart of accounts, parties, documents and defects, and is run
+through the unchanged runtime engine. It met 31 of 31 expectations, and finding those required
+fixing three genuine engine bugs, none of which mentions a company
+([docs/decisions/0011](docs/decisions/0011-second-company-generalization.md)).
 
 Measured performance on a synthetic 250,000-line migration (`make pipeline-perf`,
 `make engine-perf`) is in [docs/progress.md](docs/progress.md#m9--hardening-and-demo-rehearsal).
@@ -196,5 +205,5 @@ workflow still works — that is asserted by an end-to-end test.
 | [docs/traceability.md](docs/traceability.md) | Every requirement ID mapped to its tests or a stated limitation |
 | [docs/review-findings.md](docs/review-findings.md) | The six review passes: what was found, fixed, or deliberately left |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Milestones and acceptance criteria |
-| [docs/decisions/](docs/decisions/) | Decision records (0001–0010) |
+| [docs/decisions/](docs/decisions/) | Decision records (0001–0011) |
 | [CLAUDE.md](CLAUDE.md) | Working rules for contributors and AI coding sessions |

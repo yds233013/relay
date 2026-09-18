@@ -1,0 +1,50 @@
+﻿Booked;Narrative;Reference;Movement;Balance
+01.01.2026;Storvik Eiendom rent;RENT-01;-2.400,00;211.980,65
+27.01.2026;Halden Metrology AS receipt;REF0001;21.400,00;233.380,65
+30.01.2026;Norrsken Components AB payment;REF0006;-8.420,00;224.960,65
+31.01.2026;Payroll run;PAY-01;-18.750,00;206.210,65
+31.01.2026;Ottersen Laboratorier receipt;REF0002;13.980,50;220.191,15
+01.02.2026;Storvik Eiendom rent;RENT-02;-2.400,00;217.791,15
+04.02.2026;Calder Scientific Ltd receipt;REF0003;16.086,40;233.877,55
+06.02.2026;Ridgeway Tooling Inc payment;REF0007;-5.640,16;228.237,39
+08.02.2026;Brecht Präzision GmbH receipt;REF0004;9.450,75;237.688,14
+11.02.2026;Weierhof Kunststoff payment;REF0008;-4.980,25;232.707,89
+12.02.2026;Marchetti Strumenti Srl receipt;REF0005;26.310,00;259.017,89
+20.02.2026;Talvik Logistikk payment;REF0009;-2.310,00;256.707,89
+27.02.2026;Halden Metrology AS receipt;REF0010;21.400,00;278.107,89
+28.02.2026;Payroll run;PAY-02;-18.750,00;259.357,89
+01.03.2026;Storvik Eiendom rent;RENT-03;-2.400,00;256.957,89
+02.03.2026;Norrsken Components AB payment;REF0015;-8.420,00;248.537,89
+03.03.2026;Ottersen Laboratorier receipt;REF0011;13.980,50;262.518,39
+07.03.2026;Calder Scientific Ltd receipt;REF0012;16.102,24;278.620,63
+09.03.2026;Ridgeway Tooling Inc payment;REF0016;-5.626,64;272.993,99
+11.03.2026;Brecht Präzision GmbH receipt;REF0013;9.450,75;282.444,74
+14.03.2026;Weierhof Kunststoff payment;REF0017;-4.980,25;277.464,49
+15.03.2026;Marchetti Strumenti Srl receipt;REF0014;26.310,00;303.774,49
+23.03.2026;Talvik Logistikk payment;REF0018;-2.310,00;301.464,49
+27.03.2026;Halden Metrology AS receipt;REF0019;21.400,00;322.864,49
+30.03.2026;Norrsken Components AB payment;REF0024;-8.420,00;314.444,49
+31.03.2026;Payroll run;PAY-03;-18.750,00;295.694,49
+31.03.2026;Ottersen Laboratorier receipt;REF0020;13.980,50;309.674,99
+01.04.2026;Storvik Eiendom rent;RENT-04;-2.400,00;307.274,99
+04.04.2026;Calder Scientific Ltd receipt;REF0021;16.192,00;323.466,99
+06.04.2026;Ridgeway Tooling Inc payment;REF0025;-5.658,00;317.808,99
+08.04.2026;Brecht Präzision GmbH receipt;REF0022;9.450,75;327.259,74
+11.04.2026;Weierhof Kunststoff payment;REF0026;-4.980,25;322.279,49
+12.04.2026;Marchetti Strumenti Srl receipt;REF0023;26.310,00;348.589,49
+14.04.2026;Scrap merchant;SCRAP-04;320,00;348.909,49
+20.04.2026;Talvik Logistikk payment;REF0027;-2.310,00;346.599,49
+27.04.2026;Halden Metrology AS receipt;REF0028;21.400,00;367.999,49
+30.04.2026;Payroll run;PAY-04;-18.750,00;349.249,49
+30.04.2026;Norrsken Components AB payment;REF0033;-8.420,00;340.829,49
+01.05.2026;Ottersen Laboratorier receipt;REF0029;13.980,50;354.809,99
+01.05.2026;Storvik Eiendom rent;RENT-05;-2.400,00;352.409,99
+05.05.2026;Calder Scientific Ltd receipt;REF0030;16.281,76;368.691,75
+07.05.2026;Ridgeway Tooling Inc payment;REF0034;-5.663,54;363.028,21
+09.05.2026;Brecht Präzision GmbH receipt;REF0031;9.450,75;372.478,96
+12.05.2026;Weierhof Kunststoff payment;REF0035;-4.980,25;367.498,71
+13.05.2026;Marchetti Strumenti Srl receipt;REF0032;26.310,00;393.808,71
+21.05.2026;Talvik Logistikk payment;REF0036;-2.310,00;391.498,71
+31.05.2026;Payroll run;PAY-05;-18.750,00;372.748,71
+01.06.2026;Storvik Eiendom rent;RENT-06;-2.400,00;370.348,71
+30.06.2026;Payroll run;PAY-06;-18.750,00;351.598,71

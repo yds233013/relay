@@ -1,0 +1,9 @@
+﻿Party;Name;City;Country;Currency;Terms;Email;Tax Ref;Status
+K-0001;Halden Metrology AS;Bergen;NO;EUR;30;ap@halden-metrology.example;****4471;A
+K-0002;Ottersen Laboratorier;Trondheim;NO;EUR;45;invoices@ottersen.example;****9930;A
+K-0003;Brecht Präzision GmbH;Aachen;DE;EUR;30;rechnung@brecht-praezision.example;****2218;A
+K-0004;Lindqvist Verkstad AB;Malmö;SE;EUR;30;faktura@lindqvist-verkstad.example;****7742;A
+K-0005;Calder Scientific Ltd;Dundee;GB;USD;60;accounts@calder-scientific.example;****1183;A
+K-0006;Vossberg Institut;Basel;CH;EUR;30;kreditoren@vossberg-institut.example;****6604;A
+K-0007;Marchetti Strumenti Srl;Padova;IT;EUR;45;fatture@marchetti-strumenti.example;****3357;A
+K-0008;Teversham Optics;Cambridge;GB;USD;30;payables@teversham-optics.example;****8890;A

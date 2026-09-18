@@ -174,6 +174,19 @@ FORBIDDEN_RUNTIME_TEXT = [
     r"21,?730",
     r"412,?906",
     r"427,?101",
+    # The second company (generalization test): the same ban applies to everything it knows.
+    r"kestrel",
+    r"\bKS-0\d\b",
+    r"\bK-000\d\b",
+    r"\bL-000\d\b",
+    r"JNL-00\d\d\d",
+    r"S-2026-00\d\d",
+    r"P-2026-00\d\d",
+    r"NB-8842",
+    r"Tallyworks",
+    r"Nordbank",
+    r"18,?762\.50",
+    r"26,?310",
 ]
 
 
@@ -237,10 +250,15 @@ def test_runtime_code_does_not_import_generators_or_evaluation() -> None:
 
 
 def test_boundary_detector_catches_violations() -> None:
-    sample = "from relay_evaluation.brightwater import manifest\nif number == 'JE-AP-20455': pass\n"
+    sample = (
+        "from relay_evaluation.brightwater import manifest\n"
+        "if number == 'JE-AP-20455': pass\n"
+        "if party == 'K-0007': pass\n"
+    )
     hits = [p for p in FORBIDDEN_RUNTIME_TEXT if re.search(p, sample, re.IGNORECASE)]
     assert r"relay_evaluation" in hits
     assert r"JE-AP-20455" in hits
+    assert r"\bK-000\d\b" in hits
 
 
 def test_import_contracts_hold() -> None:

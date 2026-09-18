@@ -286,7 +286,13 @@ def evaluate_readiness(
         if r5 and r5.applicable
         else None
     )
-    bank_open = [e for e in unresolved if e.rule_id == "BANK.UNRECORDED_ACTIVITY"]
+    # Both sides of an itemised cash difference block: activity the ledger never recorded, and
+    # ledger movements the statement never shows.
+    bank_open = [
+        e
+        for e in unresolved
+        if e.rule_id in {"BANK.UNRECORDED_ACTIVITY", "BANK.UNMATCHED_LEDGER_MOVEMENT"}
+    ]
     gates.append(
         _gate(
             "G8",
@@ -294,7 +300,7 @@ def evaluate_readiness(
             unexplained is not None
             and unexplained <= policy.cash_unexplained_tolerance
             and not bank_open,
-            f"unexplained {unexplained}, {len(bank_open)} unrecorded bank items open",
+            f"unexplained {unexplained}, {len(bank_open)} unreconciled cash items open",
             f"≤ {policy.cash_unexplained_tolerance}, 0 open",
             "Cash ties to the bank with only documented timing items",
             [e.fingerprint for e in bank_open],

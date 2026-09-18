@@ -1,0 +1,17 @@
+﻿Account;Caption;Class
+10-1000;Bank - operating;cash
+11-1000;Accounts receivable;accounts_receivable
+12-1000;Inventory;inventory
+13-1000;Prepayments;prepaid
+20-1000;Accounts payable;accounts_payable
+21-1000;Customer deposits;accrued_liability
+21-2000;Indirect tax payable;accrued_liability
+30-1000;Share capital;common_stock
+39-1000;Retained earnings;retained_earnings
+40-1000;Product revenue;operating_revenue
+41-1000;Service revenue;operating_revenue
+50-1000;Cost of sales;cost_of_goods_sold
+61-1000;Occupancy;operating_expense
+62-1000;Personnel;operating_expense
+69-1000;Finance charges;other_expense
+49-1000;Other income;other_income

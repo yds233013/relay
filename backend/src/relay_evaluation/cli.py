@@ -29,6 +29,10 @@ def main(argv: list[str] | None = None) -> int:
         "verify-brightwater", help="verify fixtures against the golden manifest"
     )
     verify.add_argument("--fixtures", type=Path, default=BRIGHTWATER_FIXTURES)
+    sub.add_parser(
+        "verify-kestrel",
+        help="run the engine over the second company and compare with its expectations",
+    )
     sub.add_parser("show-manifest", help="print the golden manifest (reveals expected answers)")
     ai = sub.add_parser(
         "ai",
@@ -40,6 +44,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "ai":
         return run_ai_evals(args.provider, args.out)
+
+    if args.command == "verify-kestrel":
+        return verify_kestrel()
 
     if args.command == "show-manifest":
         sys.stdout.write(BRIGHTWATER_MANIFEST.read_text(encoding="utf-8"))
@@ -53,6 +60,15 @@ def main(argv: list[str] | None = None) -> int:
     passed = len(report.results) - len(report.failures)
     sys.stdout.write(f"{passed}/{len(report.results)} manifest checks passed\n")
     return 0 if report.ok else 1
+
+
+def verify_kestrel() -> int:
+    """The generalization test: the same engine, a company it has never seen."""
+    from relay_evaluation.kestrel.verify import format_report, verify  # noqa: PLC0415 - slow import
+
+    report = verify()
+    sys.stdout.write(format_report(report) + "\n")
+    return 0 if not report.failures else 1
 
 
 def run_ai_evals(provider_name: str, out: Path | None) -> int:

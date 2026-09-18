@@ -36,6 +36,7 @@ from relay_scenarios.brightwater.scenario import (
     write_fixtures,
 )
 from relay_scenarios.brightwater.seed import seed
+from relay_scenarios.kestrel import scenario as kestrel
 from relay_scenarios.perf import measure_pipeline
 from relay_scenarios.portfolio import seed_portfolio
 from relay_scenarios.volume import build_volume_migration, export_volume_migration
@@ -46,6 +47,7 @@ DEFAULT_REEXPORT_OUT = REPO_ROOT / "fixtures" / "demo" / "brightwater_reexport"
 DEFAULT_MAPPING_SET = (
     REPO_ROOT / "fixtures" / "demo" / "brightwater_config" / "column_mapping_set_v1.json"
 )
+DEFAULT_KESTREL_OUT = REPO_ROOT / "fixtures" / "demo" / "kestrel"
 
 
 def _peak_rss_mib() -> float:
@@ -206,6 +208,28 @@ def summary(scenario: Scenario, out_dir: Path | None) -> str:
     return "\n".join(lines) + "\n"
 
 
+def kestrel_summary(scenario: kestrel.Scenario, out_dir: Path | None) -> str:
+    """Describe the generated data. Which defects are planted is in relay_scenarios, not here."""
+    books = scenario.books
+    lines = [
+        f"{kestrel.COMPANY} (fictional)",
+        f"  legacy accounts     {len(books.accounts)}",
+        f"  target accounts     {len(books.target_accounts)}",
+        f"  customers           {len(books.customers)}",
+        f"  suppliers           {len(books.suppliers)}",
+        f"  invoices            {len(books.invoices)}",
+        f"  bills               {len(books.bills)}",
+        f"  settlements         {len(books.settlements)}",
+        f"  journal entries     {len(books.entries)} "
+        f"({sum(len(e.lines) for e in books.entries)} lines)",
+        f"  bank transactions   {len(books.bank)}",
+        f"  files               {len(scenario.files)}",
+    ]
+    if out_dir is not None:
+        lines.append(f"  output              {out_dir}")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="relay-demo", description="Generate fictional demo migration data"
@@ -249,12 +273,44 @@ def main(argv: list[str] | None = None) -> int:
         help="add two more fictional migrations (one signed off, one early stage) to the database",
     )
     portfolio.add_argument("--mapping-set", type=Path, default=DEFAULT_MAPPING_SET)
+    generate_kestrel = sub.add_parser(
+        "generate-kestrel", help="generate the second company's source files (generalization test)"
+    )
+    generate_kestrel.add_argument("--out", type=Path, default=DEFAULT_KESTREL_OUT)
+    generate_kestrel.add_argument(
+        "--clean", action="store_true", help="clean books without planted defects"
+    )
+    check_kestrel = sub.add_parser(
+        "check-kestrel",
+        help="verify the committed second-company fixtures match a fresh generation",
+    )
+    check_kestrel.add_argument("--out", type=Path, default=DEFAULT_KESTREL_OUT)
     forward = sub.add_parser(
         "fast-forward",
         help="apply the documented resolutions as the seeded users (demo walkthrough step 10)",
     )
     forward.add_argument("--to", choices=["before-signoff"], required=True)
     args = parser.parse_args(argv)
+
+    if args.command == "generate-kestrel":
+        second = kestrel.build_scenario(defects=()) if args.clean else kestrel.build_scenario()
+        kestrel.write_fixtures(second, args.out)
+        sys.stdout.write(kestrel_summary(second, args.out))
+        return 0
+
+    if args.command == "check-kestrel":
+        fresh = kestrel.build_scenario().files
+        drift = _drift({**fresh, kestrel.CHECKSUM_FILE: kestrel.checksum_manifest(fresh)}, args.out)
+        if drift:
+            sys.stdout.write(
+                "Second-company fixtures differ from a fresh generation:\n"
+                + "".join(f"  {path}\n" for path in drift)
+            )
+            sys.stdout.write("Run `make demo-kestrel` to regenerate, and review the diff.\n")
+            return 1
+        count = len(fresh) + 1
+        sys.stdout.write(f"{count} second-company fixture files match a fresh generation.\n")
+        return 0
 
     if args.command == "fast-forward":
         return fast_forward_database()
@@ -286,7 +342,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     scenario = build_scenario(DEFAULT_SEED)
-    drift = _drift(scenario.files, args.out) + _drift(reexport_files(scenario), args.reexport_out)
+    drift = _drift(_with_checksums(scenario.files), args.out) + _drift(
+        _with_checksums(reexport_files(scenario)), args.reexport_out
+    )
     if drift:
         sys.stdout.write(
             "Fixtures differ from a fresh generation:\n" + "".join(f"  {path}\n" for path in drift)
@@ -298,8 +356,12 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _drift(files: dict[str, bytes], root: Path) -> list[str]:
-    expected = {**files, CHECKSUM_FILE: checksum_manifest(files)}
+def _with_checksums(files: dict[str, bytes]) -> dict[str, bytes]:
+    return {**files, CHECKSUM_FILE: checksum_manifest(files)}
+
+
+def _drift(expected: dict[str, bytes], root: Path) -> list[str]:
+    """Compare a freshly generated set of files, checksums included, with what is on disk."""
     actual = (
         {
             p.relative_to(root).as_posix(): p.read_bytes()

@@ -1,0 +1,151 @@
+{
+  "fictional": true,
+  "notice": "Fictional sample data. All companies, people and figures are invented.",
+  "company": {
+    "name": "Kestrel Instruments Ltd",
+    "functional_currency": "EUR",
+    "fiscal_year_start_month": 7
+  },
+  "conversion_plan": {
+    "opening_balance_date": "2025-12-31",
+    "history_start_date": "2026-01-01",
+    "cutover_date": "2026-06-30",
+    "go_live_date": "2026-07-01",
+    "bank_clearing_window_days": 10
+  },
+  "source_systems": [
+    {
+      "id": "tallyworks",
+      "name": "Tallyworks 9",
+      "kind": "legacy_erp"
+    },
+    {
+      "id": "nordbank",
+      "name": "Nordbank (account NB-8842)",
+      "kind": "bank"
+    },
+    {
+      "id": "implementation",
+      "name": "Implementation team",
+      "kind": "other"
+    }
+  ],
+  "datasets": [
+    {
+      "dataset_type": "legacy_coa",
+      "source_system": "tallyworks",
+      "file": "tallyworks/accounts.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "trial_balance",
+      "source_system": "tallyworks",
+      "file": "tallyworks/balances.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "gl_detail",
+      "source_system": "tallyworks",
+      "file": "tallyworks/journal.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "customers",
+      "source_system": "tallyworks",
+      "file": "tallyworks/customers.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "vendors",
+      "source_system": "tallyworks",
+      "file": "tallyworks/suppliers.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "invoices",
+      "source_system": "tallyworks",
+      "file": "tallyworks/sales_invoices.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "bills",
+      "source_system": "tallyworks",
+      "file": "tallyworks/purchase_invoices.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "payments",
+      "source_system": "tallyworks",
+      "file": "tallyworks/settlements.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "ar_aging",
+      "source_system": "tallyworks",
+      "file": "tallyworks/debtors_ageing_20251231.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";",
+      "as_of": "2025-12-31"
+    },
+    {
+      "dataset_type": "ar_aging",
+      "source_system": "tallyworks",
+      "file": "tallyworks/debtors_ageing_20260630.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";",
+      "as_of": "2026-06-30"
+    },
+    {
+      "dataset_type": "ap_aging",
+      "source_system": "tallyworks",
+      "file": "tallyworks/creditors_ageing_20251231.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";",
+      "as_of": "2025-12-31"
+    },
+    {
+      "dataset_type": "ap_aging",
+      "source_system": "tallyworks",
+      "file": "tallyworks/creditors_ageing_20260630.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";",
+      "as_of": "2026-06-30"
+    },
+    {
+      "dataset_type": "bank_transactions",
+      "source_system": "nordbank",
+      "file": "nordbank/statement.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "fx_rates",
+      "source_system": "nordbank",
+      "file": "nordbank/fx_usd_eur.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "target_coa",
+      "source_system": "implementation",
+      "file": "implementation/target_accounts.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    },
+    {
+      "dataset_type": "account_mapping",
+      "source_system": "implementation",
+      "file": "implementation/mapping.csv",
+      "encoding": "utf-8-sig",
+      "delimiter": ";"
+    }
+  ]
+}

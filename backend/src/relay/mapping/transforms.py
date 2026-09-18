@@ -35,9 +35,12 @@ class MappingConfigError(RelayError):
 
 type Value = str | Decimal | date | int | bool | Currency | None
 
+# ASCII digits only, for the reason in core.money: a number must read as itself.
 _PERIOD_FORMATS = {
-    "MM/YYYY": re.compile(r"(\d{2})/(\d{4})"),
-    "YYYY-MM": re.compile(r"(\d{4})-(\d{2})"),
+    "MM/YYYY": re.compile(r"([0-9]{2})/([0-9]{4})"),
+    "MM.YYYY": re.compile(r"([0-9]{2})\.([0-9]{4})"),
+    "YYYY-MM": re.compile(r"([0-9]{4})-([0-9]{2})"),
+    "YYYY/MM": re.compile(r"([0-9]{4})/([0-9]{2})"),
 }
 
 
@@ -66,7 +69,9 @@ class Step:
             except (KeyError, ValueError) as exc:
                 raise MappingConfigError("parse_date requires a supported explicit format") from exc
         if name == "parse_period" and step.options.get("format") not in _PERIOD_FORMATS:
-            raise MappingConfigError("parse_period requires format MM/YYYY or YYYY-MM")
+            raise MappingConfigError(
+                "parse_period format must be one of " + ", ".join(sorted(_PERIOD_FORMATS))
+            )
         if name == "regex_extract":
             try:
                 re.compile(str(step.options["pattern"]))
@@ -154,10 +159,9 @@ def apply_step(step: Step, value: Value) -> Value:  # noqa: PLR0911, PLR0912 - o
         match = _PERIOD_FORMATS[options["format"]].fullmatch(text.strip())
         if match is None:
             raise TransformError(f"period does not match {options['format']}")
+        month_first = options["format"].startswith("MM")
         month, year = (
-            (match.group(1), match.group(2))
-            if options["format"] == "MM/YYYY"
-            else (match.group(2), match.group(1))
+            (match.group(1), match.group(2)) if month_first else (match.group(2), match.group(1))
         )
         if not 1 <= int(month) <= 12:
             raise TransformError("period month out of range")

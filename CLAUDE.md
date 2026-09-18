@@ -64,6 +64,7 @@ Layout:
 - `fixtures/demo/brightwater/`: generated source-style files Relay ingests (no answers inside)
 - `fixtures/demo/brightwater_config/`: the approved column mapping set for those files (configuration, no answers)
 - `evaluation/brightwater/golden_manifest.toml`: hand-authored ground truth (never read by runtime code)
+- `fixtures/demo/kestrel/`, `fixtures/demo/kestrel_config/`, `evaluation/kestrel/expected.toml`: the **second company** (Kestrel Instruments Ltd), the generalization test — a different legacy system, file conventions, currency, fiscal year and defects, run through the same unchanged engine ([0011](docs/decisions/0011-second-company-generalization.md))
 - `web/`: Next.js app. `src/app` (routes; Server Components call the API server-side), `src/components` (shared UI), `src/lib` (API client and generated types, formatting, session), `e2e/` (Playwright)
   - `web/AGENTS.md` and `web/CLAUDE.md` are generated and re-created by `next dev`. They only point to the Next.js 16 docs bundled in `node_modules/next/dist/docs/`. Read those docs before writing Next.js code; every rule in this file still applies inside `web/`.
 - `docs/`: planning documents, `decisions/`, `progress.md`
@@ -85,7 +86,7 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make typecheck` | mypy `--strict` (src, tests, migrations), `next typegen && tsc --noEmit` |
 | `make test` | Backend unit + property tests (`-m "not integration"`) and web Vitest tests |
 | `make test-integration` | Starts Compose Postgres, runs `-m integration` against database `relay_test` (dropped/recreated) |
-| `make check` | **Canonical full verification**: fmt-check, lint, typecheck, test, demo-check, demo-verify, test-integration, build-web, compose-config |
+| `make check` | **Canonical full verification**: fmt-check, lint, typecheck, test, demo-check, demo-verify, demo-kestrel-check, demo-kestrel-verify, test-integration, build-web, compose-config |
 | `make build-web` | Next.js production build |
 | `make build` | build-web + `docker compose build` |
 | `make compose-config` | Validate `docker-compose.yml` |
@@ -101,6 +102,9 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make demo-data` | Regenerate Brightwater fixtures (`relay-demo generate`) and print a summary without answers |
 | `make demo-check` | Committed fixtures equal a fresh generation byte for byte |
 | `make demo-verify` | **Evaluation only**: verify fixtures against the golden manifest |
+| `make demo-kestrel` | Regenerate the second company's fixtures (`relay-demo generate-kestrel`) |
+| `make demo-kestrel-check` | Committed second-company fixtures equal a fresh generation byte for byte |
+| `make demo-kestrel-verify` | **Evaluation only**: run the engine over the second company and compare with `evaluation/kestrel/expected.toml` |
 | `make demo-manifest` | **Evaluation only**: print the golden manifest |
 | `make demo-seed` | With the stack up (`make up`): load Brightwater at the day-9 state through the services, inside Compose so the worker shares blob storage. `make demo-seed-host` does the same with host-run processes (stop the Compose worker first) |
 | `make worker` | Run the job worker on the host (`relay worker`; `relay worker --once` drains and exits) |
@@ -161,10 +165,11 @@ Requirement IDs (FC-xx, GV-xx, SEC-xx) live in `docs/security-and-correctness.md
 
 ## Evaluation-truth boundary (anti-cheating, non-negotiable)
 
-- Runtime code (`relay.*`) must never import `relay_scenarios` or `relay_evaluation`, read `evaluation/`, or branch on scenario knowledge: `DS-*`/`TN-*` ids, Brightwater record ids (`JE-AP-20455`, `INV-10877`, `V-1042`, ...), party names, or known defect amounts. Enforced by import-linter contracts and `tests/scenario/test_determinism_and_boundaries.py`.
+- Runtime code (`relay.*`) must never import `relay_scenarios` or `relay_evaluation`, read `evaluation/`, or branch on scenario knowledge: `DS-*`/`TN-*` ids, Brightwater record ids (`JE-AP-20455`, `INV-10877`, `V-1042`, ...), Kestrel's (`KS-0x`, `K-000x`, `JNL-00xxx`, `NB-8842`, ...), party names, system names, or known defect amounts. Enforced by import-linter contracts and `tests/scenario/test_determinism_and_boundaries.py`.
 - `relay_scenarios` must never import `relay_evaluation`: generators cannot read the answers.
 - The golden manifest is hand-authored from the specification. **Never change it to match engine or generator output.** A mismatch is classified (engine bug / generator bug / manifest bug / specification ambiguity) with evidence, and truth changes only when justified by the accounting specification, recorded in `docs/decisions/`.
-- Source fixtures must not contain answer-revealing text, flags or file names (tested).
+- Source fixtures must not contain answer-revealing text, flags or file names (tested, both companies).
+- A second company exists so that "the engine agrees with the manifest" cannot mean "the engine learned the manifest". If something only works for Brightwater, it is broken: generalize it rather than special-casing.
 - Identifiers are opaque (SC-05 – SC-07): never infer chronology from identifier magnitude.
 
 ## AI safety boundaries

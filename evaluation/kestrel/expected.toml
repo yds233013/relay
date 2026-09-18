@@ -1,0 +1,180 @@
+# Kestrel Instruments Ltd — expected results (hand-authored evaluation truth)
+#
+# Written from the defect definitions in relay_scenarios/kestrel/defects.py and the reconciliation
+# specification, BEFORE running the engine against the fixtures, and never edited to match engine
+# output. A disagreement is investigated and classified (engine bug / generator bug / manifest bug /
+# specification ambiguity) exactly as for Brightwater; see docs/decisions/0011.
+#
+# Runtime code never reads this file.
+
+[company]
+name = "Kestrel Instruments Ltd"
+functional_currency = "EUR"
+fiscal_year_start_month = 7
+opening_balance_date = "2025-12-31"
+cutover_date = "2026-06-30"
+
+[clean]
+# With no defects applied, the books tie: no rule fires and no reconciliation reports a discrepancy.
+findings = 0
+reconciliation_discrepancies = 0
+
+# =====================================================================================================
+# Findings expected with all six defects applied. Exact set: no missing findings, no extra ones.
+# =====================================================================================================
+
+[[findings]]
+defect = "KS-01"
+rule_id = "GL.JE_BALANCED"
+severity = "critical"
+subjects = ["je:JNL-00050"]
+reason = "February's payroll credit is keyed 12.50 short, so the entry does not sum to zero."
+
+[[findings]]
+defect = "KS-02"
+rule_id = "MAP.ACCOUNT_UNMAPPED"
+severity = "critical"
+subjects = ["acct:legacy:4990"]
+reason = "Scrap recoveries carries a balance from April but the mapping file does not mention it."
+
+# Corrected after the first comparison (M-K06): severity is `high`, not `critical`. The rule catalog
+# in docs/validation-and-reconciliation.md sets MAP.TYPE_COMPATIBLE to high; only an account with a
+# balance that nothing maps (MAP.ACCOUNT_UNMAPPED) is critical. The first draft of this file guessed
+# the severity instead of reading the catalog.
+[[findings]]
+defect = "KS-03"
+rule_id = "MAP.TYPE_COMPATIBLE"
+severity = "high"
+subjects = ["acct:legacy:2150"]
+reason = "Customer deposits (a liability) is mapped to trade receivables (an asset)."
+
+# Corrected after the first comparison (M-K02): the same mapping also mixes control subtypes, and
+# the catalog says both rules fire independently. The first draft of this file named only the type
+# conflict; the engine reports both, which is more complete, not different.
+[[findings]]
+defect = "KS-03"
+rule_id = "MAP.SUBTYPE_COMPATIBLE"
+severity = "high"
+subjects = ["acct:legacy:2150"]
+reason = "An accrued liability is fed into a control account for receivables."
+
+# Corrected after the first comparison (M-K03): cash the ledger moved that the statement never
+# shows is identified and reported, the mirror of bank activity the ledger never recorded.
+[[findings]]
+defect = "KS-01"
+rule_id = "BANK.UNMATCHED_LEDGER_MOVEMENT"
+severity = "high"
+subjects = ["je:JNL-00050"]
+reason = "February's payroll is keyed 12.50 short, so it matches no statement line."
+
+[[findings]]
+defect = "KS-06"
+rule_id = "BANK.UNRECORDED_ACTIVITY"
+severity = "medium"
+count = 2
+reason = "Both payroll payments are on the statement; one is quarantined and one is keyed short, so neither matches."
+
+[[findings]]
+defect = "KS-05"
+rule_id = "CUR.MISSING_FX_RATE"
+severity = "high"
+subjects = ["doc:invoice:S-2026-0003"]
+reason = "The invoice is re-dated 05.01.2026; the first published USD rate is 08.01.2026."
+
+[[findings]]
+defect = "KS-06"
+rule_id = "NORM.MALFORMED_ROW"
+severity = "critical"
+reason = "January's payroll memo contains the field separator, so that row cannot be parsed."
+
+[[findings]]
+defect = "KS-06"
+rule_id = "GL.JE_BALANCED"
+severity = "critical"
+subjects = ["je:JNL-00025"]
+reason = "The quarantined row is that entry's cash line, so what remains does not balance."
+
+# =====================================================================================================
+# Reconciliations
+# =====================================================================================================
+
+[reconciliations.R1]
+defects = ["KS-01", "KS-06"]
+# The trial balance is the clean control report; the ledger lost 12.50 in February (KS-01) and
+# 18,750.00 in January (KS-06), both on cash. Every period end from the month of the defect to
+# cutover therefore differs, for account 1010 only.
+account = "1010"
+period_ends = ["2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30", "2026-05-31", "2026-06-30"]
+difference_january = "-18750.00"
+difference_from_february = "-18762.50"
+
+[reconciliations.R2]
+defects = ["KS-01", "KS-06"]
+# R1 inherited onto the target account (§B.3): same periods, same amounts.
+target_account = "10-1000"
+difference_january = "-18750.00"
+difference_from_february = "-18762.50"
+
+[reconciliations.R3]
+defects = ["KS-04"]
+# KS-04: the June invoice is in the ledger and the ageing but not in the open items staged from the
+# sales export, so the customer's line differs by the whole invoice.
+party = "K-0007"
+difference = "26310.00"
+
+# Corrected after the first comparison (M-K01): KS-03 maps customer deposits into the receivables
+# control account, so that balance joins the AR control side with no customer to own it. The first
+# draft missed this consequence of the mapping defect; the engine is right.
+[reconciliations.R3_unassigned]
+defects = ["KS-03"]
+party = "unassigned"
+difference = "-6500.00"
+
+[reconciliations.R3b]
+defects = ["KS-04"]
+# The same invoice at document grain: present on the control ageing, absent from staged open items.
+document = "S-2026-0030"
+difference = "26310.00"
+
+[reconciliations.R5]
+defects = ["KS-01", "KS-06"]
+# Corrected after the first comparison (M-K04, an engine bug): the cash difference is 18,762.50 and
+# every part of it is identified — two payroll payments on the statement that the ledger does not
+# have, and one keyed-short ledger payment the statement does not have. Identified is not excused:
+# each item raises a finding and G8 fails while they are open (§B.4).
+difference = "18762.50"
+unexplained = "0.00"
+bank_only_activity = 2
+ledger_only_movement = 1
+
+[reconciliations.R6]
+defects = ["KS-06"]
+# Corrected after the first comparison (M-K05, an engine bug): this quarantined row has one field
+# too many, so it cannot be reconstructed and names no period — it cannot be attributed to January.
+# It is now reported on its own line instead of leaving the control tied.
+period = "unreadable"
+count_difference = 1
+
+[reconciliations.tied]
+# Everything else still ties: the opening controls, the AP subledger, and the AR document grain at
+# the opening date.
+recon_ids = ["R3o", "R4", "R4b", "R4o"]
+
+# =====================================================================================================
+# Benign patterns that must stay silent
+# =====================================================================================================
+
+[[traps]]
+id = "KT-01"
+what = "Workshop rent of 2,400.00 on the first of every month"
+why_silent = "A schedule of identical amounts more than the duplicate window apart is not a duplicate."
+
+[[traps]]
+id = "KT-02"
+what = "A March accrual reversed on 1 April"
+why_silent = "The reversal names the entry it reverses, so the pair is not a duplicate."
+
+[[traps]]
+id = "KT-03"
+what = "Two USD suppliers paid at a different rate from the invoice's"
+why_silent = "The exchange difference is booked; amount times the payment-date rate matches the cash."
