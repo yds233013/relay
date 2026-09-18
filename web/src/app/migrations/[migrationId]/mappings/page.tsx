@@ -4,6 +4,7 @@ import { FilterForm, SelectFilter } from "@/components/filters";
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
+import { Panel } from "@/components/ui";
 import { SignalChips } from "@/components/signal-chips";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
@@ -46,7 +47,10 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
         description="Account and column mappings. Changes take effect only through approved change requests."
       />
       <Notice error={param(query.error)} notice={param(query.notice)} />
-      <Section title="Account mapping">
+      <Section
+        title="Account mapping"
+        description="Every legacy account and where it lands in the new chart of accounts. Type and subtype compatibility is checked for each pair."
+      >
         <p className="mb-2 text-sm">
           In effect:{" "}
           {mapping.approved_set
@@ -85,16 +89,18 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
         <form action={proposeAccountMapping}>
           <input type="hidden" name="migrationId" value={migrationId} />
           <input type="hidden" name="base" value={mapping.approved_set ? "approved" : "import"} />
-          <div className="overflow-x-auto">
+          <Panel className="overflow-x-auto p-3">
             <table
               className="w-full border-collapse text-left text-sm"
               data-testid="account-mapping"
             >
-              <caption className="mb-2 text-left text-sm font-semibold text-gray-900">
-                {rows.length} of {mapping.rows.length} legacy accounts
+              <caption className="mb-2 text-left text-sm text-[var(--ink-muted)]">
+                Showing <span className="font-semibold text-[var(--ink)]">{rows.length}</span> of{" "}
+                {mapping.rows.length} legacy accounts
+                {show === "doubtful" ? " that need attention" : ""}
               </caption>
               <thead>
-                <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
                   <th scope="col" className="px-2 py-1.5">
                     Legacy account
                   </th>
@@ -119,20 +125,20 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                 {rows.map((row) => (
                   <tr
                     key={row.legacy_account_code}
-                    className="border-b border-gray-100 align-top"
+                    className="border-b border-[var(--border)]/60 align-top last:border-0"
                     data-legacy={row.legacy_account_code}
                   >
                     <td className="px-2 py-1.5">
                       <span className="font-mono">{row.legacy_account_code}</span>{" "}
                       {row.legacy_name ?? "not in legacy chart"}
-                      <span className="block text-xs text-gray-700">
+                      <span className="block text-xs text-[var(--ink-subtle)]">
                         {row.legacy_subtype ? humanize(row.legacy_subtype) : ""}
                       </span>
                     </td>
                     <td className="px-2 py-1.5">
                       <span className="font-mono">{row.target_account_code ?? "unmapped"}</span>{" "}
                       {row.target_name ?? ""}
-                      <span className="block text-xs text-gray-700">
+                      <span className="block text-xs text-[var(--ink-subtle)]">
                         {row.target_subtype ? humanize(row.target_subtype) : ""}
                       </span>
                     </td>
@@ -143,7 +149,7 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                       {row.proposal ? (
                         <>
                           <span className="font-mono">{row.proposal.target}</span>{" "}
-                          <span className="text-xs text-gray-700">
+                          <span className="text-xs text-[var(--ink-muted)]">
                             {humanize(row.proposal.basis)}
                             {row.proposal.score ? ` ${row.proposal.score}` : ""}
                           </span>
@@ -160,7 +166,7 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                         id={`target-${row.legacy_account_code}`}
                         name={`target:${row.legacy_account_code}`}
                         placeholder={row.proposal?.target ?? ""}
-                        className="w-24 rounded border border-gray-400 px-2 py-1 font-mono"
+                        className="w-24 rounded border border-[var(--border-strong)] px-2 py-1 font-mono"
                       />
                     </td>
                     <td className="px-2 py-1.5">
@@ -170,24 +176,41 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                       <input
                         id={`rationale-${row.legacy_account_code}`}
                         name={`rationale:${row.legacy_account_code}`}
-                        className="w-56 rounded border border-gray-400 px-2 py-1"
+                        className="w-56 rounded border border-[var(--border-strong)] px-2 py-1"
                       />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-          <div className="mt-3 flex max-w-2xl flex-col gap-2">
-            <TextField name="title" label="Title" required defaultValue="Account mapping change" />
-            <TextArea name="justification" label="Justification" required />
-            <span>
-              <SubmitButton>Propose mapping change</SubmitButton>
-            </span>
+          </Panel>
+          <div className="mt-4 max-w-2xl rounded-md border border-[var(--border)] bg-[var(--surface-sunken)] p-3">
+            <p className="mb-2 text-sm font-medium text-[var(--ink)]">
+              Propose a change to this mapping
+            </p>
+            <p className="mb-2 text-xs text-[var(--ink-muted)]">
+              Fill in a new target above for the accounts you are changing. Nothing moves until the
+              implementation lead and the customer controller both approve.
+            </p>
+            <div className="flex flex-col gap-2">
+              <TextField
+                name="title"
+                label="Title"
+                required
+                defaultValue="Account mapping change"
+              />
+              <TextArea name="justification" label="Justification" required />
+              <span>
+                <SubmitButton>Propose mapping change</SubmitButton>
+              </span>
+            </div>
           </div>
         </form>
       </Section>
-      <Section title="Column mappings">
+      <Section
+        title="Column mappings"
+        description="How each export's columns are read into canonical fields. One approved set per dataset."
+      >
         <ul className="list-inside list-disc text-sm">
           {datasets.map((dataset) => (
             <li key={dataset.id}>
@@ -197,7 +220,7 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
               >
                 {dataset.name}
               </Link>{" "}
-              <span className="text-gray-700">({humanize(dataset.dataset_type)})</span>
+              <span className="text-[var(--ink-muted)]">({humanize(dataset.dataset_type)})</span>
             </li>
           ))}
         </ul>

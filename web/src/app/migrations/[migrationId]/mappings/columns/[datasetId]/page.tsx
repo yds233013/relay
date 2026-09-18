@@ -87,7 +87,7 @@ export default async function ColumnMappingPage(
           <table className="w-full border-collapse text-left text-sm">
             <caption className="sr-only">Canonical fields</caption>
             <thead>
-              <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+              <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
                 <th scope="col" className="px-2 py-1.5">
                   Field
                 </th>
@@ -117,14 +117,16 @@ export default async function ColumnMappingPage(
                         : "constant"
                     : "—";
                 return (
-                  <tr key={field.field} className="border-b border-gray-100 align-top">
+                  <tr key={field.field} className="border-b border-[var(--border)]/60 align-top">
                     <td className="px-2 py-1.5 font-mono text-xs">{field.field}</td>
                     <td className="px-2 py-1.5">{field.required ? "required" : "optional"}</td>
                     <td className="px-2 py-1.5">{source(current?.specification)}</td>
                     <td className="px-2 py-1.5">
                       {source(field.specification)}
                       {field.basis ? (
-                        <span className="ml-1 text-xs text-gray-700">({field.basis})</span>
+                        <span className="ml-1 text-xs text-[var(--ink-muted)]">
+                          ({field.basis})
+                        </span>
                       ) : null}
                     </td>
                     <td className="px-2 py-1.5 text-xs">{field.notes.join("; ") || "—"}</td>
@@ -134,7 +136,7 @@ export default async function ColumnMappingPage(
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-sm text-gray-700">
+        <p className="mt-2 text-sm text-[var(--ink-muted)]">
           Unmatched columns: {suggestion.unmatched_columns.join(", ") || "none"}.{" "}
           <Link href="?start=suggestion" className="underline">
             Start from the suggestion
@@ -158,7 +160,7 @@ export default async function ColumnMappingPage(
               <table className="w-full border-collapse text-left text-xs" data-testid="preview">
                 <caption className="sr-only">Preview</caption>
                 <thead>
-                  <tr className="border-b border-gray-300 uppercase tracking-wide text-gray-700">
+                  <tr className="border-b border-[var(--border)] uppercase tracking-wide text-[var(--ink-muted)]">
                     <th scope="col" className="px-2 py-1">
                       Row
                     </th>
@@ -171,7 +173,10 @@ export default async function ColumnMappingPage(
                 </thead>
                 <tbody>
                   {preview.rows.map((row) => (
-                    <tr key={row.row_number} className="border-b border-gray-100 align-top">
+                    <tr
+                      key={row.row_number}
+                      className="border-b border-[var(--border)]/60 align-top"
+                    >
                       <td className="px-2 py-1">
                         {row.row_number}
                         {row.excluded ? <StatusChip status="excluded" /> : null}
@@ -201,7 +206,7 @@ export default async function ColumnMappingPage(
             <input type="hidden" name="config" value={editing} />
             <TextField name="title" label="Title" required defaultValue="Column mapping change" />
             <TextArea name="justification" label="Justification" required />
-            <p className="text-xs text-gray-700">
+            <p className="text-xs text-[var(--ink-muted)]">
               Proposes the mapping previewed above. Edit and preview again to change it.
             </p>
             <span>
@@ -210,7 +215,7 @@ export default async function ColumnMappingPage(
           </form>
         </Section>
       ) : (
-        <p className="mb-6 text-sm text-gray-700">Preview a mapping to propose it.</p>
+        <p className="mb-6 text-sm text-[var(--ink-muted)]">Preview a mapping to propose it.</p>
       )}
       <Section title="Versions">
         <ul className="space-y-1 text-sm">
