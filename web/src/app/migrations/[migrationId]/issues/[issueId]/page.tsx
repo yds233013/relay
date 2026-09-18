@@ -5,10 +5,19 @@ import { InvestigatePanel } from "@/components/investigate-panel";
 import { LocalTime } from "@/components/local-time";
 import { Money } from "@/components/money";
 import { Notice } from "@/components/notice";
-import { PageHeader, Section } from "@/components/page-header";
 import { RecordRef } from "@/components/record-ref";
 import { SourceLocation } from "@/components/source-location";
 import { StatusChip } from "@/components/status-chip";
+import {
+  ButtonLink,
+  Callout,
+  EmptyState,
+  MetaList,
+  PageHeader,
+  Panel,
+  ProvenanceBadge,
+  Section,
+} from "@/components/ui";
 import { ApiError, apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
@@ -16,6 +25,9 @@ import { proposeQuarantineRepair } from "../../governance-actions";
 import { addIssueComment, updateIssue } from "../../workflow-actions";
 
 const OPEN = new Set(["open", "in_progress", "awaiting_verification"]);
+
+const CONTROL =
+  "rounded border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--ink)]";
 
 async function people(): Promise<Schemas["UserOut"][]> {
   try {
@@ -57,161 +69,209 @@ export default async function IssuePage(
     <div className="max-w-5xl">
       <PageHeader
         title={`${issue.key}: ${issue.title}`}
-        description={`${issue.source} · ${issue.category} · ${issue.nature.replace("_", " ")}`}
-      >
-        <span className="flex gap-2">
-          <StatusChip status={issue.severity} />
-          <StatusChip status={issue.status} />
-        </span>
-      </PageHeader>
+        breadcrumbs={[
+          { label: "Issues", href: `/migrations/${migrationId}/issues` },
+          { label: issue.key },
+        ]}
+        status={
+          <span className="flex gap-2">
+            <StatusChip status={issue.severity} />
+            <StatusChip status={issue.status} />
+          </span>
+        }
+      />
       <Notice error={param(query.error)} notice={param(query.notice)} />
-      <dl className="mb-4 grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
-        <div>
-          <dt className="text-xs text-gray-700">Amount at risk</dt>
-          <dd>
-            <Money value={issue.amount_at_risk} currency={issue.currency} />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-gray-700">Rule or reconciliation</dt>
-          <dd className="font-mono text-xs">{issue.rule_or_recon_id}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-gray-700">Last seen</dt>
-          <dd>
-            {runId ? (
-              <Link href={`/migrations/${migrationId}/runs/${runId}`} className="underline">
-                run
-              </Link>
-            ) : (
-              "—"
-            )}
-          </dd>
-        </div>
-      </dl>
-      <Section title="Subjects">
-        <ul className="list-inside list-disc text-sm">
-          {issue.subjects.map((subject) => (
-            <li key={subject}>
-              {runId && !subject.startsWith("recon:") && !subject.startsWith("quarantine:") ? (
-                <RecordRef migrationId={migrationId} runId={runId} naturalKey={subject} />
+
+      {/* What this issue is, in one strip: nobody should have to read the page to place it. */}
+      <Panel className="mb-6 p-3">
+        <MetaList
+          columns={3}
+          items={[
+            { label: "Nature", value: issue.nature.replace("_", " ") },
+            { label: "Category", value: humanize(issue.category) },
+            { label: "Raised by", value: humanize(issue.source) },
+            {
+              label: "Amount at risk",
+              value: (
+                <span className="font-medium">
+                  <Money value={issue.amount_at_risk} currency={issue.currency} />
+                </span>
+              ),
+            },
+            {
+              label: "Rule or reconciliation",
+              value: <span className="font-mono text-xs">{issue.rule_or_recon_id ?? "—"}</span>,
+            },
+            {
+              label: "Last seen",
+              value: runId ? (
+                <Link href={`/migrations/${migrationId}/runs/${runId}`}>run</Link>
               ) : (
-                <span className="font-mono text-xs">{subject}</span>
-              )}
-            </li>
-          ))}
-        </ul>
+                <span className="text-[var(--ink-subtle)]">—</span>
+              ),
+            },
+          ]}
+        />
+      </Panel>
+
+      {/* Evidence. Read-only, quiet, and labelled with where each value came from. */}
+      <Section title="Subjects" actions={<ProvenanceBadge kind="canonical" />}>
+        <Panel className="p-3">
+          <ul className="space-y-1 text-sm">
+            {issue.subjects.map((subject) => (
+              <li key={subject}>
+                {runId && !subject.startsWith("recon:") && !subject.startsWith("quarantine:") ? (
+                  <RecordRef migrationId={migrationId} runId={runId} naturalKey={subject} />
+                ) : (
+                  <span className="font-mono text-xs text-[var(--ink-muted)]">{subject}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Panel>
       </Section>
       {exception ? (
-        <Section title="Latest finding">
-          <p className="mb-2 text-sm">{exception.message}</p>
-          {exception.expected !== null || exception.observed !== null ? (
-            <p className="mb-2 text-sm">
-              Expected <code>{JSON.stringify(exception.expected)}</code>, observed{" "}
-              <code>{JSON.stringify(exception.observed)}</code>
-            </p>
-          ) : null}
-          {exception.lineage.length > 0 ? (
-            <ul className="list-inside list-disc text-sm">
-              {exception.lineage.map((lineage) => (
-                <li key={`${lineage.import_id}-${lineage.line_start}`}>
-                  <SourceLocation migrationId={migrationId} lineage={lineage} />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <pre className="mt-2 overflow-x-auto rounded bg-gray-50 p-2 text-xs">
-            {JSON.stringify(exception.details, null, 2)}
-          </pre>
+        <Section title="Latest finding" actions={<ProvenanceBadge kind="derived" />}>
+          <Panel className="p-3">
+            <p className="text-sm text-[var(--ink)]">{exception.message}</p>
+            {exception.expected !== null || exception.observed !== null ? (
+              <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                    Expected
+                  </dt>
+                  <dd className="mt-0.5 font-mono text-xs break-all text-[var(--ink)]">
+                    {JSON.stringify(exception.expected)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                    Observed
+                  </dt>
+                  <dd className="mt-0.5 font-mono text-xs break-all text-[var(--critical)]">
+                    {JSON.stringify(exception.observed)}
+                  </dd>
+                </div>
+              </dl>
+            ) : null}
+            {exception.lineage.length > 0 ? (
+              <div className="mt-3 border-t border-[var(--border)] pt-2">
+                <p className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                  Source rows <ProvenanceBadge kind="source" />
+                </p>
+                <ul className="space-y-0.5 text-sm">
+                  {exception.lineage.map((lineage) => (
+                    <li key={`${lineage.import_id}-${lineage.line_start}`}>
+                      <SourceLocation migrationId={migrationId} lineage={lineage} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <pre className="mt-3 overflow-x-auto rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2 text-xs text-[var(--ink-muted)]">
+              {JSON.stringify(exception.details, null, 2)}
+            </pre>
+          </Panel>
         </Section>
       ) : null}
-      <Section title="Workflow">
-        <p className="mb-2 text-sm">
-          Owner: <span data-testid="issue-owner">{ownerName(issue.owner_user_id)}</span>. Issues
-          become resolved only when a current run no longer reports them.
-        </p>
-        <form action={updateIssue} className="flex flex-wrap items-end gap-3">
-          <input type="hidden" name="migrationId" value={migrationId} />
-          <input type="hidden" name="issueId" value={issue.id} />
-          <input type="hidden" name="version" value={issue.version} />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium text-gray-700">Owner</span>
-            <select
-              name="owner"
-              defaultValue={issue.owner_user_id ?? "none"}
-              className="rounded border border-gray-400 bg-white px-2 py-1"
-            >
-              <option value="none">Unassigned</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.display_name} ({humanize(user.role)})
-                </option>
-              ))}
-            </select>
-          </label>
-          {statusOptions.length > 0 ? (
+
+      {/* Acting on the issue. Everything below changes state, and says so. */}
+      <Section
+        title="Workflow"
+        description="Ownership and progress. Issues become resolved only when a current run no longer reports them."
+      >
+        <Panel className="p-3">
+          <p className="mb-3 text-sm text-[var(--ink-muted)]">
+            Owner:{" "}
+            <span data-testid="issue-owner" className="font-medium text-[var(--ink)]">
+              {ownerName(issue.owner_user_id)}
+            </span>
+          </p>
+          <form action={updateIssue} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="migrationId" value={migrationId} />
+            <input type="hidden" name="issueId" value={issue.id} />
+            <input type="hidden" name="version" value={issue.version} />
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-medium text-gray-700">Status</span>
-              <select
-                name="status"
-                defaultValue={issue.status}
-                className="rounded border border-gray-400 bg-white px-2 py-1"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {humanize(option)}
+              <span className="text-xs font-medium text-[var(--ink-muted)]">Owner</span>
+              <select name="owner" defaultValue={issue.owner_user_id ?? "none"} className={CONTROL}>
+                <option value="none">Unassigned</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.display_name} ({humanize(user.role)})
                   </option>
                 ))}
               </select>
             </label>
-          ) : null}
-          <TextField name="note" label="Note (optional)" />
-          <SubmitButton tone="secondary">Save</SubmitButton>
-        </form>
-        {issue.fingerprint && OPEN.has(issue.status) ? (
-          <p className="mt-3 flex flex-wrap gap-4 text-sm">
-            <Link
-              href={`/migrations/${migrationId}/dispositions/new?issue=${issue.id}`}
-              className="underline"
-            >
-              Propose a disposition
-            </Link>
-            {issue.rule_or_recon_id?.startsWith("PARTY.") ? (
-              <Link href={`/migrations/${migrationId}/entities`} className="underline">
-                Review entity candidates
-              </Link>
+            {statusOptions.length > 0 ? (
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="text-xs font-medium text-[var(--ink-muted)]">Status</span>
+                <select name="status" defaultValue={issue.status} className={CONTROL}>
+                  {statusOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {humanize(option)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             ) : null}
-          </p>
+            <TextField name="note" label="Note (optional)" />
+            <SubmitButton tone="secondary">Save</SubmitButton>
+          </form>
+        </Panel>
+        {issue.fingerprint && OPEN.has(issue.status) ? (
+          <Panel tone="accent" className="mt-3 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
+              Governed actions
+            </p>
+            <p className="mt-0.5 text-sm text-[var(--ink-muted)]">
+              These start a change request. Nothing takes effect until it is approved.
+            </p>
+            <span className="mt-2 flex flex-wrap gap-2">
+              <ButtonLink
+                href={`/migrations/${migrationId}/dispositions/new?issue=${issue.id}`}
+                variant="primary"
+              >
+                Propose a disposition
+              </ButtonLink>
+              {issue.rule_or_recon_id?.startsWith("PARTY.") ? (
+                <ButtonLink href={`/migrations/${migrationId}/entities`}>
+                  Review entity candidates
+                </ButtonLink>
+              ) : null}
+            </span>
+          </Panel>
         ) : null}
       </Section>
       {exception && exception.rule_id === "NORM.MALFORMED_ROW" && issue.status !== "resolved" ? (
         <Section title="Propose a row repair">
-          <p className="mb-2 text-sm text-gray-700">
-            Rewrite the unreadable text as one CSV record with the file&apos;s columns. The original
-            text stays in the import; the repair applies only after approval.
-          </p>
-          <form action={proposeQuarantineRepair} className="flex max-w-3xl flex-col gap-2">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <input type="hidden" name="exceptionId" value={exception.id} />
-            <input type="hidden" name="evidenceIssueId" value={issue.id} />
-            <input
-              type="hidden"
-              name="returnTo"
-              value={`/migrations/${migrationId}/issues/${issueId}`}
-            />
-            <TextArea
-              name="replacementText"
-              label="Replacement record"
-              defaultValue={String(exception.details.raw_text ?? "")}
-              rows={4}
-              mono
-              required
-            />
-            <TextArea name="justification" label="Justification" required />
-            <span>
-              <SubmitButton>Propose repair</SubmitButton>
-            </span>
-          </form>
+          <Panel className="p-3">
+            <Callout title="The original text is never overwritten">
+              Rewrite the unreadable text as one CSV record with the file&apos;s columns. The
+              original text stays in the import; the repair applies only after approval.
+            </Callout>
+            <form action={proposeQuarantineRepair} className="mt-3 flex max-w-3xl flex-col gap-3">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="exceptionId" value={exception.id} />
+              <input type="hidden" name="evidenceIssueId" value={issue.id} />
+              <input
+                type="hidden"
+                name="returnTo"
+                value={`/migrations/${migrationId}/issues/${issueId}`}
+              />
+              <TextArea
+                name="replacementText"
+                label="Replacement record"
+                defaultValue={String(exception.details.raw_text ?? "")}
+                rows={4}
+                mono
+                required
+              />
+              <TextArea name="justification" label="Justification" required />
+              <span>
+                <SubmitButton>Propose repair</SubmitButton>
+              </span>
+            </form>
+          </Panel>
         </Section>
       ) : null}
       <InvestigatePanel
@@ -222,33 +282,43 @@ export default async function IssuePage(
       />
       <Section title="Related issues">
         {links.length === 0 ? (
-          <p className="text-sm text-gray-700">No linked issues.</p>
+          <EmptyState
+            title="No linked issues."
+            hint="Links are created when a disposition or decision covers more than one finding."
+          />
         ) : (
-          <ul className="list-inside list-disc text-sm" data-testid="issue-links">
-            {links.map((link) => (
-              <li key={link.id}>
-                {humanize(link.link_type)}:{" "}
-                <Link
-                  href={`/migrations/${migrationId}/issues/${link.other_issue_id}`}
-                  className="underline"
-                >
-                  {link.other_issue_key} {link.other_issue_title}
-                </Link>{" "}
-                <StatusChip status={link.other_issue_status} />{" "}
-                <span className="text-xs text-gray-700">({link.reason})</span>
-              </li>
-            ))}
-          </ul>
+          <Panel>
+            <ul className="divide-y divide-[var(--border)]" data-testid="issue-links">
+              {links.map((link) => (
+                <li key={link.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+                  <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                    {humanize(link.link_type)}
+                  </span>
+                  <Link
+                    href={`/migrations/${migrationId}/issues/${link.other_issue_id}`}
+                    className="font-medium"
+                  >
+                    {link.other_issue_key} {link.other_issue_title}
+                  </Link>
+                  <StatusChip status={link.other_issue_status} />
+                  <span className="text-xs text-[var(--ink-muted)]">({link.reason})</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
         )}
       </Section>
       <Section title="Comments">
         <ol className="mb-3 space-y-2 text-sm" data-testid="comments">
           {comments.map((comment) => (
-            <li key={comment.id} className="rounded border border-gray-200 p-2">
-              <p className="text-xs text-gray-700">
+            <li
+              key={comment.id}
+              className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] p-3"
+            >
+              <p className="text-xs text-[var(--ink-subtle)]">
                 {comment.author_name} · <LocalTime value={comment.created_at} />
               </p>
-              <p className="whitespace-pre-wrap">{comment.body}</p>
+              <p className="mt-1 whitespace-pre-wrap text-[var(--ink)]">{comment.body}</p>
             </li>
           ))}
         </ol>
@@ -261,16 +331,28 @@ export default async function IssuePage(
           </span>
         </form>
       </Section>
-      <Section title="History">
-        <ol className="space-y-1 text-sm" data-testid="issue-history">
-          {history.map((event) => (
-            <li key={event.id}>
-              <LocalTime value={event.occurred_at} /> {humanize(event.action)}
-              {event.after && "status" in event.after ? ` → ${String(event.after.status)}` : ""}
-              {event.reason ? ` — ${event.reason}` : ""}
-            </li>
-          ))}
-        </ol>
+      <Section title="History" description="Every governed change to this issue, in order.">
+        <Panel>
+          <ol className="divide-y divide-[var(--border)]" data-testid="issue-history">
+            {history.map((event) => (
+              <li
+                key={event.id}
+                className="flex flex-wrap items-baseline gap-3 px-3 py-1.5 text-sm"
+              >
+                <span className="text-xs text-[var(--ink-subtle)]">
+                  <LocalTime value={event.occurred_at} />
+                </span>
+                <span className="text-[var(--ink)]">
+                  {humanize(event.action)}
+                  {event.after && "status" in event.after ? ` → ${String(event.after.status)}` : ""}
+                </span>
+                {event.reason ? (
+                  <span className="text-[var(--ink-muted)]">— {event.reason}</span>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </Panel>
       </Section>
     </div>
   );

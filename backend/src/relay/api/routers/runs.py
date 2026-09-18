@@ -12,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from relay.api.deps import BlobStoreDep, ReaderDep, SessionDep, SettingsDep, require
-from relay.api.routers.workspace import exception_out
+from relay.api.routers.workspace import exception_out, issue_out
 from relay.api.schemas import (
     DocumentComparisonOut,
     DrilldownItemOut,
@@ -466,7 +466,7 @@ def drilldown(
 def get_record(
     run_id: uuid.UUID, natural_key: str, _actor: ReaderDep, session: SessionDep
 ) -> RecordOut:
-    run = runs_read.get_run(session, run_id)
+    run, currency = _run_and_currency(session, run_id)
     record = runs_read.get_record(session, run_id, natural_key)
     source_row = None
     source_header = None
@@ -485,8 +485,9 @@ def get_record(
         data=record.data,
         source_row=source_row,
         source_header=source_header,
-        related_issue_ids=[
-            i.id for i in issues_read.issues_touching(session, run.migration_id, natural_key)
+        related_issues=[
+            issue_out(i, currency)
+            for i in issues_read.issues_touching(session, run.migration_id, natural_key)
         ],
     )
 

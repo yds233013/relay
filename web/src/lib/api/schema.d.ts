@@ -2759,8 +2759,8 @@ export interface components {
             record: {
                 [key: string]: unknown;
             };
-            /** Related Issue Ids */
-            related_issue_ids: string[];
+            /** Related Issues */
+            related_issues: components["schemas"]["IssueOut"][];
             /**
              * Run Id
              * Format: uuid

@@ -330,7 +330,8 @@ class RecordOut(Schema):
     source_row: SourceRowOut | None
     source_header: list[str] | None
     """Column order of the source file (row values are an unordered mapping)."""
-    related_issue_ids: list[uuid.UUID]
+    related_issues: list["IssueOut"]
+    """Issues naming this record, with their keys: a person cites BWP-41, never a UUID."""
 
 
 class MigrationSummaryOut(MigrationOut):
