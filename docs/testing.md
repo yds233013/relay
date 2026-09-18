@@ -59,6 +59,11 @@ Related: [security-and-correctness.md](security-and-correctness.md) · [demo-sce
 - Imports: identical re-upload is idempotent; new file supersedes; activation audited; limits enforced with correct problem codes; filename path traversal attempts inert.
 - Append-only: UPDATE/DELETE on `source_rows` and `audit_events` raise.
 - Audit atomicity: force a failure after the domain write → neither domain change nor audit event persists.
+- GV-05 instrumentation: an autouse fixture installs `relay.audit.instrumentation` for the whole
+  module set, so any transaction that mutates a governed table without inserting an audit event
+  fails the test that caused it. `test_audit_instrumentation.py` shows the check can fail and that
+  exempt operational writes (the job queue) pass; `tests/unit/test_audit_classification.py` keeps
+  every mapped table classified.
 - Change requests: full state machine via API; SoD violation → `403 approval.segregation_of_duties`; staleness when base changes; approve-and-apply atomic.
 - Concurrency: `If-Match` mismatch → 412; two workers competing for one job → exactly one runs it; concurrent pipeline runs for one migration serialize.
 - Pipeline idempotency: same fingerprint → same run returned.

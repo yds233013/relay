@@ -14,8 +14,20 @@ from urllib.parse import urlsplit, urlunsplit
 import pytest
 from sqlalchemy import Engine, create_engine, text
 
+from relay.audit import instrumentation
 from relay.core.config import Environment, Settings
 from relay.core.db import create_db_engine
+
+
+@pytest.fixture(scope="session", autouse=True)
+def audit_instrumentation() -> Iterator[None]:
+    """GV-05: watch every transaction in the integration suite (`relay.audit.instrumentation`).
+
+    Every flow the suite exercises becomes evidence that a transaction which mutated a governed
+    table also wrote an audit event. It observes; it never writes and never creates an event.
+    """
+    with instrumentation.observing():
+        yield
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:

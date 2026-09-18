@@ -16,6 +16,7 @@ from sqlalchemy import Engine, func, select, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from relay.audit import instrumentation
 from relay.audit import service as audit
 from relay.audit.models import AuditEvent
 from relay.changes.models import Approval, ApprovalDecision, ChangeRequest, ChangeRequestKind
@@ -199,6 +200,16 @@ def test_migration_sequence_is_gapless_and_chained(
 
 
 # ---------------------------------------------------------------------------- segregation of duties
+def _by_hand(session: Session, row: object) -> None:
+    """Add a row the services would never write this way.
+
+    The subject here is the database trigger, not a service path, so there is no audit event and the
+    GV-05 observer is told to stand aside (`relay.audit.instrumentation`).
+    """
+    instrumentation.bypass_check(session)
+    session.add(row)
+
+
 def test_database_rejects_self_approval(factory: sessionmaker[Session], space: Workspace) -> None:
     with session_scope(factory) as session:
         change = ChangeRequest(
@@ -206,15 +217,16 @@ def test_database_rejects_self_approval(factory: sessionmaker[Session], space: W
             kind=ChangeRequestKind.COLUMN_MAPPING_SET.value, status="submitted", title="t",
             payload={}, origin="operator", requested_by=space.specialist.user_id,
         )  # fmt: skip
-        session.add(change)
+        _by_hand(session, change)
         change_id = change.id
     with pytest.raises(DBAPIError, match="own change request"), session_scope(factory) as session:
-        session.add(
+        _by_hand(
+            session,
             Approval(
                 id=uuid7(), change_request_id=change_id, reviewer_user_id=space.specialist.user_id,
                 reviewer_role_at_decision="implementation_lead",
                 decision=ApprovalDecision.APPROVE.value,
-            )
+            ),
         )  # fmt: skip
 
 

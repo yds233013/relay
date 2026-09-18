@@ -124,12 +124,12 @@ Rules that are not configurable:
 
 | Guarantee | Mechanism |
 |---|---|
-| Every governed mutation is logged | Services call `audit.record(...)` inside the unit of work; a test asserts that each service method that commits emits ≥ 1 event (instrumented UoW). |
+| Every governed mutation is logged | Services call `audit.record(...)` inside the unit of work. `relay.audit.instrumentation` classifies every mapped table as governed or exempt (each exemption with its reason) and, installed by the integration suite's autouse fixture, fails any transaction that mutated a governed table without inserting an `audit_events` row. It proves that such a transaction wrote *an* event — not that the event describes the right row, actor or action, which each flow's own test asserts. It observes only: it never writes, never creates an event, and is never installed in a production path. |
 | No logged-but-not-applied or applied-but-not-logged | Same transaction. Rollback test in integration suite. |
-| Append-only | No update/delete code path; DB trigger rejects UPDATE/DELETE/TRUNCATE; app role lacks those privileges. |
+| Append-only | No update/delete code path, and a `BEFORE UPDATE OR DELETE` / `BEFORE TRUNCATE` trigger on `source_rows`, `quarantined_rows`, `issue_comments` and `audit_events` rejects the statement (`0002_persistence`, `0004_issue_workflow`). **Privileges are not part of this control**: one database role owns and runs everything, so the application role is also the table owner and could disable the trigger. Separate roles (SEC-25) are not implemented — see [traceability.md](traceability.md). |
 | Tamper-evident | Per-migration hash chain; `GET /migrations/{migration_id}/audit-events/verify` and `relay verify-audit` recompute and report the first broken link. |
 | Ordered | `migration_seq` assigned under a per-migration advisory lock. |
-| Honest limits | A DB superuser can rewrite the table and chain. Documented; post-MVP option: periodic anchoring of chain heads to external storage. |
+| Honest limits | The log is tamper-**evident**, not tamper-proof. Anyone with the database role — which today is the application itself — can disable the trigger and edit a row; the per-migration hash chain is what makes that edit visible, and an integration test performs exactly that edit to prove the chain reports it. Post-MVP options: separate database roles (SEC-25), and periodic anchoring of chain heads to external storage. |
 
 ### 3.2 Answering the audit questions
 
