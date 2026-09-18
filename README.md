@@ -69,7 +69,9 @@ the real services — uploads, approved column mappings, an approved account map
 acting as the seeded people, never writing tables directly. Optionally add two more fictional
 migrations (one signed off, one in its first week) with `make demo-portfolio`.
 
-Open http://127.0.0.1:3000 and sign in as any of the seeded people (development identity, local
+Open the web port the stack published — `docker compose port web 3000` prints it; it is
+http://127.0.0.1:3000 with the default ports, or the port you set in `RELAY_WEB_HOST_PORT`.
+Sign in as any of the seeded people (development identity, local
 only: Maya the implementation specialist, Daniel the lead, Priya the customer controller, Sam a
 viewer, Alex an admin).
 

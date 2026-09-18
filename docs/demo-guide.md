@@ -48,11 +48,23 @@ disagree about where the API is.
 
 ## 2. Open it
 
-```
-http://localhost:3000
+**The URL depends on the web port you started the stack with.** Get it from Docker rather than
+guessing — this prints the exact address that is listening:
+
+```bash
+docker compose port web 3000
 ```
 
-(or `http://127.0.0.1:<RELAY_WEB_HOST_PORT>` if you overrode the port).
+- Default ports: <http://127.0.0.1:3000>
+- With the override above (`RELAY_WEB_HOST_PORT=13000`): <http://127.0.0.1:13000>
+
+Two things that will look like "Relay is down" when it is running:
+
+- **the wrong port** — if you overrode `RELAY_WEB_HOST_PORT`, the default URL has nothing behind it;
+- **`https://`** — there is no TLS listener, so the browser gets a connection error. Use `http://`.
+
+Prefer `127.0.0.1` over `localhost`: the ports are published on IPv4 only, and `localhost` resolves
+to IPv6 `::1` first on macOS. Browsers fall back to IPv4, but some tools do not.
 
 You land on the **Portfolio**. Click **Brightwater Provisions, Inc.**
 
