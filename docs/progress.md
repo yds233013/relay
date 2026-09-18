@@ -618,6 +618,8 @@ G8 still fails — identifying a difference is not excusing it.
   been edited to match output.
 - Kestrel's identifiers joined the anti-cheating scan: `relay.*`, the migrations and the web app
   contain none of them.
+- 12 of 12 Playwright specs on a rebuilt, freshly reseeded stack: the three engine changes did not
+  disturb the Brightwater walkthrough, its governed changes or its sign-off.
 
 ---
 
