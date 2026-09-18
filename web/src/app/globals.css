@@ -18,7 +18,8 @@
 
   --ink: #14181f;
   --ink-muted: #545c6b;
-  --ink-subtle: #6f7784;
+  /* Clears 4.5:1 on every surface above, including the tinted ones (checked by axe in E2E). */
+  --ink-subtle: #5c6472;
 
   --accent: #1c4f8f;
   --accent-ink: #123663;
@@ -56,14 +57,22 @@ body {
   border-radius: 2px;
 }
 
-/* Links carry the accent everywhere; `no-underline` opts a control out. */
-a {
-  color: var(--accent-ink);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-decoration-color: color-mix(in srgb, var(--accent-ink) 30%, transparent);
-}
+/*
+ * Links carry the accent everywhere; `no-underline` opts a control out.
+ *
+ * This must sit in `@layer base`: unlayered CSS beats every Tailwind utility regardless of
+ * specificity, so an unlayered `a { color }` would silently override `text-white` on a link
+ * styled as a primary button — which is exactly what it did until axe caught the 1.47:1 contrast.
+ */
+@layer base {
+  a {
+    color: var(--accent-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: color-mix(in srgb, var(--accent-ink) 30%, transparent);
+  }
 
-a:hover {
-  text-decoration-color: currentColor;
+  a:hover {
+    text-decoration-color: currentColor;
+  }
 }

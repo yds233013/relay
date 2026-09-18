@@ -92,7 +92,7 @@ export default async function ImportPage(
         description="Values are shown verbatim, including the whitespace and formatting the export contained."
       >
         <Panel>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Source rows">
             <table className="w-full border-collapse text-left text-xs" data-testid="source-rows">
               <caption className="sr-only">Raw rows as read</caption>
               <thead>

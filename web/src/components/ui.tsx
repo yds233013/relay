@@ -127,7 +127,11 @@ export function Panel({
   );
 }
 
-/** One figure with its label. Optionally a link to the rows behind it. */
+/** One figure with its label. Optionally a link to the rows behind it.
+ *
+ * The markup is `dl > div > dt + dd`: a link may not wrap `dt`/`dd`, so when the card is clickable
+ * the anchor inside the value is stretched over the whole card instead.
+ */
 export function MetricCard({
   label,
   value,
@@ -143,30 +147,27 @@ export function MetricCard({
   tone?: Tone;
   emphasis?: boolean;
 }) {
-  const body = (
-    <>
+  return (
+    <div
+      className={`relative rounded-md border p-3 ${TONE_SURFACE[tone]} ${href ? "transition-colors hover:border-[var(--border-strong)]" : ""}`}
+    >
       <dt className="text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
         {label}
       </dt>
       <dd
         className={`mt-1 tabular-nums ${emphasis ? "text-2xl font-semibold" : "text-lg font-medium"} ${TONE_INK[tone]}`}
       >
-        {value}
+        {href ? (
+          <Link href={href} className="no-underline after:absolute after:inset-0">
+            {value}
+          </Link>
+        ) : (
+          value
+        )}
+        {hint ? (
+          <span className="mt-1 block text-xs font-normal text-[var(--ink-muted)]">{hint}</span>
+        ) : null}
       </dd>
-      {hint ? <p className="mt-1 text-xs text-[var(--ink-muted)]">{hint}</p> : null}
-    </>
-  );
-  return (
-    <div
-      className={`rounded-md border p-3 ${TONE_SURFACE[tone]} ${href ? "transition-colors hover:border-[var(--border-strong)]" : ""}`}
-    >
-      {href ? (
-        <Link href={href} className="block no-underline">
-          {body}
-        </Link>
-      ) : (
-        body
-      )}
     </div>
   );
 }
