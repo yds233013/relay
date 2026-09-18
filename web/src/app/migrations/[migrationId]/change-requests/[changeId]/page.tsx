@@ -5,6 +5,7 @@ import { LocalTime } from "@/components/local-time";
 import { Money } from "@/components/money";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
+import { Callout } from "@/components/ui";
 import { SignalChips } from "@/components/signal-chips";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
@@ -30,12 +31,12 @@ function AccountMappingChanges({ detail }: { detail: Detail }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left text-sm" data-testid="mapping-diff">
-        <caption className="mb-2 text-left text-sm text-gray-800">
+        <caption className="mb-2 text-left text-sm text-[var(--ink)]">
           {str(impact.changed_count)} legacy accounts change
           {impact.changes_truncated ? " (first 500 shown)" : ""}.
         </caption>
         <thead>
-          <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
             <th scope="col" className="px-2 py-1.5">
               Legacy account
             </th>
@@ -55,10 +56,12 @@ function AccountMappingChanges({ detail }: { detail: Detail }) {
         </thead>
         <tbody>
           {changes.map((change) => (
-            <tr key={str(change.legacy)} className="border-b border-gray-100 align-top">
+            <tr key={str(change.legacy)} className="border-b border-[var(--border)]/60 align-top">
               <td className="px-2 py-1.5">
                 <span className="font-mono">{str(change.legacy)}</span> {str(change.legacy_name)}
-                <span className="block text-xs text-gray-700">{str(change.legacy_subtype)}</span>
+                <span className="block text-xs text-[var(--ink-muted)]">
+                  {str(change.legacy_subtype)}
+                </span>
               </td>
               <td className="px-2 py-1.5">
                 <del className="font-mono">{str(change.before)}</del> {str(change.before_name)}
@@ -66,7 +69,9 @@ function AccountMappingChanges({ detail }: { detail: Detail }) {
               <td className="px-2 py-1.5">
                 <ins className="font-mono no-underline">{str(change.after)}</ins>{" "}
                 {str(change.after_name)}
-                <span className="block text-xs text-gray-700">{str(change.after_subtype)}</span>
+                <span className="block text-xs text-[var(--ink-muted)]">
+                  {str(change.after_subtype)}
+                </span>
               </td>
               <td className="px-2 py-1.5">
                 <SignalChips signals={change.signals} />
@@ -85,7 +90,7 @@ function BeforeAfter({ rows }: { rows: [string, unknown, unknown][] }) {
     <table className="w-full border-collapse text-left text-sm" data-testid="before-after">
       <caption className="sr-only">Before and after</caption>
       <thead>
-        <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+        <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
           <th scope="col" className="px-2 py-1.5">
             Field
           </th>
@@ -99,8 +104,8 @@ function BeforeAfter({ rows }: { rows: [string, unknown, unknown][] }) {
       </thead>
       <tbody>
         {rows.map(([label, before, after]) => (
-          <tr key={label} className="border-b border-gray-100 align-top">
-            <th scope="row" className="px-2 py-1.5 font-normal text-gray-700">
+          <tr key={label} className="border-b border-[var(--border)]/60 align-top">
+            <th scope="row" className="px-2 py-1.5 font-normal text-[var(--ink-muted)]">
               {label}
             </th>
             <td className="px-2 py-1.5 font-mono text-xs whitespace-pre-wrap">{str(before)}</td>
@@ -118,7 +123,11 @@ function Diff({ detail, migrationId }: { detail: Detail; migrationId: string }) 
   const impact = (detail.impact ?? {}) as Json;
   const kind = detail.change_request.kind;
   if (detail.before === null) {
-    return <p className="text-sm text-gray-700">Before and after are computed when submitted.</p>;
+    return (
+      <p className="text-sm text-[var(--ink-muted)]">
+        Before and after are computed when submitted.
+      </p>
+    );
   }
   if (kind === "account_mapping_set") {
     return (
@@ -203,13 +212,23 @@ export default async function ChangeRequestPage(
         <StatusChip status={change.status} />
       </PageHeader>
       <Notice error={param(query.error)} notice={param(query.notice)} />
+      <div className="mb-5">
+        <Callout>
+          Relay separates finding a problem from deciding what to do, approving it and applying it.
+          Nothing on this page has touched the migration&apos;s inputs yet: an approved change is
+          applied in one transaction, and the run that follows is what changes the numbers.
+        </Callout>
+      </div>
       <Section title="Justification">
         <p className="text-sm whitespace-pre-wrap">{change.justification || "—"}</p>
       </Section>
       <Section title="Change">
         <Diff detail={detail} migrationId={migrationId} />
       </Section>
-      <Section title="Approvals">
+      <Section
+        title="Approvals"
+        description="Segregation of duties is enforced by the API, not by hiding buttons."
+      >
         <ul className="mb-3 space-y-1 text-sm" data-testid="requirements">
           {detail.requirements.map((requirement) => (
             <li key={requirement.index} className="flex items-center gap-2">
@@ -223,12 +242,21 @@ export default async function ChangeRequestPage(
           ))}
         </ul>
         {detail.approvals.length > 0 ? (
-          <ul className="mb-3 space-y-1 text-sm">
+          <ul className="mb-3 space-y-1 text-sm" data-testid="approvals">
             {detail.approvals.map((approval) => (
-              <li key={approval.reviewer_user_id}>
-                <LocalTime value={approval.decided_at} /> {approval.reviewer_name} (
-                {humanize(approval.role)}) {approval.decision}d
-                {approval.comment ? `: ${approval.comment}` : ""}
+              <li key={approval.reviewer_user_id} className="flex flex-wrap items-baseline gap-2">
+                <StatusChip
+                  status={approval.decision === "approve" ? "pass" : "fail"}
+                  label={approval.decision === "approve" ? "approved" : "rejected"}
+                />
+                <span className="font-medium">{approval.reviewer_name}</span>
+                <span className="text-[var(--ink-muted)]">({humanize(approval.role)})</span>
+                <span className="text-xs text-[var(--ink-subtle)]">
+                  <LocalTime value={approval.decided_at} />
+                </span>
+                {approval.comment ? (
+                  <span className="text-[var(--ink-muted)]">— {approval.comment}</span>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -248,7 +276,10 @@ export default async function ChangeRequestPage(
             </span>
           </form>
         ) : (
-          <p className="text-sm text-gray-700" data-testid="review-unavailable">
+          <p
+            className="rounded border border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-2 text-sm text-[var(--ink-muted)]"
+            data-testid="review-unavailable"
+          >
             You cannot review this change request: {detail.viewer.reason}.
           </p>
         )}
@@ -262,12 +293,15 @@ export default async function ChangeRequestPage(
       </Section>
       {detail.runs.length > 0 ? (
         <Section title="Pipeline runs requested by this change">
-          <ul className="list-inside list-disc text-sm">
-            {detail.runs.map((runId) => (
+          <ul className="space-y-1 text-sm">
+            {detail.runs.map((runId, index) => (
               <li key={runId}>
-                <Link href={`/migrations/${migrationId}/runs/${runId}`} className="underline">
-                  Run {runId}
-                </Link>
+                <Link href={`/migrations/${migrationId}/runs/${runId}`}>
+                  Run requested by this change{detail.runs.length > 1 ? ` (${index + 1})` : ""}
+                </Link>{" "}
+                <span className="font-mono text-xs text-[var(--ink-subtle)]">
+                  {runId.slice(0, 8)}
+                </span>
               </li>
             ))}
           </ul>

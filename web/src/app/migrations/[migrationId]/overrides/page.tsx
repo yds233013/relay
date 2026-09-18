@@ -5,6 +5,7 @@ import { LocalTime } from "@/components/local-time";
 import { Notice } from "@/components/notice";
 import { Money } from "@/components/money";
 import { PageHeader, Section } from "@/components/page-header";
+import { EmptyState } from "@/components/ui";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
@@ -36,11 +37,11 @@ export default async function OverridesPage(
       <Notice error={param(query.error)} notice={param(query.notice)} />
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm" data-testid="overrides">
-          <caption className="mb-2 text-left text-sm font-semibold text-gray-900">
+          <caption className="mb-2 text-left text-sm font-semibold text-[var(--ink)]">
             {overrides.length} overrides
           </caption>
           <thead>
-            <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+            <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
               <th scope="col" className="px-2 py-1.5">
                 Record
               </th>
@@ -60,10 +61,10 @@ export default async function OverridesPage(
           </thead>
           <tbody>
             {overrides.map((o) => (
-              <tr key={o.id} className="border-b border-gray-100 align-top">
+              <tr key={o.id} className="border-b border-[var(--border)]/60 align-top">
                 <td className="px-2 py-1.5">
                   <span className="font-mono text-xs">{o.natural_key}</span>
-                  <span className="block text-xs text-gray-700">
+                  <span className="block text-xs text-[var(--ink-muted)]">
                     {humanize(o.target)} · <LocalTime value={o.created_at} />
                   </span>
                 </td>
@@ -108,7 +109,10 @@ export default async function OverridesPage(
           </tbody>
         </table>
       </div>
-      <Section title="Entity decisions">
+      <Section
+        title="Entity decisions"
+        description="Merges and keep-distinct decisions. The legacy records are never rewritten; the decision sits on top of them."
+      >
         <OverlayTable
           migrationId={migrationId}
           target="entity_decision"
@@ -124,7 +128,10 @@ export default async function OverridesPage(
           }))}
         />
       </Section>
-      <Section title="Dispositions">
+      <Section
+        title="Dispositions"
+        description="Real legacy misstatements, accepted with a documented plan rather than silently corrected in migration history."
+      >
         <OverlayTable
           migrationId={migrationId}
           target="disposition"
@@ -183,14 +190,16 @@ function OverlayTable({
   rows: OverlayRow[];
 }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-gray-700">None.</p>;
+    return (
+      <EmptyState title="None yet." hint="Overlays appear here once a change request is applied." />
+    );
   }
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left text-sm" data-testid={testId}>
         <caption className="sr-only">{testId.replaceAll("-", " ")}</caption>
         <thead>
-          <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
             <th scope="col" className="px-2 py-1.5">
               Decision
             </th>
@@ -207,7 +216,7 @@ function OverlayTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-gray-100 align-top">
+            <tr key={row.id} className="border-b border-[var(--border)]/60 align-top">
               <td className="px-2 py-1.5">{row.description}</td>
               <td className="px-2 py-1.5">
                 {row.reason}{" "}

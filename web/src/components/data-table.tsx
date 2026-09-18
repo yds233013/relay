@@ -28,9 +28,11 @@ export function DataTable<T>({
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left text-sm">
-        <caption className="mb-2 text-left text-sm font-semibold text-gray-900">{caption}</caption>
+        <caption className="mb-2 text-left text-sm font-semibold text-[var(--ink)]">
+          {caption}
+        </caption>
         <thead>
-          <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
             {columns.map((column) => (
               <th
                 key={column.header}
@@ -45,13 +47,16 @@ export function DataTable<T>({
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-2 py-3 text-gray-700">
+              <td colSpan={columns.length} className="px-2 py-3 text-[var(--ink-muted)]">
                 {empty}
               </td>
             </tr>
           ) : (
             rows.map((row) => (
-              <tr key={rowKey(row)} className="border-b border-gray-100 align-top hover:bg-gray-50">
+              <tr
+                key={rowKey(row)}
+                className="border-b border-[var(--border)]/60 align-top hover:bg-[var(--surface-sunken)]"
+              >
                 {columns.map((column) => (
                   <td
                     key={column.header}
@@ -67,7 +72,7 @@ export function DataTable<T>({
       </table>
       {nextHref ? (
         <p className="mt-2 text-sm">
-          <Link href={nextHref} className="text-blue-800 underline">
+          <Link href={nextHref} className="underline">
             Next page
           </Link>
         </p>

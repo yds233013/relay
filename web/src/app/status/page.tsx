@@ -38,8 +38,8 @@ function Row({
   testId?: string;
 }) {
   return (
-    <tr className="border-b border-gray-200 last:border-b-0">
-      <th className="py-2 pr-4 font-normal text-gray-600">{label}</th>
+    <tr className="border-b border-[var(--border)] last:border-b-0">
+      <th className="py-2 pr-4 font-normal text-[var(--ink-subtle)]">{label}</th>
       <td className="py-2" data-testid={testId}>
         {children}
       </td>
@@ -83,7 +83,7 @@ export default async function DevelopmentStatusPage() {
   return (
     <main className="mx-auto max-w-xl p-8">
       <h1 className="text-xl font-semibold">Relay</h1>
-      <p className="mb-6 text-sm text-gray-600">
+      <p className="mb-6 text-sm text-[var(--ink-subtle)]">
         Development status page: backend liveness and database readiness.
       </p>
       {config instanceof ConfigError ? (

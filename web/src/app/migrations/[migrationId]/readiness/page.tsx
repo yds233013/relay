@@ -6,6 +6,7 @@ import { LocalTime } from "@/components/local-time";
 import { Money } from "@/components/money";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
+import { Callout, Panel } from "@/components/ui";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
@@ -65,11 +66,15 @@ export default async function ReadinessPage(
         </span>
       </PageHeader>
       <Notice error={param(query.error)} notice={param(query.notice)} />
-      <Section title="Sign-off">
+      <Section
+        title="Sign-off"
+        description="The last gate. Sign-off is bound to this exact run: change an input and it lapses."
+      >
         {signedOff ? (
-          <p className="text-sm">
-            Signed off on this run. Any change to the inputs invalidates the sign-off.
-          </p>
+          <Callout tone="positive" title="Signed off on this run">
+            Any change to the inputs invalidates the sign-off, and the migration returns to not
+            ready until it is signed again.
+          </Callout>
         ) : prerequisitesMet ? (
           <form action={proposeSignoff} className="flex max-w-2xl flex-col gap-2">
             <input type="hidden" name="migrationId" value={migrationId} />
@@ -83,9 +88,11 @@ export default async function ReadinessPage(
             </span>
           </form>
         ) : (
-          <p className="text-sm text-gray-700" data-testid="signoff-unavailable">
-            Sign-off becomes available when G1 to G11 pass or are waived on the current run.
-          </p>
+          <div data-testid="signoff-unavailable">
+            <Callout>
+              Sign-off becomes available when G1 to G11 pass or are waived on the current run.
+            </Callout>
+          </div>
         )}
         {readiness.signoffs.length > 0 ? (
           <ul className="mt-2 space-y-1 text-sm" data-testid="signoffs">
@@ -98,12 +105,17 @@ export default async function ReadinessPage(
                 >
                   approval
                 </Link>
-                {s.status === "invalidated" ? "(the inputs changed after sign-off)" : null}
+                {s.status === "invalidated" ? (
+                  <span className="text-[var(--warning)]">(the inputs changed after sign-off)</span>
+                ) : null}
               </li>
             ))}
           </ul>
         ) : null}
       </Section>
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
+        Gates
+      </h2>
       <ol className="space-y-3">
         {readiness.gates.map((gate) => {
           const waiver = readiness.waivers.find(
@@ -113,17 +125,45 @@ export default async function ReadinessPage(
             <li
               key={gate.gate_id}
               id={gate.gate_id}
-              className="rounded border border-gray-200 p-3 text-sm"
+              className={`scroll-mt-4 rounded-md border bg-[var(--surface-raised)] p-3 text-sm ${
+                gate.status === "fail"
+                  ? "border-[var(--border)] border-l-4 border-l-[var(--critical)]"
+                  : "border-[var(--border)]"
+              }`}
               data-gate={gate.gate_id}
             >
               <p className="flex flex-wrap items-center gap-2">
                 <StatusChip status={gate.status} label={`${gate.gate_id} ${gate.status}`} />
-                <span className="font-medium">{gate.title}</span>
-                {gate.waivable ? <span className="text-xs text-gray-700">waivable</span> : null}
+                <span className="font-medium text-[var(--ink)]">{gate.title}</span>
+                {gate.waivable ? (
+                  <span
+                    className="rounded border border-[var(--border)] px-1 text-[10px] uppercase tracking-wide text-[var(--ink-subtle)]"
+                    title="This gate can be waived for a named scope, with lead and controller approval."
+                  >
+                    waivable
+                  </span>
+                ) : null}
               </p>
-              <p className="text-gray-700">{gate.summary}</p>
-              <p>
-                Observed: {gate.observed}. Threshold: {gate.threshold}.
+              <p className="mt-0.5 text-[var(--ink-muted)]">{gate.summary}</p>
+              <p className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1">
+                <span>
+                  <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                    Observed{" "}
+                  </span>
+                  <span
+                    className={
+                      gate.status === "fail" ? "font-medium text-[var(--critical)]" : "font-medium"
+                    }
+                  >
+                    {gate.observed}
+                  </span>
+                </span>
+                <span>
+                  <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                    Threshold{" "}
+                  </span>
+                  <span className="text-[var(--ink-muted)]">{gate.threshold}</span>
+                </span>
               </p>
               {gate.status === "waived" && waiver ? (
                 <p className="mt-1">
@@ -138,11 +178,11 @@ export default async function ReadinessPage(
                 </p>
               ) : null}
               {gate.evidence_links.length > 0 ? (
-                <details className="mt-1">
-                  <summary className="cursor-pointer text-blue-800 underline">
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
                     Evidence ({gate.evidence_links.length})
                   </summary>
-                  <ul className="mt-1 list-inside list-disc">
+                  <ul className="mt-1 space-y-0.5 border-l-2 border-[var(--border)] pl-3">
                     {gate.evidence_links.map((link, index) => (
                       <li key={`${gate.gate_id}-${index}`}>
                         <EvidenceLink migrationId={migrationId} link={link} />
@@ -152,12 +192,12 @@ export default async function ReadinessPage(
                 </details>
               ) : null}
               {gate.status === "fail" && gate.waivable && gate.scope && readiness.run_is_current ? (
-                <details className="mt-2">
-                  <summary className="cursor-pointer underline">Propose a waiver</summary>
+                <details className="mt-2 rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2">
+                  <summary className="cursor-pointer font-medium">Propose a waiver</summary>
                   <form action={proposeWaiver} className="mt-2 flex max-w-2xl flex-col gap-2">
                     <input type="hidden" name="migrationId" value={migrationId} />
                     <input type="hidden" name="gateId" value={gate.gate_id} />
-                    <p className="text-xs text-gray-700">
+                    <p className="text-xs text-[var(--ink-muted)]">
                       Covers exactly the {Object.keys(gate.scope).length} items failing now.
                     </p>
                     <TextArea name="justification" label="Why this gate can be waived" required />
@@ -172,15 +212,24 @@ export default async function ReadinessPage(
         })}
       </ol>
       {readiness.waivers.length > 0 ? (
-        <Section title="Waivers">
-          <ul className="space-y-1 text-sm" data-testid="waivers">
-            {readiness.waivers.map((w) => (
-              <li key={w.id}>
-                <StatusChip status={w.status} /> {w.gate_id}: {w.reason}
-              </li>
-            ))}
-          </ul>
-        </Section>
+        <div className="mt-6">
+          <Section
+            title="Waivers"
+            description="A waiver covers exactly the items failing when it was granted, and lapses if they change."
+          >
+            <Panel className="divide-y divide-[var(--border)]">
+              <ul data-testid="waivers">
+                {readiness.waivers.map((w) => (
+                  <li key={w.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+                    <StatusChip status={w.status} />
+                    <span className="font-medium">{w.gate_id}</span>
+                    <span className="text-[var(--ink-muted)]">{w.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          </Section>
+        </div>
       ) : null}
     </div>
   );

@@ -43,7 +43,7 @@ function evidenceList(finding: Finding) {
       quoted_values?: { label: string; value: string }[];
     };
     return (
-      <li key={index} className="rounded border border-gray-200 p-2">
+      <li key={index} className="rounded border border-[var(--border)] p-2">
         <p className="flex flex-wrap items-center gap-2">
           <StatusChip
             status={checked?.ok ? "pass" : "fail"}
@@ -51,7 +51,7 @@ function evidenceList(finding: Finding) {
           />
           <span>{String(value.claim ?? "")}</span>
         </p>
-        <p className="text-xs text-gray-700">
+        <p className="text-xs text-[var(--ink-muted)]">
           Steps {(value.step_seqs ?? []).join(", ")}
           {value.record_refs?.length ? ` · records ${value.record_refs.join(", ")}` : ""}
           {value.quoted_values?.length
@@ -87,11 +87,11 @@ export function FindingCard({
         Suggested action: <span className="font-mono text-xs">{humanize(String(action.type))}</span>
         {finding.requires_approval ? " (would require approval)" : ""}
       </p>
-      <pre className="mb-2 overflow-x-auto rounded bg-gray-50 p-2 text-xs">
+      <pre className="mb-2 overflow-x-auto rounded bg-[var(--surface-sunken)] p-2 text-xs">
         {JSON.stringify(action, null, 2)}
       </pre>
       {finding.open_questions.length > 0 ? (
-        <p className="text-xs text-gray-700">
+        <p className="text-xs text-[var(--ink-muted)]">
           Open questions: {finding.open_questions.join(" · ")}
         </p>
       ) : null}
@@ -99,7 +99,7 @@ export function FindingCard({
   );
   return (
     <article
-      className={`rounded border p-3 text-sm ${failed ? "border-red-300 bg-red-50" : "border-gray-300"}`}
+      className={`rounded border p-3 text-sm ${failed ? "border-red-300 bg-red-50" : "border-[var(--border)]"}`}
       data-testid="ai-finding"
       data-verification={finding.verification_status}
     >
@@ -108,7 +108,7 @@ export function FindingCard({
           status={VERIFICATION[finding.verification_status] ?? "unknown"}
           label={humanize(finding.verification_status)}
         />
-        <span className="text-xs text-gray-700">
+        <span className="text-xs text-[var(--ink-muted)]">
           model-reported confidence: {finding.confidence}
         </span>
         <StatusChip status={finding.review_status} label={humanize(finding.review_status)} />
@@ -138,7 +138,7 @@ export function Transcript({ steps }: { steps: Step[] }) {
   return (
     <ol className="space-y-1 text-xs" data-testid="ai-transcript">
       {steps.map((step) => (
-        <li key={step.seq} className="rounded border border-gray-200 p-2">
+        <li key={step.seq} className="rounded border border-[var(--border)] p-2">
           <p className="font-medium">
             {step.seq}. {humanize(step.type)}
             {step.tool_name ? ` · ${step.tool_name}` : ""}

@@ -15,7 +15,7 @@ export function RecordRef({
   return (
     <Link
       href={`/migrations/${migrationId}/records/${runId}/${encodeURIComponent(naturalKey)}`}
-      className="font-mono text-xs text-blue-800 underline decoration-dotted underline-offset-2 hover:decoration-solid"
+      className="font-mono text-xs underline decoration-dotted underline-offset-2 hover:decoration-solid"
     >
       {children ?? naturalKey}
     </Link>

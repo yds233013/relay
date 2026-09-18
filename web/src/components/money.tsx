@@ -11,7 +11,7 @@ export function Money({
   showCurrency?: boolean;
 }) {
   if (value === null || value === undefined) {
-    return <span className="text-gray-600">—</span>;
+    return <span className="text-[var(--ink-subtle)]">—</span>;
   }
   const { text, negative } = formatAmount(value);
   return (
@@ -21,7 +21,9 @@ export function Money({
       aria-label={`${negative ? "negative " : ""}${text.replace(/[()]/g, "")} ${currency}`}
     >
       {text}
-      {showCurrency ? <span className="ml-1 text-xs text-gray-600">{currency}</span> : null}
+      {showCurrency ? (
+        <span className="ml-1 text-xs text-[var(--ink-subtle)]">{currency}</span>
+      ) : null}
     </span>
   );
 }

@@ -69,7 +69,7 @@ export default async function NewDispositionPage(
             >
               <caption className="sr-only">Open issues with the same rule</caption>
               <thead>
-                <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+                <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
                   <th scope="col" className="px-2 py-1.5">
                     Include
                   </th>
@@ -86,7 +86,7 @@ export default async function NewDispositionPage(
               </thead>
               <tbody>
                 {candidates.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-100">
+                  <tr key={item.id} className="border-b border-[var(--border)]/60">
                     <td className="px-2 py-1.5">
                       <input
                         type="checkbox"
@@ -114,8 +114,11 @@ export default async function NewDispositionPage(
         <Section title="Decision">
           <div className="flex max-w-2xl flex-col gap-2">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-medium text-gray-700">Kind</span>
-              <select name="kind" className="rounded border border-gray-400 bg-white px-2 py-1">
+              <span className="text-xs font-medium text-[var(--ink-muted)]">Kind</span>
+              <select
+                name="kind"
+                className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+              >
                 {KINDS.map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -130,11 +133,11 @@ export default async function NewDispositionPage(
             />
             <TextField name="followUp" label="Follow-up" />
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-medium text-gray-700">Follow-up owner</span>
+              <span className="text-xs font-medium text-[var(--ink-muted)]">Follow-up owner</span>
               <select
                 name="followUpOwner"
                 defaultValue=""
-                className="rounded border border-gray-400 bg-white px-2 py-1"
+                className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
               >
                 <option value="">None</option>
                 {users.map((user) => (

@@ -3,7 +3,7 @@ import { StatusChip } from "@/components/status-chip";
 /** Compatibility of a legacy → target account pair, as computed by the server. */
 export function SignalChips({ signals }: { signals: unknown }) {
   if (!signals || typeof signals !== "object") {
-    return <span className="text-gray-600">—</span>;
+    return <span className="text-[var(--ink-subtle)]">—</span>;
   }
   const values = signals as Record<string, boolean | null>;
   const labels: [string, string][] = [

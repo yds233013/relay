@@ -11,7 +11,7 @@ export function SourceLocation({
   lineage: Schemas["LineageOut"] | null | undefined;
 }) {
   if (!lineage) {
-    return <span className="text-gray-700">no source row</span>;
+    return <span className="text-[var(--ink-muted)]">no source row</span>;
   }
   const lines =
     lineage.line_start === lineage.line_end
@@ -20,7 +20,7 @@ export function SourceLocation({
   return (
     <Link
       href={`/migrations/${migrationId}/data/imports/${lineage.import_id}?cursor=${lineage.row_number - 1}#row-${lineage.row_number}`}
-      className="whitespace-nowrap text-blue-800 underline"
+      className="whitespace-nowrap underline"
     >
       row {lineage.row_number}, {lines}
     </Link>

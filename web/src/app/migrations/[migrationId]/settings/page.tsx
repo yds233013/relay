@@ -46,7 +46,7 @@ export default async function SettingsPage(props: PageProps<"/migrations/[migrat
         <table className="w-full border-collapse text-left text-sm" data-testid="policy">
           <caption className="sr-only">Policy values</caption>
           <thead>
-            <tr className="border-b border-gray-300 text-xs uppercase tracking-wide text-gray-700">
+            <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
               <th scope="col" className="px-2 py-1.5">
                 Setting
               </th>
@@ -57,7 +57,7 @@ export default async function SettingsPage(props: PageProps<"/migrations/[migrat
           </thead>
           <tbody>
             {scalar.map(([key, value]) => (
-              <tr key={key} className="border-b border-gray-100">
+              <tr key={key} className="border-b border-[var(--border)]/60">
                 <th scope="row" className="px-2 py-1.5 font-normal">
                   {humanize(key)}
                 </th>
@@ -71,8 +71,11 @@ export default async function SettingsPage(props: PageProps<"/migrations/[migrat
         <form action={proposePolicyChange} className="flex max-w-2xl flex-col gap-2">
           <input type="hidden" name="migrationId" value={migrationId} />
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium text-gray-700">Setting</span>
-            <select name="key" className="rounded border border-gray-400 bg-white px-2 py-1">
+            <span className="text-xs font-medium text-[var(--ink-muted)]">Setting</span>
+            <select
+              name="key"
+              className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+            >
               {scalar.map(([key]) => (
                 <option key={key} value={key}>
                   {humanize(key)}

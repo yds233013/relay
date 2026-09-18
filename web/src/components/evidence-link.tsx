@@ -12,10 +12,7 @@ export function EvidenceLink({
 }) {
   if (link.kind === "issue" && link.issue_id) {
     return (
-      <Link
-        href={`/migrations/${migrationId}/issues/${link.issue_id}`}
-        className="text-blue-800 underline"
-      >
+      <Link href={`/migrations/${migrationId}/issues/${link.issue_id}`} className="underline">
         {link.label}
       </Link>
     );
@@ -24,7 +21,7 @@ export function EvidenceLink({
     return (
       <Link
         href={`/migrations/${migrationId}/reconciliation/lines/${link.line_id}`}
-        className="font-mono text-xs text-blue-800 underline"
+        className="font-mono text-xs underline"
       >
         {link.label}
       </Link>
@@ -33,7 +30,7 @@ export function EvidenceLink({
   if (link.kind === "entity_candidate") {
     return (
       <span className="font-mono text-xs">
-        {link.label} <span className="text-gray-700">(duplicate candidate)</span>
+        {link.label} <span className="text-[var(--ink-muted)]">(duplicate candidate)</span>
       </span>
     );
   }

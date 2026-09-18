@@ -40,20 +40,20 @@ export default async function AuditPage(props: PageProps<"/migrations/[migration
       </PageHeader>
       <FilterForm>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-700">Action</span>
+          <span className="text-xs font-medium text-[var(--ink-muted)]">Action</span>
           <input
             name="action"
             defaultValue={filters.action ?? ""}
-            className="rounded border border-gray-400 px-2 py-1"
+            className="rounded border border-[var(--border-strong)] px-2 py-1"
             placeholder="issue.created"
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-700">Entity type</span>
+          <span className="text-xs font-medium text-[var(--ink-muted)]">Entity type</span>
           <input
             name="entity_type"
             defaultValue={filters.entity_type ?? ""}
-            className="rounded border border-gray-400 px-2 py-1"
+            className="rounded border border-[var(--border-strong)] px-2 py-1"
             placeholder="issue"
           />
         </label>
@@ -84,9 +84,7 @@ export default async function AuditPage(props: PageProps<"/migrations/[migration
             header: "Change",
             cell: (e) => (
               <details>
-                <summary className="cursor-pointer text-xs text-blue-800 underline">
-                  before / after
-                </summary>
+                <summary className="cursor-pointer text-xs underline">before / after</summary>
                 <pre className="max-w-md overflow-x-auto text-xs">
                   {JSON.stringify({ before: e.before, after: e.after, reason: e.reason }, null, 2)}
                 </pre>

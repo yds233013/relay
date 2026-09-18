@@ -12,12 +12,12 @@ export const dynamic = "force-dynamic";
 function DateField({ name, label }: { name: string; label: string }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="text-xs font-medium text-gray-700">{label}</span>
+      <span className="text-xs font-medium text-[var(--ink-muted)]">{label}</span>
       <input
         type="date"
         name={name}
         required
-        className="rounded border border-gray-400 bg-white px-2 py-1"
+        className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
       />
     </label>
   );
@@ -65,7 +65,7 @@ export default async function NewMigrationPage(props: PageProps<"/migrations/new
           </div>
         </Section>
         <Section title="Conversion plan">
-          <p className="mb-2 text-sm text-gray-700">
+          <p className="mb-2 text-sm text-[var(--ink-muted)]">
             Opening balances are taken at the opening balance date; history runs from the history
             start to cutover; go-live follows cutover.
           </p>

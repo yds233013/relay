@@ -22,9 +22,15 @@ const STYLES: Record<string, { icon: string; className: string }> = {
   critical: { icon: "▲", className: "border-red-700 text-red-900 bg-red-50" },
   high: { icon: "▲", className: "border-orange-700 text-orange-900 bg-orange-50" },
   medium: { icon: "●", className: "border-yellow-700 text-yellow-900 bg-yellow-50" },
-  low: { icon: "○", className: "border-gray-500 text-gray-800 bg-gray-50" },
+  low: {
+    icon: "○",
+    className: "border-[var(--border-strong)] text-[var(--ink)] bg-[var(--surface-sunken)]",
+  },
   stale: { icon: "!", className: "border-amber-700 text-amber-900 bg-amber-50" },
-  superseded: { icon: "→", className: "border-gray-500 text-gray-800 bg-gray-50" },
+  superseded: {
+    icon: "→",
+    className: "border-[var(--border-strong)] text-[var(--ink)] bg-[var(--surface-sunken)]",
+  },
   lapsed: { icon: "!", className: "border-amber-700 text-amber-900 bg-amber-50" },
   invalidated: { icon: "!", className: "border-amber-700 text-amber-900 bg-amber-50" },
   signed_off: { icon: "✓", className: "border-green-700 text-green-900 bg-green-50" },
@@ -34,7 +40,10 @@ const STYLES: Record<string, { icon: string; className: string }> = {
   different: { icon: "≠", className: "border-red-700 text-red-900 bg-red-50" },
 };
 
-const NEUTRAL = { icon: "•", className: "border-gray-400 text-gray-800 bg-white" };
+const NEUTRAL = {
+  icon: "•",
+  className: "border-[var(--border-strong)] text-[var(--ink)] bg-white",
+};
 
 export function StatusChip({ status, label }: { status: string; label?: string }) {
   const style = STYLES[status] ?? NEUTRAL;

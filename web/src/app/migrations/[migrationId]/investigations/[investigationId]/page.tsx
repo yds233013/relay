@@ -57,7 +57,7 @@ export default async function InvestigationPage(
       ) : null}
       <Section title="Findings">
         {detail.findings.length === 0 ? (
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-[var(--ink-muted)]">
             {running ? "Investigating…" : "No findings were submitted."}
           </p>
         ) : (
