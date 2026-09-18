@@ -623,6 +623,98 @@ G8 still fails — identifying a difference is not excusing it.
 
 ---
 
+## Product-quality pass (after the second company)
+
+The system was validated but the interface still read like an engineering console: an `sr-only` page
+title on the most important screen, blockers rendered as bulleted link dumps, no visual hierarchy
+between a gate failing and a timestamp, and no shared design layer — every page styled itself with
+utility classes.
+
+This pass changes presentation and documentation only. No accounting behaviour, no golden truth, no
+engine change. Plan, in priority order:
+
+1. **A real design layer.** Tokens in `globals.css`; shared primitives (page header with
+   breadcrumbs, section, metric card, callout, table, filter bar, buttons, empty state, definition
+   list, diff table, provenance badge) so pages compose instead of restyling.
+2. **App shell.** Migration identity and cutover context in the sidebar, grouped navigation with an
+   active state, so the workflow is legible from the chrome alone.
+3. **Overview.** The screen a reviewer sees first: identity → readiness → exposure (defect vs
+   anomaly) → structured blockers (gate, observed, impact, top evidence, count, path to inspect) →
+   operator queue → pipeline → activity.
+4. **Reconciliation.** Say what each control compares in plain English; make "explained" visibly
+   different from "accepted" (R5 ties and still fails G8).
+5. **Provenance.** Label SOURCE vs CANONICAL vs DERIVED so a transformed value can never be mistaken
+   for customer evidence.
+6. **Governance.** Make the separation of detection / judgement / approval / execution visible, and
+   fix the two known defects (`rejectd`, raw issue UUIDs).
+7. **GV-05.** Observational instrumentation proving governed mutations are audited, with the
+   governed set and every exemption written down.
+8. **Documentation.** Correct the SEC-25 overstatement in governance.md, rewrite the README opening,
+   add an architecture diagram and `docs/demo-guide.md`.
+
+### Built
+
+- **A design layer** (`web/src/app/globals.css`, `web/src/components/ui.tsx`): tokens for surfaces,
+  ink, accent and semantic states, and the primitives every page now composes — page header with
+  breadcrumbs, section, panel, metric card, callout, empty state, metadata list, buttons. Two
+  product-specific primitives carry real meaning: `ProvenanceBadge` (Source / Canonical / Engine
+  result) and `GateStrip` (all twelve gates at a glance).
+- **A shell that explains the workflow**: grouped navigation with an active state, and the company,
+  cutover, go-live and functional currency in the chrome.
+- **A rebuilt overview**: identity → readiness → exposure split by nature → structured blockers with
+  a direct action per gate → operator queue → pipeline → activity.
+- **Reconciliation explained in prose**, including the R5 callout that identified is not excused.
+- **Provenance made explicit** on the record inspector and the import viewer.
+- **Governance framed as a feature**: what a change request has and has not done yet, who must
+  approve, why you cannot approve your own, and what a waiver or sign-off is bound to.
+- **GV-05 instrumentation** (`relay.audit.instrumentation`), see below.
+
+### Fixed
+
+| Defect | Was | Now |
+|---|---|---|
+| Rejected approvals | rendered `rejectd` (the page appended "d" to the raw decision value) | an explicit approved/rejected chip |
+| Related issues on a record | raw UUIDs | issue key, severity and status — the router already loaded the issues and threw them away |
+| "Which run am I reading?" | reconciliation and validation never said | a run marker in the header of both, with current/stale |
+| Money arithmetic in the browser | — | the FC-15 guard caught two new violations during this pass (`Number(...)`, `Math.abs`); both rewritten |
+
+### Deliberately not changed
+
+- No accounting behaviour, no rule, reconciliation or gate logic, no golden truth. Brightwater still
+  passes 115/115 and Kestrel 31/31.
+- No new product scope: no page was added beyond what already existed, and nothing was hidden.
+- SEC-25 (separate database roles) stays unimplemented; only the documentation that overstated it
+  was corrected.
+
+### GV-05 instrumentation
+
+`backend/src/relay/audit/instrumentation.py` classifies all 41 mapped tables (25 governed, 16
+operational, each exemption with its reason in the code) and registers SQLAlchemy listeners that
+fail any transaction which mutated a governed table without inserting an `audit_events` row. An
+autouse fixture in `tests/integration/conftest.py` installs it for the whole integration suite, so
+its 121 tests are the evidence. It observes only: it never writes, never creates an event, takes no
+lock, and nothing installs it in a production path.
+
+The claim is narrow, and the docstring says so: *a transaction that mutated governed state also
+wrote an event* — not that the event describes the right row, actor or action, which each flow's own
+assertions cover. It watches the ORM unit of work, so raw `COPY` writes (`core.db.copy_rows`) are
+invisible; every table written that way is classified exempt anyway.
+
+Two things the first run surfaced, both recorded rather than papered over:
+
+- `test_database_rejects_self_approval` builds a change request and an approval by hand to exercise
+  the segregation-of-duties trigger — no service, so no event. It now calls
+  `instrumentation.bypass_check` with a comment; the test itself is unchanged.
+- `investigations` is exempt, not governed: the worker flips an investigation to `running` in its
+  own transaction without an event (`investigation.requested` and `investigation.finished` bracket
+  it). Adding an event would have been a behaviour change, so the exemption states the reason.
+
+`tests/unit/test_audit_classification.py` fails if a future table is neither governed nor exempt;
+`tests/integration/test_audit_instrumentation.py` proves the check can fail (unaudited insert,
+update, and ORM bulk update) and that exempt job-queue writes pass.
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.
@@ -657,7 +749,8 @@ company, 11 decision records.
 - **A CSV export** (SEC-05). Nothing in the demo needs one, and adding it would have meant adding
   formula-injection neutralisation to test.
 - **An instrumented audit test** (GV-05) that proves *every* committing service method writes an
-  event. Each flow asserts its own events instead. This is the gap I would close first.
+  event. Each flow asserted its own events instead. This was the gap I would close first — and it is
+  the one the product-quality pass closed (see "GV-05 instrumentation" above).
 
 ### What cost the most time, and what it taught
 

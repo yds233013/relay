@@ -13,11 +13,40 @@ hash-chained audit trail, and explicit readiness gates bound to a reproducible p
 investigator helps explain discrepancies, with read-only tools and verified citations — and removing
 it removes no correctness.
 
-> **Status:** M0–M9 complete. See
-> [docs/progress.md](docs/progress.md) for what exists, what was measured, and what was cut.
-> The demo customer, **Brightwater Provisions, Inc.**, is fictional; so is every figure in it.
+> **Status:** M0–M9 complete, then six review passes and a second-company generalization test.
+> [docs/progress.md](docs/progress.md) records what exists, what was measured, and what was cut.
+
+**What this is, precisely:**
+
+| | |
+|---|---|
+| **Brightwater Provisions, Inc.** | A fictional demo customer. Every company, person, account and figure in it is invented; no real financial or customer data was used at any point. |
+| **Kestrel Instruments Ltd** | A second fictional company used only to test that the engine generalizes. It is an evaluation scenario, generated and verified from the command line — not a second demo, and not exposed in the UI. |
+| **The engine** | Deterministic. Same inputs, same fingerprint, same results — asserted by tests, not by claim. |
+| **The AI investigator** | Passes six scripted-provider evals. **No live-model run has ever been recorded**, so nothing here demonstrates a model's real accuracy on this data. It is off by default. |
+| **Deployment** | None. This runs locally under Docker Compose; the development identity switcher is not authentication. |
+| **Known limitations** | Listed honestly in [docs/traceability.md](docs/traceability.md) — including one security requirement (separate database roles) that is deliberately not implemented. |
 
 ![Overview: nine of twelve gates failing, each blocker linked to its evidence](docs/images/overview.png)
+
+### What is technically interesting
+
+- **A deterministic engine with hand-written ground truth.** 37 rules, ten reconciliations and
+  twelve readiness gates are pure functions of a fingerprinted input set. The expected results were
+  written by hand from the accounting specification *before* the engine ran, and have never been
+  edited to match its output — so a disagreement is an investigation, not a diff to accept.
+- **A second company proves it generalizes.** Kestrel Instruments Ltd shares nothing with the demo
+  customer — different legacy system, delimiter, encoding, date and amount formats, currency, fiscal
+  year, chart of accounts and defects — and runs through the same unchanged engine. Building it
+  found three real engine bugs.
+- **Corrections are governed, not edited.** Source rows are append-only. Every fix is an overlay
+  created by an approved change request, with segregation of duties enforced server-side, and the
+  run that follows is what changes the numbers.
+- **Evidence all the way down.** Every gate links to the reconciliation line, every line to the
+  records, every record to the file and line number it came from.
+- **AI is bounded by construction.** The investigator may import read models only — enforced by
+  import-linter — its tool sessions are `READ ONLY` transactions, its findings must pass provenance
+  verification, and it can never be a requester or an approver.
 
 ---
 
@@ -147,6 +176,57 @@ Measured performance on a synthetic 250,000-line migration (`make pipeline-perf`
 
 Import-linter enforces the layering, and the runtime package may not import the scenario or
 evaluation packages at all.
+
+```mermaid
+flowchart TB
+    subgraph src["Legacy source"]
+        EXPORTS["Legacy exports<br/>GL, trial balance, agings,<br/>invoices, bills, payments, bank"]
+    end
+
+    subgraph det["Deterministic core — no AI, no network, no clock"]
+        INGEST["Ingestion + profiling<br/>append-only source rows,<br/>quarantine for unreadable rows"]
+        MAP["Column + account mapping<br/>approved mapping sets"]
+        CANON["Canonical model<br/>Decimal money, explicit currency,<br/>business dates"]
+        ENGINE["Rules · Reconciliations R1–R6 ·<br/>Entity candidates"]
+        GATES["Readiness gates G1–G12<br/>bound to a run fingerprint"]
+    end
+
+    subgraph ops["Operator workflow"]
+        ISSUES["Issues<br/>resolved only when a run<br/>stops reporting them"]
+        CR["Change request<br/>diff + justification"]
+        APPROVE["Approval<br/>segregation of duties"]
+        OVERLAY["Overlay applied<br/>mapping version, override,<br/>entity decision, disposition"]
+        RERUN["Re-run<br/>new fingerprint"]
+    end
+
+    AUDIT["Append-only hash-chained audit log"]
+    SIGNOFF["Sign-off<br/>bound to this exact run"]
+
+    subgraph ai["AI investigator — bounded, optional"]
+        TOOLS["Read-only tools<br/>READ ONLY transactions"]
+        FINDING["Findings with verified provenance<br/>proposals only"]
+    end
+
+    EXPORTS --> INGEST --> MAP --> CANON --> ENGINE --> GATES
+    ENGINE --> ISSUES --> CR --> APPROVE --> OVERLAY --> RERUN --> ENGINE
+    GATES --> SIGNOFF
+    CR -.writes.-> AUDIT
+    APPROVE -.writes.-> AUDIT
+    OVERLAY -.writes.-> AUDIT
+    SIGNOFF -.writes.-> AUDIT
+    CANON -.reads.-> TOOLS
+    ENGINE -.reads.-> TOOLS
+    TOOLS --> FINDING
+    FINDING -.->|"drafts, never applies"| CR
+
+    classDef aiStyle stroke-dasharray: 4 3;
+    class ai,TOOLS,FINDING aiStyle;
+```
+
+The dashed path is the only thing AI touches: it reads, and it may draft a change request that a
+person still has to submit and that two other people still have to approve. It cannot write, cannot
+approve, cannot change an issue, and cannot make a gate pass. Turning it off (`RELAY_AI_PROVIDER=disabled`,
+the default) removes no workflow — which the end-to-end suite asserts.
 
 Stack: Python 3.12, FastAPI, SQLAlchemy 2.0 (sync), PostgreSQL 16, Alembic, Pydantic v2;
 Next.js 16, React 19, TypeScript strict, Tailwind 4; Docker Compose; uv and npm with committed
