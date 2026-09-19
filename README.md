@@ -1,17 +1,32 @@
 # Relay
 
-**Migration operations for ERP implementations: prove the data is right before go-live.**
+**An ERP implementation operations system: it automates migration QA from messy legacy accounting
+data to a verified go-live.**
 
-Moving a company onto a new ERP is not importing CSVs. Legacy exports quietly drop records.
-Mappings put contra-accounts in the wrong place. Old books carry duplicate vendors and double
-payments. Fixes happen in spreadsheets nobody can audit. And the go-live decision usually comes down
-to "looks good" in a meeting.
+An implementation team has to answer one question before a customer can launch: *is the migrated
+financial data complete, correctly mapped, reconciled, and safe to go live on?* Today that answer is
+assembled by hand — spreadsheets comparing exports against trial balances, mapping reviews in
+email, fixes applied directly to staging data, and a go-live decision that comes down to "looks
+good" in a meeting.
 
-Relay replaces that meeting with evidence: deterministic validation and reconciliation against
-independent control reports, every fix routed through an approved change request, an append-only
-hash-chained audit trail, and explicit readiness gates bound to a reproducible pipeline run. An AI
-investigator helps explain discrepancies, with read-only tools and verified citations — and removing
-it removes no correctness.
+Relay does the repeatable part automatically and leaves the judgement to people:
+
+- it **ingests** legacy exports and normalizes them without ever editing the originals;
+- it **checks** them with deterministic accounting controls and reconciles them against the
+  customer's own independent control reports;
+- it **groups** what it finds into the decisions a person actually has to make, with the money
+  attached to each one;
+- it **controls** every correction through an approved change request — the person who proposes a
+  fix cannot approve it;
+- it **re-verifies** deterministically after each change, and only then decides readiness;
+- and it **proves** what happened in an append-only, hash-chained audit trail.
+
+An AI investigator can read that evidence and draft an explanation. It has read-only tools, must
+cite verifiable evidence, cannot approve anything, and is off by default — removing it removes no
+correctness.
+
+> *An independent portfolio project exploring the operational problem of ERP implementation. It is
+> not any company's internal system, and it integrates with no vendor's APIs.*
 
 > **Status:** M0–M9 complete, then six review passes and a second-company generalization test.
 > [docs/progress.md](docs/progress.md) records what exists, what was measured, and what was cut.

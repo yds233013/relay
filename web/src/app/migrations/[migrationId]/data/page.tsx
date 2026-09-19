@@ -31,7 +31,7 @@ export default async function DataPage(props: PageProps<"/migrations/[migrationI
   return (
     <div className="max-w-6xl">
       <PageHeader
-        title="Data"
+        title="Imported data"
         description="Every dataset, the import a run currently reads from it, and the rows that could not be read. Imported rows are kept exactly as exported and are never edited."
       />
 

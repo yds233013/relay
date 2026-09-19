@@ -7,6 +7,7 @@ import { Money } from "@/components/money";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
 import { Callout, Panel } from "@/components/ui";
+import { groupGates } from "@/lib/readiness";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
@@ -28,14 +29,15 @@ export default async function ReadinessPage(
     readiness.gates.length > 0 &&
     readiness.gates.every((g) => g.gate_id === "G12" || g.status !== "fail");
   const signedOff = readiness.signoffs.some((s) => s.status === "active");
+  const categories = groupGates(readiness.gates);
   return (
     <div className="max-w-5xl">
       <PageHeader
-        title="Readiness"
+        title="Can this customer go live?"
         description={
           readiness.run_id ? (
             <>
-              Gates evaluated on run #{readiness.run_sequence}
+              Every check below was evaluated on run #{readiness.run_sequence}
               {readiness.evaluated_at ? (
                 <>
                   {" "}
@@ -48,9 +50,9 @@ export default async function ReadinessPage(
               >
                 (run details)
               </Link>
-              . Unresolved exposure{" "}
+              , against the inputs in effect at the time. Unresolved exposure{" "}
               <Money value={readiness.unresolved_exposure} currency={readiness.currency} />.
-              Migration status:{" "}
+              Implementation status:{" "}
               <span data-testid="migration-status">{humanize(readiness.migration_status)}</span>.
             </>
           ) : (
@@ -68,7 +70,7 @@ export default async function ReadinessPage(
       <Notice error={param(query.error)} notice={param(query.notice)} />
       <Section
         title="Sign-off"
-        description="The last gate. Sign-off is bound to this exact run: change an input and it lapses."
+        description="The last step. Sign-off is bound to this exact run: change an input and it lapses."
       >
         {signedOff ? (
           <Callout tone="positive" title="Signed off on this run">
@@ -90,7 +92,8 @@ export default async function ReadinessPage(
         ) : (
           <div data-testid="signoff-unavailable">
             <Callout>
-              Sign-off becomes available when G1 to G11 pass or are waived on the current run.
+              Sign-off becomes available once every other check passes or is waived on the current
+              run. Until then, the work queue is where that happens.
             </Callout>
           </div>
         )}
@@ -113,104 +116,178 @@ export default async function ReadinessPage(
           </ul>
         ) : null}
       </Section>
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
-        Gates
-      </h2>
-      <ol className="space-y-3">
-        {readiness.gates.map((gate) => {
-          const waiver = readiness.waivers.find(
-            (w) => w.gate_id === gate.gate_id && w.status === "active",
-          );
-          return (
-            <li
-              key={gate.gate_id}
-              id={gate.gate_id}
-              className={`scroll-mt-4 rounded-md border bg-[var(--surface-raised)] p-3 text-sm ${
-                gate.status === "fail"
-                  ? "border-[var(--border)] border-l-4 border-l-[var(--critical)]"
-                  : "border-[var(--border)]"
+      <Section
+        title="What has to be true before go-live"
+        description="Six questions, answered by twelve checks. Each check states what it observed and links to the evidence behind it."
+      >
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {categories.map((category) => (
+            <a
+              key={category.id}
+              href={`#${category.id}`}
+              className={`rounded border px-3 py-2 no-underline ${
+                category.status === "fail"
+                  ? "border-[var(--critical)]/40 bg-[var(--critical-soft)]"
+                  : category.status === "waived"
+                    ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
+                    : "border-[var(--positive)]/40 bg-[var(--positive-soft)]"
               }`}
-              data-gate={gate.gate_id}
             >
-              <p className="flex flex-wrap items-center gap-2">
-                <StatusChip status={gate.status} label={`${gate.gate_id} ${gate.status}`} />
-                <span className="font-medium text-[var(--ink)]">{gate.title}</span>
-                {gate.waivable ? (
-                  <span
-                    className="rounded border border-[var(--border)] px-1 text-[10px] uppercase tracking-wide text-[var(--ink-subtle)]"
-                    title="This gate can be waived for a named scope, with lead and controller approval."
-                  >
-                    waivable
-                  </span>
-                ) : null}
-              </p>
-              <p className="mt-0.5 text-[var(--ink-muted)]">{gate.summary}</p>
-              <p className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1">
-                <span>
-                  <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-                    Observed{" "}
-                  </span>
-                  <span
-                    className={
-                      gate.status === "fail" ? "font-medium text-[var(--critical)]" : "font-medium"
-                    }
-                  >
-                    {gate.observed}
-                  </span>
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-[var(--ink)]">{category.title}</span>
+                <span
+                  className={`text-xs font-semibold ${
+                    category.status === "fail"
+                      ? "text-[var(--critical)]"
+                      : category.status === "waived"
+                        ? "text-[var(--accent-ink)]"
+                        : "text-[var(--positive)]"
+                  }`}
+                >
+                  {category.status === "fail"
+                    ? `${category.failing.length} failing`
+                    : category.status === "waived"
+                      ? "waived"
+                      : "clear"}
                 </span>
-                <span>
-                  <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-                    Threshold{" "}
-                  </span>
-                  <span className="text-[var(--ink-muted)]">{gate.threshold}</span>
-                </span>
-              </p>
-              {gate.status === "waived" && waiver ? (
-                <p className="mt-1">
-                  Waived, not passing: {waiver.reason}{" "}
-                  <Link
-                    href={`/migrations/${migrationId}/change-requests/${waiver.change_request_id}`}
-                    className="underline"
-                  >
-                    approval
-                  </Link>
-                  . The waiver lapses if any waived amount changes.
-                </p>
-              ) : null}
-              {gate.evidence_links.length > 0 ? (
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-                    Evidence ({gate.evidence_links.length})
-                  </summary>
-                  <ul className="mt-1 space-y-0.5 border-l-2 border-[var(--border)] pl-3">
-                    {gate.evidence_links.map((link, index) => (
-                      <li key={`${gate.gate_id}-${index}`}>
-                        <EvidenceLink migrationId={migrationId} link={link} />
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
-              {gate.status === "fail" && gate.waivable && gate.scope && readiness.run_is_current ? (
-                <details className="mt-2 rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2">
-                  <summary className="cursor-pointer font-medium">Propose a waiver</summary>
-                  <form action={proposeWaiver} className="mt-2 flex max-w-2xl flex-col gap-2">
-                    <input type="hidden" name="migrationId" value={migrationId} />
-                    <input type="hidden" name="gateId" value={gate.gate_id} />
-                    <p className="text-xs text-[var(--ink-muted)]">
-                      Covers exactly the {Object.keys(gate.scope).length} items failing now.
-                    </p>
-                    <TextArea name="justification" label="Why this gate can be waived" required />
+              </span>
+              <span className="mt-0.5 block text-xs text-[var(--ink-muted)]">
+                {category.question}
+              </span>
+            </a>
+          ))}
+        </div>
+      </Section>
+
+      {categories.map((category) => (
+        <section key={category.id} id={category.id} className="mb-6 scroll-mt-4">
+          <div className="mb-2 border-b border-[var(--border)] pb-1">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--ink)]">
+              <span
+                aria-hidden="true"
+                className={
+                  category.status === "fail"
+                    ? "text-[var(--critical)]"
+                    : category.status === "waived"
+                      ? "text-[var(--accent-ink)]"
+                      : "text-[var(--positive)]"
+                }
+              >
+                {category.status === "fail" ? "✕" : category.status === "waived" ? "~" : "✓"}
+              </span>
+              {category.title}
+              <span className="text-xs font-normal text-[var(--ink-subtle)]">
+                {category.members.map((gate) => gate.gate_id).join(", ")}
+              </span>
+            </h2>
+            <p className="text-sm text-[var(--ink-muted)]">{category.question}</p>
+          </div>
+          <ol className="space-y-3">
+            {category.members.map((gate) => {
+              const waiver = readiness.waivers.find(
+                (w) => w.gate_id === gate.gate_id && w.status === "active",
+              );
+              return (
+                <li
+                  key={gate.gate_id}
+                  id={gate.gate_id}
+                  className={`scroll-mt-4 rounded-md border bg-[var(--surface-raised)] p-3 text-sm ${
+                    gate.status === "fail"
+                      ? "border-[var(--border)] border-l-4 border-l-[var(--critical)]"
+                      : "border-[var(--border)]"
+                  }`}
+                  data-gate={gate.gate_id}
+                >
+                  <p className="flex flex-wrap items-center gap-2">
+                    <StatusChip status={gate.status} label={`${gate.gate_id} ${gate.status}`} />
+                    <span className="font-medium text-[var(--ink)]">{gate.title}</span>
+                    {gate.waivable ? (
+                      <span
+                        className="rounded border border-[var(--border)] px-1 text-[10px] uppercase tracking-wide text-[var(--ink-subtle)]"
+                        title="This gate can be waived for a named scope, with lead and controller approval."
+                      >
+                        waivable
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="mt-0.5 text-[var(--ink-muted)]">{gate.summary}</p>
+                  <p className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1">
                     <span>
-                      <SubmitButton tone="secondary">Propose waiver</SubmitButton>
+                      <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                        Observed{" "}
+                      </span>
+                      <span
+                        className={
+                          gate.status === "fail"
+                            ? "font-medium text-[var(--critical)]"
+                            : "font-medium"
+                        }
+                      >
+                        {gate.observed}
+                      </span>
                     </span>
-                  </form>
-                </details>
-              ) : null}
-            </li>
-          );
-        })}
-      </ol>
+                    <span>
+                      <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                        Threshold{" "}
+                      </span>
+                      <span className="text-[var(--ink-muted)]">{gate.threshold}</span>
+                    </span>
+                  </p>
+                  {gate.status === "waived" && waiver ? (
+                    <p className="mt-1">
+                      Waived, not passing: {waiver.reason}{" "}
+                      <Link
+                        href={`/migrations/${migrationId}/change-requests/${waiver.change_request_id}`}
+                        className="underline"
+                      >
+                        approval
+                      </Link>
+                      . The waiver lapses if any waived amount changes.
+                    </p>
+                  ) : null}
+                  {gate.evidence_links.length > 0 ? (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                        Evidence ({gate.evidence_links.length})
+                      </summary>
+                      <ul className="mt-1 space-y-0.5 border-l-2 border-[var(--border)] pl-3">
+                        {gate.evidence_links.map((link, index) => (
+                          <li key={`${gate.gate_id}-${index}`}>
+                            <EvidenceLink migrationId={migrationId} link={link} />
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
+                  {gate.status === "fail" &&
+                  gate.waivable &&
+                  gate.scope &&
+                  readiness.run_is_current ? (
+                    <details className="mt-2 rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2">
+                      <summary className="cursor-pointer font-medium">Propose a waiver</summary>
+                      <form action={proposeWaiver} className="mt-2 flex max-w-2xl flex-col gap-2">
+                        <input type="hidden" name="migrationId" value={migrationId} />
+                        <input type="hidden" name="gateId" value={gate.gate_id} />
+                        <p className="text-xs text-[var(--ink-muted)]">
+                          Covers exactly the {Object.keys(gate.scope).length} items failing now.
+                        </p>
+                        <TextArea
+                          name="justification"
+                          label="Why this gate can be waived"
+                          required
+                        />
+                        <span>
+                          <SubmitButton tone="secondary">Propose waiver</SubmitButton>
+                        </span>
+                      </form>
+                    </details>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ))}
       {readiness.waivers.length > 0 ? (
         <div className="mt-6">
           <Section

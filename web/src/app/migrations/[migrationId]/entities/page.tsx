@@ -31,7 +31,7 @@ export default async function EntitiesPage(props: PageProps<"/migrations/[migrat
   return (
     <div className="max-w-6xl">
       <PageHeader
-        title="Entities"
+        title="Duplicate parties"
         description="Possible duplicate customers and vendors from the latest run. Nothing is merged without an approved decision."
       />
       <Section

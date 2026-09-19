@@ -19,7 +19,7 @@ export default async function SettingsPage(props: PageProps<"/migrations/[migrat
   return (
     <div className="max-w-4xl">
       <PageHeader
-        title="Settings"
+        title="Policy"
         description={
           <>
             Policy version {policy.version}, since <LocalTime value={policy.created_at} />

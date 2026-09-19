@@ -253,19 +253,22 @@ const PROVENANCE: Record<
   { label: string; className: string; title: string }
 > = {
   source: {
-    label: "Source",
+    label: "Original source",
     className: "border-[var(--border-strong)] bg-white text-[var(--ink-muted)]",
-    title: "Exactly as the legacy system exported it. Never modified.",
+    title:
+      "Original source: the legacy system's own export, exactly as it arrived. Relay stores it append-only and never edits it — corrections are applied on top as approved overlays.",
   },
   canonical: {
-    label: "Canonical",
+    label: "Normalized record",
     className: "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent-ink)]",
-    title: "Relay's normalized record, derived from the source row by the approved mapping.",
+    title:
+      "Normalized record: Relay's reading of the source row — the same values parsed into typed fields by the approved column mapping. It is an interpretation, so when it looks wrong the mapping or an approved override changes, never the source.",
   },
   derived: {
-    label: "Engine result",
+    label: "Relay check result",
     className: "border-[var(--border-strong)] bg-[var(--surface-sunken)] text-[var(--ink-muted)]",
-    title: "Computed by the deterministic engine from canonical records.",
+    title:
+      "Relay check result: computed by Relay's deterministic checks from normalized records, and recomputed from scratch on every run. Nobody types these values in or edits them.",
   },
 };
 

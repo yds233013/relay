@@ -4,45 +4,52 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * The workflow, in the order an implementation actually runs: bring the data in, look at what the
- * engine found, work the exceptions, govern the corrections, decide go-live. Grouping is for
- * legibility only — nothing is hidden behind a disclosure.
+ * Navigation follows the jobs an implementation operator does, not the modules behind them:
+ * see where things stand, work the queue, check the data that came in, read what the automatic
+ * checks found, govern the corrections, and decide go-live. Nothing is hidden behind a
+ * disclosure — every route that existed before is still one click away.
  */
 const GROUPS: readonly (readonly [string, readonly (readonly [string, string])[]])[] = [
-  ["", [["", "Overview"]]],
   [
-    "Source data",
+    "",
+    [
+      ["", "Overview"],
+      ["/work", "Work queue"],
+    ],
+  ],
+  [
+    "Migration data",
     [
       ["/setup", "Setup"],
-      ["/data", "Data"],
+      ["/data", "Imported data"],
       ["/mappings", "Mappings"],
     ],
   ],
   [
-    "Engine results",
+    "Checks & reconciliation",
     [
-      ["/runs", "Runs"],
-      ["/validation", "Validation"],
+      ["/runs", "Verification runs"],
+      ["/validation", "Accounting checks"],
       ["/reconciliation", "Reconciliation"],
-    ],
-  ],
-  [
-    "Exceptions",
-    [
       ["/issues", "Issues"],
-      ["/entities", "Entities"],
+      ["/entities", "Duplicate parties"],
     ],
   ],
   [
-    "Governance",
+    "Changes & approvals",
     [
       ["/approvals", "Approvals"],
-      ["/overrides", "Overrides"],
-      ["/audit", "Audit log"],
-      ["/settings", "Settings"],
+      ["/overrides", "Applied corrections"],
     ],
   ],
-  ["Go-live", [["/readiness", "Readiness"]]],
+  [
+    "Go-live",
+    [
+      ["/readiness", "Readiness"],
+      ["/audit", "Audit log"],
+      ["/settings", "Policy"],
+    ],
+  ],
 ];
 
 export function MigrationNav({ migrationId }: { migrationId: string }) {

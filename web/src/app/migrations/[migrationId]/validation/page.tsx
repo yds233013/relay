@@ -21,7 +21,7 @@ export default async function ValidationPage(
   );
   const runId = param(search.run) ?? readiness.run_id;
   if (!runId) {
-    return <PageHeader title="Validation" description="No successful run yet." />;
+    return <PageHeader title="Accounting checks" description="No successful run yet." />;
   }
   const rule = param(search.rule);
   const cursor = param(search.cursor);
@@ -37,7 +37,7 @@ export default async function ValidationPage(
   return (
     <div className="max-w-6xl">
       <PageHeader
-        title="Validation"
+        title="Accounting checks"
         description="Every rule the engine ran, and the findings it produced."
         status={
           <RunContext

@@ -77,22 +77,22 @@ re-run `make demo-reset`.
 
 | | |
 |---|---|
-| Readiness | **NOT READY** |
-| Gates | 9 of 12 failing (G2, G4 and G11 pass) |
+| Command center | 1 implementation · 0 ready · 1 not ready |
+| Brightwater | **NOT READY FOR GO-LIVE**, 9 of 12 readiness checks still need resolution |
 | Unresolved exposure | 217,212.85 USD |
-| Open issues | 65 |
-| Evaluated run | the first evaluated run, marked *current* |
+| Findings | 65, grouped into **20 decisions** in the work queue |
+| Verified on | the first evaluated run, marked *current* |
 | Signed in as | Maya Chen (implementation specialist) |
 
 The seeded people, and what each may do:
 
 | Person | Role | Can |
 |---|---|---|
-| Maya Chen | implementation specialist | upload, run the pipeline, draft change requests, work issues |
+| Maya Chen | implementation specialist | upload, run the checks, propose changes, work issues |
 | Daniel Okafor | implementation lead | the above, plus **approve** |
-| Priya Raman | customer controller | draft, work issues, **approve** |
+| Priya Raman | customer controller | propose, work issues, **approve** |
 | Sam Ortiz | viewer | read only |
-| Alex Lindqvist | admin | manage the workspace; **cannot** approve or draft |
+| Alex Lindqvist | admin | manage the workspace; **cannot** approve or propose |
 
 Switch with **Switch user** in the header. It is a development identity, not authentication.
 
@@ -100,54 +100,109 @@ Switch with **Switch user** in the header. It is a development identity, not aut
 
 ## 4. The 3–5 minute story
 
-**"The mapping that passed the type check and moved $38,400 into the wrong control account."**
+One story, not a tour: **automation → human judgement → control → verification.**
 
-Everything below is produced by the running system. Nothing is scripted.
+### 1. What are we running? (20 seconds)
 
-| # | Where | What to do | What it shows |
-|---|---|---|---|
-| 1 | **Overview** | Read the header: NOT READY, 9 of 12 gates, 217,212.85 exposure, the gate strip G1–G12. | The whole migration in one screen, and that readiness is a set of named conditions rather than a score. |
-| 2 | **Overview → Amount at risk** | Point at the split: 215,779.52 *migration defect* vs 2,617.95 *source anomaly*. | Relay distinguishes "our import is wrong" from "the customer's books are wrong". They get different remedies. |
-| 3 | **Mappings** | The filter defaults to *Needing attention*: one row, legacy **1205 Allowance for Doubtful Accounts** (contra asset) → **1200 Accounts Receivable**. Note the chips: target exists ✓, type ✓, **subtype conflict ✕**. | A type check alone passes — asset to asset. The subtype check is what catches a contra-asset landing in the receivables control account. |
-| 4 | **Reconciliation → R3** | Open the line `party=unassigned`: difference **(38,400.00)**. Then the line `party=C-0233`: difference **9,340.00**, one document `INV-10877` marked *Left only*, with its ledger record and the **row 3666, line 3667** source link. | Two independent defects in one control; the drill-down names the document and the file line rather than asserting a total. |
-| 5 | **Click the source link** | The raw export row, highlighted, tagged **Source**. Then open the record `jl:JE-AR-10877:1` — raw values tagged **Source** beside the normalized record tagged **Canonical**. | Provenance end to end, and a transformed value can never be mistaken for customer evidence. |
-| 6 | **Issues → BWP-41** | 38,400.00 at risk, critical, `RECON.R3`. Note there is no "mark resolved" button. | Rule-backed issues are resolved only by a run that stops reporting them — not by a person changing a status. |
-| 7 | **Mappings** | In the 1205 row type `1210` into **New target**, add a rationale, a title and a justification, then **Propose mapping change**. | A correction is a proposal with a diff, not an edit. |
-| 8 | **The change request** | Read the mapping diff (before struck through, after inserted) and the **Approvals** box: as Maya you see *"requesters cannot review their own change request."* | Segregation of duties, enforced by the API rather than by hiding a button. |
-| 9 | **Switch user → Daniel Okafor** | Open the change request, **Approve**. Then **Switch user → Priya Raman** and **Approve**. | `account_mapping_set` needs the implementation lead *and* the customer controller. Two people, neither of them the requester. |
-| 10 | **Runs** | Open the newest run and use **Compare with another run**. Then **Reconciliation → R3**: the `unassigned` line is gone. | The run is a deterministic function of its inputs; the diff shows exactly what one approved decision changed. |
-| 11 | **Overview / Readiness** | Exposure has dropped by 38,400.00 and G3's blocker is gone. | Readiness moves because the evidence moved. |
-| 12 | **Audit log** | Filter Action `change_request.applied`. Expand **before / after**. Note the green **chain verified** chip. | Who, when, why, what changed, who approved — append-only and hash-chained. |
+Land on the **implementation command center**. One implementation, Brightwater Provisions, moving
+from LedgerPro to a new ERP. It is **not ready**, 9 of 12 readiness checks are failing, 217,212.85
+is unresolved, and the target go-live has already passed. Click **Open implementation**.
 
-Total: about four minutes at a talking pace.
+### 2. What did Relay do on its own? (30 seconds)
+
+On the overview, read **What Relay checked automatically**: 24,472 records normalized, 37
+accounting controls run, 10 reconciliations performed, 65 findings raised — all counted from the
+last verification run, none of it typed in by a person.
+
+Then read the header: **NOT READY FOR GO-LIVE**, and six plain-English checks beneath it — data
+completeness, account mapping, ledger integrity, subledgers and cash, open exceptions, approvals and
+sign-off. Say the line that matters: *nobody triaged those 65 findings by hand.*
+
+### 3. What needs a person? (30 seconds)
+
+**Needs attention** shows the findings collapsed into decisions. Top of the list:
+
+> **Review how legacy account 1205 is mapped — 38,400.00 USD affected**
+> AR subledger vs GL control accounts differs by 38,400.00, and Relay attributes the whole
+> difference to legacy account 1205 Allowance for Doubtful Accounts. That account is mapped to 1200
+> Accounts Receivable, which the compatibility check flags as the wrong accounting treatment.
+> *Needs your judgement: Relay can tell that the treatment conflicts. Choosing the right target
+> account is an accounting decision for the implementation team.*
+
+That grouping is composed, not scripted: a reconciliation attributed the difference to exactly one
+legacy account, and that account's mapping is one the compatibility check doubts.
+
+### 4. Why is it wrong, and where is the evidence? (45 seconds)
+
+Click **Review mapping**. The row is highlighted: `1205 Allowance for Doubtful Accounts` (a contra
+asset) mapped to `1200 Accounts Receivable` — **target exists ✓, type ✓, subtype conflict ✕**.
+
+The point worth saying out loud: a type check passes, asset to asset. Only the subtype check catches
+a contra-asset landing inside the receivables control account, which is why the ledger still added
+up and the subledger did not.
+
+For the evidence chain, detour to **Reconciliation → R3 → `party=unassigned`** (38,400.00, attributed
+to account 1205) and to `party=C-0233`, where one invoice is *left only* and links to the exact
+source row — file line and all.
+
+### 5. Propose the correction (30 seconds)
+
+Back on **Mappings**, type `1210` as the new target for 1205 (Relay suggests it; you may overrule),
+add a rationale and a justification, and click **Propose mapping change**.
+
+Nothing has changed yet. The change request shows the control steps — *proposed → approved →
+applied → re-verified* — and the approvals box tells Maya: **requesters cannot review their own
+change request.**
+
+### 6. Two other people approve (45 seconds)
+
+**Switch user → Daniel Okafor** (implementation lead) → **Approve**. **Switch user → Priya Raman**
+(customer controller) → **Approve**. An account mapping change needs both, and neither may be the
+requester. On the second approval the change applies in one transaction and a fresh run is queued.
+
+### 7. Did the correction actually work? (45 seconds)
+
+This is the part most demos skip. Relay re-runs every deterministic check against the new inputs:
+
+- **Verification runs → newest run → Compare with another run** shows what changed;
+- **Reconciliation → R3**: the `unassigned` difference is gone;
+- **Overview**: unresolved exposure has dropped by 38,400.00 and the work queue is shorter;
+- **Readiness**: the account-mapping check moves.
+
+Relay does not take anyone's word that the fix worked — it re-derives the answer.
+
+### 8. Prove what happened (20 seconds)
+
+**Audit log**, filter Action `change_request.applied`, expand **before / after**: who proposed it,
+who approved it, what changed, when, and a **chain verified** badge over the whole hash chain.
+
+**The whole story in one sentence:** Relay checked the migration automatically, told the team which
+decision was worth 38,400, refused to let the person who proposed the fix approve it, and then
+re-verified the books itself.
 
 ### Optional deeper tour
 
-- **Reconciliation → R5** — the cash control *ties* and G8 still fails. The callout says why:
-  identified is not excused. This is the subtlest accounting point in the product.
-- **Entities** — four duplicate candidates. Two are strong (score 1.0000); two score 0.6013 because
-  the address token conflicts. Merging all of them would be wrong: `GREEN VALLEY COOP #2` is a
-  different store. Relay refuses to decide.
-- **Validation** — 37 rules, their versions, and every finding they produced.
-- **Data → an import → the row viewer** — 18,369 source rows, one quarantined, kept exactly as
-  received.
-- **Settings** — the policy that the engine reads, and the fact that changing it is itself a change
-  request that invalidates any sign-off.
+- **Reconciliation → R5** — the cash control *ties* and the cash check still fails. Identified is
+  not excused.
+- **Duplicate parties** — four candidates; two strong, two scoring 0.6013 because the address
+  conflicts. Merging all of them would be wrong, so Relay refuses to decide.
+- **Record inspector** on any journal entry — the original exported row beside Relay's normalized
+  interpretation, so a transformed value can never pass as customer evidence.
+- **Imported data → an import** — 18,369 source rows, one quarantined, kept exactly as received.
 
 ### Reaching sign-off
 
-Sign-off only becomes available when G1–G11 pass or are waived. To get there without spending the
-meeting on it:
+Sign-off only becomes available when every other check passes or is waived:
 
 ```bash
 make demo-fast-forward
 ```
 
 This applies the remaining documented resolutions **as the seeded users through the same services**
-— the same approvals, the same audit events, no shortcut. It leaves exactly one gate failing (G12,
-sign-off) so you can request sign-off, approve it as the lead and the controller, and watch the
-migration turn READY. Then change any policy value in **Settings** and watch the sign-off show
-*"the inputs changed after sign-off"*.
+— same approvals, same audit events, no shortcut. It leaves exactly one check failing (sign-off), so
+you can request it, approve it as the lead and the controller, and watch the implementation turn
+READY. Then change any policy value in **Policy** and watch the sign-off show *"the inputs changed
+after sign-off"*.
 
 ---
 

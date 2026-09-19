@@ -4,7 +4,7 @@ import { FilterForm, SelectFilter } from "@/components/filters";
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
-import { Panel } from "@/components/ui";
+import { Callout, Panel } from "@/components/ui";
 import { SignalChips } from "@/components/signal-chips";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
@@ -40,6 +40,9 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
   ]);
   const rows = show === "all" ? mapping.rows : mapping.rows.filter(doubtful);
   const pending = mapping.sets.filter((s) => s.status === "pending_approval");
+  // Arriving from the work queue: the account that decision is about, so the row is unmistakable.
+  const focus = param(query.account);
+  const focused = focus ? mapping.rows.find((r) => r.legacy_account_code === focus) : undefined;
   return (
     <div className="max-w-7xl">
       <PageHeader
@@ -47,6 +50,34 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
         description="Account and column mappings. Changes take effect only through approved change requests."
       />
       <Notice error={param(query.error)} notice={param(query.notice)} />
+      {focused ? (
+        <div className="mb-4">
+          <Callout
+            tone="critical"
+            title={`Reviewing legacy account ${focused.legacy_account_code}`}
+          >
+            {focused.legacy_name ?? "This account"}
+            {focused.legacy_subtype
+              ? ` is a ${humanize(focused.legacy_subtype).toLowerCase()}`
+              : ""}
+            {focused.target_account_code
+              ? ` currently mapped to ${focused.target_account_code} ${focused.target_name ?? ""}`
+              : " and is not mapped to any target account"}
+            . Enter the account it should map to in the row below, say why, and propose the change —
+            nothing moves until the implementation lead and the customer controller both approve.
+            {focused.proposal ? (
+              <>
+                {" "}
+                Relay suggests{" "}
+                <span className="font-mono font-medium text-[var(--ink)]">
+                  {focused.proposal.target}
+                </span>{" "}
+                ({humanize(focused.proposal.basis).toLowerCase()}), which you are free to overrule.
+              </>
+            ) : null}
+          </Callout>
+        </div>
+      ) : null}
       <Section
         title="Account mapping"
         description="Every legacy account and where it lands in the new chart of accounts. Type and subtype compatibility is checked for each pair."
@@ -125,7 +156,12 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                 {rows.map((row) => (
                   <tr
                     key={row.legacy_account_code}
-                    className="border-b border-[var(--border)]/60 align-top last:border-0"
+                    id={`account-${row.legacy_account_code}`}
+                    className={`border-b border-[var(--border)]/60 align-top last:border-0 ${
+                      row.legacy_account_code === focus
+                        ? "bg-[var(--critical-soft)] shadow-[inset_3px_0_0_var(--critical)]"
+                        : ""
+                    }`}
                     data-legacy={row.legacy_account_code}
                   >
                     <td className="px-2 py-1.5">

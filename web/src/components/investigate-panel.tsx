@@ -27,15 +27,35 @@ export async function InvestigatePanel({
     // everything on its own, and the assistant needs both a configured provider and the
     // customer's recorded consent before it may read anything.
     return (
-      <Panel className="mb-6 px-3 py-2" data-testid="ai-unavailable">
-        <p className="text-sm text-[var(--ink-muted)]">
-          <span className="font-medium text-[var(--ink)]">Assistant off.</span>{" "}
-          {status.configured
-            ? "This migration has not recorded customer consent for AI processing."
-            : "No AI provider is configured for this deployment."}{" "}
-          Nothing on this page depends on it: every finding, reconciliation and gate above is
-          produced by the deterministic engine.
+      <Panel className="mb-6 p-3" data-testid="ai-unavailable">
+        <p className="text-sm font-medium text-[var(--ink)]">
+          Investigation assistant — off for this implementation
         </p>
+        <p className="mt-1 max-w-3xl text-sm text-[var(--ink-muted)]">
+          {status.configured
+            ? "The customer has not recorded consent for AI processing on this implementation."
+            : "No model provider is configured for this deployment."}{" "}
+          Nothing above depends on it. Relay divides the work deliberately:
+        </p>
+        <ul className="mt-2 grid max-w-4xl grid-cols-1 gap-x-6 gap-y-1 text-sm text-[var(--ink-muted)] sm:grid-cols-2">
+          <li>
+            <span className="font-medium text-[var(--ink)]">Deterministic controls</span> find the
+            accounting and data failures, and decide readiness.
+          </li>
+          <li>
+            <span className="font-medium text-[var(--ink)]">The assistant</span>, when enabled,
+            reads that evidence with read-only tools and drafts an explanation — it cannot change
+            anything.
+          </li>
+          <li>
+            <span className="font-medium text-[var(--ink)]">A person</span> decides, and a second
+            person approves any material correction.
+          </li>
+          <li>
+            <span className="font-medium text-[var(--ink)]">A fresh run</span> re-checks the result
+            deterministically.
+          </li>
+        </ul>
       </Panel>
     );
   }

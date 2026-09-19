@@ -16,7 +16,7 @@ export default async function RunsPage(props: PageProps<"/migrations/[migrationI
   return (
     <div className="max-w-6xl">
       <PageHeader
-        title="Runs"
+        title="Verification runs"
         description="Each run is a deterministic function of its input fingerprint: the same inputs always produce the same findings, gates and reconciliations. Older runs stay readable as evidence."
       />
       <Section
