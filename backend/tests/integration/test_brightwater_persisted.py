@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from relay.audit import service as audit
@@ -14,9 +15,10 @@ from relay.imports.blob_store import LocalBlobStore
 from relay.imports.models import SourceRow, StoredFile
 from relay.imports.service import ImportLimits
 from relay.issues.models import Issue
-from relay.pipeline import read_model
+from relay.pipeline import read_model, work_queue
 from relay.pipeline import service as pipeline
 from relay.pipeline.models import ReconciliationLineRow, ReconciliationResultRow
+from relay.workspace import service as workspace
 from relay_evaluation.brightwater import persisted
 from relay_evaluation.brightwater.engine_compare import compare_run1
 from relay_evaluation.brightwater.manifest import Manifest, load_manifest
@@ -192,3 +194,89 @@ def test_run_diff_of_a_run_with_itself_is_empty(
     assert diff["findings_added"] == []
     assert diff["findings_removed"] == []
     assert diff["gate_changes"] == []
+
+
+# ---------------------------------------------------------------------------------- work queue
+def test_the_work_queue_groups_findings_into_decisions(
+    seeded: tuple[SeedResult, sessionmaker[Session]],
+) -> None:
+    """Sixty-five findings are not sixty-five decisions: the queue is much shorter than the list."""
+    result, factory = seeded
+    with session_scope(factory) as session:
+        migration = workspace.get_migration(session, result.migration_id)
+        items = work_queue.work_items(session, migration, user_id=None, role=None)
+        open_issues = session.scalar(
+            select(func.count()).select_from(Issue).where(Issue.migration_id == migration.id)
+        )
+    assert open_issues == 65
+    assert 0 < len(items) < open_issues / 2
+    assert all(item.title and item.summary for item in items)
+    assert all(item.action_label and item.target_kind for item in items)
+
+
+def test_a_mapping_problem_carries_the_money_a_reconciliation_attributes_to_it(
+    seeded: tuple[SeedResult, sessionmaker[Session]],
+) -> None:
+    """The engine's own explainer joins the mapping to the difference; the queue does not guess.
+
+    The generator plants a contra-asset mapped into the receivables control account. The engine
+    reports the mapping conflict and, separately, a subledger difference it attributes to that one
+    legacy account. The queue is expected to present them as a single decision carrying the amount.
+    """
+    result, factory = seeded
+    with session_scope(factory) as session:
+        migration = workspace.get_migration(session, result.migration_id)
+        items = work_queue.work_items(session, migration, user_id=None, role=None)
+    mapping = [item for item in items if item.kind == "account_mapping" and item.amount]
+    assert mapping, "expected a mapping decision carrying an attributed amount"
+    first = mapping[0]
+    assert first.amount == Decimal("38400.00")
+    assert first.detail["legacy_account"] == "1205"
+    assert first.detail["target_account"] == "1200"
+    assert first.target_kind == "mappings"
+    # It leads the queue: nothing open is both larger and blocking.
+    assert items[0].key == first.key
+
+
+def test_every_block_claim_matches_a_failing_gate(
+    seeded: tuple[SeedResult, sessionmaker[Session]], manifest: Manifest
+) -> None:
+    result, factory = seeded
+    with session_scope(factory) as session:
+        migration = workspace.get_migration(session, result.migration_id)
+        items = work_queue.work_items(session, migration, user_id=None, role=None)
+    claimed = {gate for item in items for gate in item.blocks}
+    assert claimed
+    assert claimed <= set(manifest.failing_gates)
+
+
+def test_covered_causes_are_not_also_listed_as_findings(
+    seeded: tuple[SeedResult, sessionmaker[Session]],
+) -> None:
+    """A duplicate-party finding is the symptom of the entity decision, not a second task."""
+    result, factory = seeded
+    with session_scope(factory) as session:
+        migration = workspace.get_migration(session, result.migration_id)
+        items = work_queue.work_items(session, migration, user_id=None, role=None)
+    rules = {item.detail.get("rule") for item in items}
+    assert "PARTY.UNRESOLVED_DUPLICATE_CANDIDATE" not in rules
+    assert "NORM.MALFORMED_ROW" not in rules
+    assert any(item.kind == "entity_decision" for item in items)
+    assert any(item.kind == "data_quality" for item in items)
+
+
+def test_the_automation_summary_only_reports_what_the_run_stored(
+    seeded: tuple[SeedResult, sessionmaker[Session]],
+) -> None:
+    result, factory = seeded
+    with session_scope(factory) as session:
+        run = read_model.latest_succeeded_run(session, result.migration_id)
+        assert run is not None
+        summary = work_queue.automation_summary(session, run)
+        rules = read_model.rule_runs(session, run.id)
+        results = read_model.reconciliation_results(session, run.id)
+    assert summary["findings"] == run.counts["findings"]
+    assert summary["staged_records"] == run.counts["staged_records"]
+    assert summary["controls_evaluated"] == len(rules)
+    assert summary["reconciliations_performed"] == len(results)
+    assert summary["run_sequence"] == run.sequence

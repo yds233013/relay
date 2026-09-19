@@ -370,6 +370,46 @@ class AmountByNatureOut(Schema):
     amount: str
 
 
+class WorkItemOut(Schema):
+    """One decision waiting on a person, with the evidence that produced it."""
+
+    key: str
+    kind: str
+    title: str
+    summary: str
+    judgement: str | None
+    amount: str | None
+    currency: str
+    count: int
+    action_label: str
+    target_kind: str
+    target_id: str | None
+    blocks: list[str]
+    detail: dict[str, Any]
+
+
+class AutomationSummaryOut(Schema):
+    """What the last verification run did, counted from what it stored."""
+
+    run_sequence: int | None = None
+    finished_at: datetime | None = None
+    duration_ms: int | None = None
+    staged_records: int | None = None
+    controls_evaluated: int | None = None
+    controls_errored: int | None = None
+    reconciliations_performed: int | None = None
+    reconciliations_with_differences: int | None = None
+    findings: int | None = None
+    entity_candidates: int | None = None
+    issues_created: int | None = None
+    issues_resolved: int | None = None
+
+
+class WorkQueueOut(Schema):
+    items: list[WorkItemOut]
+    automation: AutomationSummaryOut
+
+
 class OverviewOut(Schema):
     migration: MigrationOut
     run_id: uuid.UUID | None
@@ -388,6 +428,10 @@ class OverviewOut(Schema):
     stages: list[StageOut]
     recent_activity: list[AuditEventOut]
     currency: str
+    work_items: list[WorkItemOut] = []
+    """The decisions waiting on a person, most consequential first."""
+    automation: AutomationSummaryOut = AutomationSummaryOut()
+    """What the latest verification did without anyone asking."""
 
 
 class FindingChangeOut(Schema):

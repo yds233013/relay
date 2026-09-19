@@ -489,7 +489,7 @@ def _ledger_drilldown(
             "line_end": q.line_end,
             "reason": q.reason,
         }
-        for q in _run_quarantine(session, run)
+        for q in quarantine_for_run(session, run)
     ]
     return {
         "basis": "accounts",
@@ -507,7 +507,7 @@ def _ledger_drilldown(
     }
 
 
-def _run_quarantine(session: Session, run: PipelineRun) -> list[QuarantinedRow]:
+def quarantine_for_run(session: Session, run: PipelineRun) -> list[QuarantinedRow]:
     import_ids = [
         uuid.UUID(str(value["import_id"]))
         for value in run.fingerprint_components.get("active_imports", {}).values()
@@ -565,7 +565,7 @@ def drilldown(session: Session, line_id: uuid.UUID, limit: int = 200) -> dict[st
                     "line_end": q.line_end,
                     "reason": q.reason,
                 }
-                for q in _run_quarantine(session, run)
+                for q in quarantine_for_run(session, run)
             ],
         }
     return {

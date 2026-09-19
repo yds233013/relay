@@ -11,6 +11,7 @@ from relay.api.deps import ActorDep, ClockDep, ReaderDep, SessionDep, SettingsDe
 from relay.api.schemas import (
     AmountByNatureOut,
     AuditEventOut,
+    AutomationSummaryOut,
     BlockerOut,
     CandidateOut,
     ChainVerificationOut,
@@ -32,6 +33,8 @@ from relay.api.schemas import (
     StageOut,
     UserOut,
     WaiverOut,
+    WorkItemOut,
+    WorkQueueOut,
     amount_text,
 )
 from relay.audit import read_model as audit_read
@@ -46,6 +49,7 @@ from relay.issues.models import Issue
 from relay.pipeline import overview as overview_read
 from relay.pipeline import read_model as runs_read
 from relay.pipeline import service as pipeline
+from relay.pipeline import work_queue
 from relay.pipeline.models import RuleExceptionRow
 from relay.pipeline.read_model import ResourceNotFoundError
 from relay.workspace import read_model as workspace_read
@@ -173,6 +177,44 @@ def get_overview(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDep)
         stages=[StageOut(**stage) for stage in data["stages"]],
         recent_activity=[audit_event_out(e) for e in data["recent_activity"]],
         currency=currency.code,
+        work_items=[
+            work_item_out(i, currency)
+            for i in work_queue.work_items(
+                session, migration, user_id=actor.user_id, role=actor.role
+            )
+        ],
+        automation=AutomationSummaryOut(**work_queue.automation_summary(session, run)),
+    )
+
+
+def work_item_out(item: work_queue.WorkItem, currency: Currency) -> WorkItemOut:
+    return WorkItemOut(
+        key=item.key,
+        kind=item.kind,
+        title=item.title,
+        summary=item.summary,
+        judgement=item.judgement,
+        amount=amount_text(item.amount, currency),
+        currency=currency.code,
+        count=item.count,
+        action_label=item.action_label,
+        target_kind=item.target_kind,
+        target_id=item.target_id,
+        blocks=list(item.blocks),
+        detail=item.detail,
+    )
+
+
+@router.get("/migrations/{migration_id}/work-queue")
+def get_work_queue(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDep) -> WorkQueueOut:
+    """Everything still waiting on a person, grouped into decisions rather than findings."""
+    migration = workspace.get_migration(session, migration_id)
+    currency = migration.functional_currency
+    items = work_queue.work_items(session, migration, user_id=actor.user_id, role=actor.role)
+    run = runs_read.latest_succeeded_run(session, migration_id)
+    return WorkQueueOut(
+        items=[work_item_out(i, currency) for i in items],
+        automation=AutomationSummaryOut(**work_queue.automation_summary(session, run)),
     )
 
 

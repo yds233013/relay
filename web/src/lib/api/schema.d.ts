@@ -857,6 +857,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/migrations/{migration_id}/work-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Work Queue
+         * @description Everything still waiting on a person, grouped into decisions rather than findings.
+         */
+        get: operations["get_work_queue_api_v1_migrations__migration_id__work_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pipeline-runs/{run_id}": {
         parameters: {
             query?: never;
@@ -1221,6 +1241,36 @@ export interface components {
             reason: string | null;
             /** Request Id */
             request_id: string | null;
+        };
+        /**
+         * AutomationSummaryOut
+         * @description What the last verification run did, counted from what it stored.
+         */
+        AutomationSummaryOut: {
+            /** Controls Errored */
+            controls_errored?: number | null;
+            /** Controls Evaluated */
+            controls_evaluated?: number | null;
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /** Entity Candidates */
+            entity_candidates?: number | null;
+            /** Findings */
+            findings?: number | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Issues Created */
+            issues_created?: number | null;
+            /** Issues Resolved */
+            issues_resolved?: number | null;
+            /** Reconciliations Performed */
+            reconciliations_performed?: number | null;
+            /** Reconciliations With Differences */
+            reconciliations_with_differences?: number | null;
+            /** Run Sequence */
+            run_sequence?: number | null;
+            /** Staged Records */
+            staged_records?: number | null;
         };
         /** BlockerOut */
         BlockerOut: {
@@ -2466,6 +2516,8 @@ export interface components {
         };
         /** OverviewOut */
         OverviewOut: {
+            /** @default {} */
+            automation: components["schemas"]["AutomationSummaryOut"];
             /** Blockers */
             blockers: components["schemas"]["BlockerOut"][];
             /** Currency */
@@ -2499,6 +2551,11 @@ export interface components {
             top_issues: components["schemas"]["IssueOut"][];
             /** Unresolved Exposure */
             unresolved_exposure: string | null;
+            /**
+             * Work Items
+             * @default []
+             */
+            work_items: components["schemas"]["WorkItemOut"][];
         };
         /** Page[AuditEventOut] */
         Page_AuditEventOut_: {
@@ -3135,6 +3192,46 @@ export interface components {
              * @default
              */
             reason: string;
+        };
+        /**
+         * WorkItemOut
+         * @description One decision waiting on a person, with the evidence that produced it.
+         */
+        WorkItemOut: {
+            /** Action Label */
+            action_label: string;
+            /** Amount */
+            amount: string | null;
+            /** Blocks */
+            blocks: string[];
+            /** Count */
+            count: number;
+            /** Currency */
+            currency: string;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Judgement */
+            judgement: string | null;
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /** Summary */
+            summary: string;
+            /** Target Id */
+            target_id: string | null;
+            /** Target Kind */
+            target_kind: string;
+            /** Title */
+            title: string;
+        };
+        /** WorkQueueOut */
+        WorkQueueOut: {
+            automation: components["schemas"]["AutomationSummaryOut"];
+            /** Items */
+            items: components["schemas"]["WorkItemOut"][];
         };
     };
     responses: never;
@@ -5175,6 +5272,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceSystemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_work_queue_api_v1_migrations__migration_id__work_queue_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Relay-User"?: string | null;
+            };
+            path: {
+                migration_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkQueueOut"];
                 };
             };
             /** @description Validation Error */
