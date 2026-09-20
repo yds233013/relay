@@ -25,7 +25,7 @@ from relay.investigations.service import read_only_session
 from relay.issues.models import Issue
 from relay.pipeline.models import ReconciliationLineRow, ReconciliationResultRow
 from relay.worker import WorkerContext, drain
-from relay_evaluation.ai.cases import CASES, HALLUCINATING_E1
+from relay_evaluation.ai.cases import ADVERSARIAL, CASES, HALLUCINATING_E1
 from relay_evaluation.ai.harness import enable_ai, run_all, run_case
 from tests.integration.api_story import (
     DANIEL,
@@ -241,3 +241,53 @@ def _blobs(story: Story) -> Any:
     from relay.imports.blob_store import LocalBlobStore  # noqa: PLC0415
 
     return LocalBlobStore(story[2])
+
+
+def test_adversarial_investigators_are_caught(story: Story, scripted_settings: Settings) -> None:
+    """Scripted misbehaviour, and the mechanism that is supposed to stop each one.
+
+    These transcripts are written to be wrong on purpose. Nothing here measures a model; each case
+    asserts that the surrounding system refuses to pass bad work through to a change request.
+    """
+    enable_ai(story[1], story[0].migration_id)  # order-independent: consent may not be on yet
+    e1 = CASES[0]
+    outcomes = {
+        case.id: run_case(
+            story[1], scripted_settings, story[0].migration_id, e1, script=case.script
+        )
+        for case in ADVERSARIAL
+    }
+
+    # A1/A2: a claim that cites a non-result step, or quotes an amount no result contains, is not
+    # verified — and an unverified finding can never become a change request.
+    for case_id in ("A1", "A2"):
+        assert outcomes[case_id].verification == ["failed"], case_id
+    assert outcomes["A2"].fabricated_references >= 1
+
+    # A3: the recommendation names accounts that do not exist in this migration.
+    assert outcomes["A3"].verification == ["failed"]
+
+    # A4: an unregistered tool cannot be called at all; the loop records the error and carries on.
+    assert outcomes["A4"].status == "succeeded"
+    with session_scope(story[1]) as session:
+        errors = (
+            session.execute(
+                text(
+                    "SELECT s.result FROM investigation_steps s "
+                    "JOIN investigations i ON i.id = s.investigation_id "
+                    "WHERE i.migration_id = :m AND s.is_error ORDER BY s.seq"
+                ),
+                {"m": story[0].migration_id},
+            )
+            .scalars()
+            .all()
+        )
+    assert any("unknown tool" in str(result).lower() for result in errors)
+
+    # A5: a tool asked for something that does not exist returns an error, and a claim resting on
+    # that error is not verified.
+    assert outcomes["A5"].verification == ["failed"]
+
+    # A6: an investigator that never submits is reminded once and then fails, with no findings.
+    assert outcomes["A6"].status == "failed"
+    assert outcomes["A6"].findings == 0

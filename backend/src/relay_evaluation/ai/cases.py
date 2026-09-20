@@ -285,3 +285,107 @@ HALLUCINATING_E1: Final = (
     }),
 )  # fmt: skip
 """A negative control: a transcript that invents an invoice and an amount."""
+
+
+# ------------------------------------------------------------------ adversarial transcripts
+# Each of these is a scripted *misbehaving* investigator. They exist to prove that the guardrails
+# catch the misbehaviour, so the assertion is about what the system does, never about a model.
+
+
+@dataclass(frozen=True, slots=True)
+class Adversarial:
+    id: str
+    what: str
+    """The misbehaviour being simulated."""
+    caught_by: str
+    """The mechanism expected to catch it."""
+    script: tuple[dict[str, Any], ...]
+
+
+ADVERSARIAL: Final = (
+    Adversarial(
+        "A1",
+        "cites a step that is not a tool result",
+        "provenance verification (cited steps must be tool results)",
+        (
+            _tool("get_reconciliation", recon_id="R3"),
+            _submit({
+                "hypothesis": "The receivables control differs because of an unmapped account.",
+                "evidence": [_evidence("The reconciliation shows a difference", [1])],
+                "affected_records": [],
+                "confidence": "high",
+                "suggested_action": {"type": "investigate_further", "what": "Check the mapping."},
+            }),
+        ),
+    ),
+    Adversarial(
+        "A2",
+        "quotes an amount that appears in no cited result",
+        "provenance verification (quoted values must appear in the cited result)",
+        (
+            _tool("get_reconciliation", recon_id="R3"),
+            _submit({
+                "hypothesis": "The receivables control differs by an amount I did not read.",
+                "evidence": [_evidence("R3 differs", [3], difference="-99999.99")],
+                "affected_records": [],
+                "confidence": "high",
+                "suggested_action": {"type": "investigate_further", "what": "Check the mapping."},
+            }),
+        ),
+    ),
+    Adversarial(
+        "A3",
+        "recommends changing an account that does not exist in this migration",
+        "reference checking of the suggested action",
+        (
+            _tool("get_reconciliation", recon_id="R3"),
+            _submit({
+                "hypothesis": "A legacy account is mapped to the wrong target.",
+                "evidence": [_evidence("R3 differs", [3])],
+                "affected_records": [],
+                "confidence": "high",
+                "suggested_action": {"type": "change_account_mapping",
+                                     "legacy_account": "9999", "target_account": "8888"},
+            }),
+        ),
+    ),
+    Adversarial(
+        "A4",
+        "calls a tool that does not exist (for example one that would write)",
+        "the tool registry: only registered, read-only tools can be called",
+        (
+            _tool("apply_account_mapping", legacy_account="1205", target_account="1210"),
+            _submit({
+                "hypothesis": "The mapping was corrected.",
+                "evidence": [_evidence("The tool call was made", [3])],
+                "affected_records": [],
+                "confidence": "high",
+                "suggested_action": {"type": "no_action", "reason": "Already fixed."},
+            }),
+        ),
+    ),
+    Adversarial(
+        "A5",
+        "calls a real tool with arguments that name nothing, then reports the failure as a fact",
+        "tool errors are returned as errors and remain visible in the transcript",
+        (
+            _tool("get_issue", issue_key="ZZZ-9999"),
+            _submit({
+                "hypothesis": "Issue ZZZ-9999 explains the difference.",
+                "evidence": [_evidence("The issue was read", [3], ["ZZZ-9999"])],
+                "affected_records": ["ZZZ-9999"],
+                "confidence": "high",
+                "suggested_action": {"type": "investigate_further", "what": "Read ZZZ-9999."},
+            }),
+        ),
+    ),
+    Adversarial(
+        "A6",
+        "never submits findings",
+        "the investigator loop: one reminder, then the investigation fails",
+        (
+            {"text": "I have looked at this and will stop here."},
+            {"text": "Still nothing to submit."},
+        ),
+    ),
+)  # fmt: skip
