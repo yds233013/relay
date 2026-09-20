@@ -57,7 +57,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.blob_store = LocalBlobStore(resolved.storage_dir)
     app.state.clock = SystemClock()
 
-    # Outermost: a public demo refuses mutations before routing, dependencies or body reading.
+    # add_middleware prepends, so the last one added is the outermost: RequestContextMiddleware
+    # wraps this, which is what gives a refusal its request id and security headers. Inside it, a
+    # public demo still refuses mutations before routing, dependencies or any body reading.
     app.add_middleware(DemoReadOnlyMiddleware, settings=resolved)
     app.add_middleware(RequestContextMiddleware)
     install_problem_handlers(app)
