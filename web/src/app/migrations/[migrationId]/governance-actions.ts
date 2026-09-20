@@ -184,6 +184,20 @@ export async function reviewChangeRequest(formData: FormData): Promise<void> {
   redirect(withMessage(page, "notice", notice));
 }
 
+export async function submitChangeRequest(formData: FormData): Promise<void> {
+  const migrationId = id(formData, "migrationId");
+  const changeId = id(formData, "changeId");
+  const back = `/migrations/${migrationId}/change-requests/${changeId}`;
+  try {
+    await apiSend("POST", `/api/v1/change-requests/${changeId}/submit`, {
+      justification: text(formData, "justification"),
+    });
+  } catch (error) {
+    redirect(withMessage(back, "error", messageOf(error)));
+  }
+  redirect(withMessage(back, "notice", "Submitted for approval."));
+}
+
 export async function withdrawChangeRequest(formData: FormData): Promise<void> {
   const migrationId = id(formData, "migrationId");
   const changeId = id(formData, "changeId");

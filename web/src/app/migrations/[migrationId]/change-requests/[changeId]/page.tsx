@@ -11,7 +11,11 @@ import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
-import { reviewChangeRequest, withdrawChangeRequest } from "../../governance-actions";
+import {
+  reviewChangeRequest,
+  submitChangeRequest,
+  withdrawChangeRequest,
+} from "../../governance-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -578,6 +582,26 @@ export default async function ChangeRequestPage(
             </p>
           </div>
         )}
+        {detail.viewer.is_requester && change.status === "draft" ? (
+          <div className="mt-3 max-w-2xl rounded border border-[var(--accent)]/30 bg-[var(--accent-soft)] p-3">
+            <p className="text-sm font-medium text-[var(--ink)]">Submit this for approval</p>
+            <p className="mt-1 text-sm text-[var(--ink-muted)]">
+              A draft changes nothing. Write why this correction is right — it becomes the reason of
+              record in the audit trail — and send it to the people who must approve it.
+              {change.origin === "ai_finding"
+                ? " This draft came from an investigation, so the reasoning is yours to confirm before anyone reviews it."
+                : ""}
+            </p>
+            <form action={submitChangeRequest} className="mt-2 flex flex-col gap-2">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="changeId" value={change.id} />
+              <TextArea name="justification" label="Justification" required rows={3} />
+              <span>
+                <SubmitButton>Submit for approval</SubmitButton>
+              </span>
+            </form>
+          </div>
+        ) : null}
         {detail.viewer.is_requester && open ? (
           <form action={withdrawChangeRequest} className="mt-3 flex items-end gap-2">
             <input type="hidden" name="migrationId" value={migrationId} />
