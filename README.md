@@ -1,7 +1,8 @@
 # Relay
 
-**An ERP implementation operations system: it automates migration QA from messy legacy accounting
-data to a verified go-live.**
+**An AI-native ERP implementation operations system: it takes legacy accounting data through
+automated migration QA, evidence-grounded investigation, governed remediation, and a verified
+go-live.**
 
 An implementation team has to answer one question before a customer can launch: *is the migrated
 financial data complete, correctly mapped, reconciled, and safe to go live on?* Today that answer is
@@ -21,9 +22,15 @@ Relay does the repeatable part automatically and leaves the judgement to people:
 - it **re-verifies** deterministically after each change, and only then decides readiness;
 - and it **proves** what happened in an append-only, hash-chained audit trail.
 
-An AI investigator can read that evidence and draft an explanation. It has read-only tools, must
-cite verifiable evidence, cannot approve anything, and is off by default — removing it removes no
-correctness.
+The loop it runs is: **ingest → check → detect → investigate → recommend → human approves → apply →
+re-run → verify → go live.**
+
+An AI investigator sits at the *investigate* step and nowhere else. It reads through fifteen
+bounded, read-only tools that the server scopes to one migration and one run; it returns a
+structured finding whose every quoted value and record reference Relay then checks against the tool
+results it cited; it can propose a correction but cannot make one, approve one, or change a single
+financial record. Turning it off removes no correctness — which the end-to-end suite asserts by
+running the entire product with it disabled.
 
 > *An independent portfolio project exploring the operational problem of ERP implementation. It is
 > not any company's internal system, and it integrates with no vendor's APIs.*
@@ -38,7 +45,7 @@ correctness.
 | **Brightwater Provisions, Inc.** | A fictional demo customer. Every company, person, account and figure in it is invented; no real financial or customer data was used at any point. |
 | **Kestrel Instruments Ltd** | A second fictional company used only to test that the engine generalizes. It is an evaluation scenario, generated and verified from the command line — not a second demo, and not exposed in the UI. |
 | **The engine** | Deterministic. Same inputs, same fingerprint, same results — asserted by tests, not by claim. |
-| **The AI investigator** | Passes six scripted-provider evals. **No live-model run has ever been recorded**, so nothing here demonstrates a model's real accuracy on this data. It is off by default. |
+| **The AI investigator** | Implemented, bounded and tested. Six scripted evals check that it can be right; six adversarial transcripts check that the system does not depend on it being right. **No live-model run has ever been recorded**, so nothing here measures a model's accuracy on this data. It is off by default; a `demo` provider replays authored transcripts against the real database for demonstrations, labelled as scripted wherever it appears. |
 | **Deployment** | None. This runs locally under Docker Compose; the development identity switcher is not authentication. |
 | **Known limitations** | Listed honestly in [docs/traceability.md](docs/traceability.md) — including one security requirement (separate database roles) that is deliberately not implemented. |
 
@@ -219,9 +226,9 @@ flowchart TB
     AUDIT["Append-only hash-chained audit log"]
     SIGNOFF["Sign-off<br/>bound to this exact run"]
 
-    subgraph ai["AI investigator — bounded, optional"]
-        TOOLS["Read-only tools<br/>READ ONLY transactions"]
-        FINDING["Findings with verified provenance<br/>proposals only"]
+    subgraph ai["AI investigator — bounded, optional, off by default"]
+        TOOLS["15 read-only tools<br/>scoped server-side to one<br/>migration and one run"]
+        FINDING["Structured finding<br/>every citation checked<br/>against the tool results"]
     end
 
     EXPORTS --> INGEST --> MAP --> CANON --> ENGINE --> GATES
@@ -242,8 +249,20 @@ flowchart TB
 
 The dashed path is the only thing AI touches: it reads, and it may draft a change request that a
 person still has to submit and that two other people still have to approve. It cannot write, cannot
-approve, cannot change an issue, and cannot make a gate pass. Turning it off (`RELAY_AI_PROVIDER=disabled`,
-the default) removes no workflow — which the end-to-end suite asserts.
+approve, cannot change an issue, and cannot make a gate pass. Turning it off
+(`RELAY_AI_PROVIDER=disabled`, the default) removes no workflow — which the end-to-end suite
+asserts.
+
+**Where each kind of statement comes from**, which the product keeps visibly apart:
+
+| | Produced by | Can change data? |
+|---|---|---|
+| A finding | Deterministic controls and reconciliations | — it *is* the data |
+| An investigation's conclusion | A model, or an authored transcript in demo mode | No |
+| A citation's validity | Deterministic verification against the tool results | No |
+| A change request | A person, sometimes drafted from a finding | Only once approved |
+| An approval | A second and third person, never the requester | Applies the change |
+| Readiness | A fresh deterministic run over the new inputs | Decides go-live |
 
 Stack: Python 3.12, FastAPI, SQLAlchemy 2.0 (sync), PostgreSQL 16, Alembic, Pydantic v2;
 Next.js 16, React 19, TypeScript strict, Tailwind 4; Docker Compose; uv and npm with committed

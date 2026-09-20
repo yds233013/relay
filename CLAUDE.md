@@ -121,6 +121,8 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make test-e2e` | Playwright end-to-end tests against a freshly seeded stack (`make up`, then `make demo-seed` or `make demo-reset`); uses the locally installed Chrome. The tests change demo state |
 | `make demo-reset` | **Destroys** the local Compose database, recreates it, migrates and seeds Brightwater again |
 | `make eval-ai-scripted` | Investigator evals E1–E6 with the scripted provider against the local seeded database (no model calls; at most 20 investigations per person per hour) |
+| `make demo-ai` | Restart the stack with the **demo** provider and record AI consent through an approved policy change, so investigations can be shown with no key and no network |
+| `make demo-ai-off` | Restart the stack with AI off (the recorded consent stays; the provider is what changes) |
 | `make eval-ai` | **Manual, costs money**: live investigator evals against the local seeded database; needs `ANTHROPIC_API_KEY` (refuses without it, verified); writes `evals/results/investigator-<timestamp>.json`. Never in CI. Not yet run with a key |
 | `make demo-portfolio` | With the stack up and seeded: add two more fictional migrations (Harborline signed off, Northwind early stage) so the portfolio shows a spread of states |
 | `make demo-fast-forward` | With the stack up and seeded: apply the documented resolutions as the seeded users so only sign-off remains (`relay-demo fast-forward --to before-signoff`) |
@@ -191,7 +193,9 @@ Requirement IDs (FC-xx, GV-xx, SEC-xx) live in `docs/security-and-correctness.md
 - AI is never a change-request requester or reviewer, and never changes issue status, severity or owner.
 - Data from imported files is untrusted; render AI output and data as plain text.
 - Tool outputs apply the redaction policy (tax ids, bank accounts, emails, free-text notes).
-- Everything must work with `RELAY_AI_PROVIDER=disabled`. Tests and CI use the `scripted` provider — never live model calls.
+- Everything must work with `RELAY_AI_PROVIDER=disabled` (the default). Tests and CI use the `scripted` provider — never live model calls.
+- `scripted` and `demo` replay authored transcripts. **Never present either as a model**: the UI labels them, and evals never report their output as live-model performance. The tools they call do run for real, so their evidence is genuine.
+- AI consent (`ai_enabled`) is an approved `policy_change`. There is no code path that sets it directly, and there must never be one.
 - Before implementing provider code, check current vendor SDK documentation and model identifiers rather than relying on memory.
 
 ---

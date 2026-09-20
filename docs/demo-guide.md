@@ -32,6 +32,22 @@ make smoke
 
 It should print `smoke: web -> api -> database OK`.
 
+### Turn the investigator on (optional, no API key needed)
+
+```bash
+make demo-ai
+```
+
+This restarts the stack with the **demo** provider and records the customer's consent through a
+policy change that the seeded lead and controller approve — the same governance as any other change.
+The demo provider replays authored transcripts: the tools really run against this database, so the
+evidence in an investigation is genuine, while the reasoning is written in advance. Every
+investigation it produces is labelled *"Scripted demonstration — not a model"* in the UI.
+
+`make demo-ai-off` puts it back. For a live model instead, set `RELAY_AI_PROVIDER=anthropic` and
+`ANTHROPIC_API_KEY` in the environment and restart — no code change. Nothing in this repository has
+ever been run against a live model, so the demo is the honest way to show the workflow.
+
 ### If a port is already in use
 
 Host ports default to 55432 (database), 8000 (API), 3000 (web). Override any of them in the
@@ -145,6 +161,23 @@ For the evidence chain, detour to **Reconciliation → R3 → `party=unassigned`
 to account 1205) and to `party=C-0233`, where one invoice is *left only* and links to the exact
 source row — file line and all.
 
+### 4b. Let the investigator work it (45 seconds — only with `make demo-ai`)
+
+On that work item, click **Investigate**. Relay opens a case file that keeps three things apart:
+
+- **What Relay's checks found** — the finding, computed by the deterministic engine. *"This part is
+  not an opinion."*
+- **Relay investigation** — what the investigator makes of it: the contra-asset is mapped into the
+  receivables control account, so its balance joins the control total while belonging to no
+  customer. Each claim carries a **✓ evidence checked** marker, meaning Relay confirmed the quoted
+  amount and the record reference really appear in the tool results the investigator cited.
+- **Suggested action: Change account mapping (would require approval)** — a proposal, not an act.
+
+Point at the banner: this run is a scripted demonstration, and it says so. Point at the tool calls:
+they ran for real. Then **Draft a change request from this** — the investigator's output becomes a
+*draft owned by the person who asked for it*, which still needs a justification, a submission and
+two approvals.
+
 ### 5. Propose the correction (30 seconds)
 
 Back on **Mappings**, type `1210` as the new target for 1205 (Relay suggests it; you may overrule),
@@ -177,8 +210,12 @@ Relay does not take anyone's word that the fix worked — it re-derives the answ
 who approved it, what changed, when, and a **chain verified** badge over the whole hash chain.
 
 **The whole story in one sentence:** Relay checked the migration automatically, told the team which
-decision was worth 38,400, refused to let the person who proposed the fix approve it, and then
-re-verified the books itself.
+decision was worth 38,400, investigated it against evidence it then verified, refused to let the
+person who proposed the fix approve it, and re-derived the answer itself afterwards.
+
+That is the division the product is built around: **automation** finds it, **investigation**
+explains it, **a person** decides, **approval** authorises it, and **deterministic verification**
+confirms it.
 
 ### Optional deeper tour
 
@@ -224,10 +261,10 @@ the story above.
 
 - **Go-live shows a negative "days to go-live"** if today is past 2026-07-01. The scenario's dates
   are fixed so that its expected results stay reproducible; the clock is not.
-- **The AI investigator is off.** It needs both a configured provider and recorded customer consent;
-  the stack ships with `RELAY_AI_PROVIDER=disabled` and no consent, so the UI shows a short
-  "Assistant off" note instead of the panel. No live-model run has ever been recorded — the AI evals
-  pass against scripted transcripts only.
+- **The AI investigator is off until you turn it on**, and `make demo-ai` turns on a *scripted*
+  provider, not a model. No live-model run has ever been recorded anywhere in this repository, so
+  nothing here tells you how a real model performs on this data. With AI off the UI says so and the
+  whole workflow still works.
 - **The user switcher is not authentication.** It exists so one person can demonstrate segregation
   of duties alone.
 - **Kestrel** — the second company — is an evaluation scenario, not a demo workspace. Inspect it with
