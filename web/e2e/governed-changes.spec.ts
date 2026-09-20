@@ -173,6 +173,11 @@ test("DS-08, DS-11 and DS-05 are corrected through overrides approved in the UI"
   page,
   request,
 }) => {
+  // Three approved corrections, each queueing a run behind the previous one. On an idle stack this
+  // takes about a minute; sharing the single demo worker with the rest of the suite makes it
+  // longer. The inner poll already allows 90s per run, which the default 60s test budget could
+  // never reach — so the budget, not the assertions, is what moves here.
+  test.setTimeout(300_000);
   const migrationId = await brightwater(request);
   const run = await latestRun(request, migrationId);
   const changeUrls: string[] = [];
