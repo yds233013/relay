@@ -71,13 +71,14 @@ Status values:
 | ID | Status | Where |
 |---|---|---|
 | SEC-10 | Tested | `backend/tests/unit/test_route_inventory.py` (every route authenticates unless it is one of the listed public ones), `tests/integration/test_api.py` (401 unauthenticated, 403 for a viewer) |
-| SEC-11 | Tested | `test_config.py` (production refuses to start with the development identity), `tests/integration/test_api.py` (the header is ignored and `/dev/users` is absent under `RELAY_ENV=production`) |
+| SEC-11 | Tested | `test_config.py` (production and demo both refuse to start with the development identity enabled), `tests/integration/test_api.py` (the header is ignored and `/dev/users` is absent under `RELAY_ENV=production`), `tests/integration/test_demo_mode.py` (under `RELAY_ENV=demo` the header is ignored and every caller resolves to the read-only `demo_visitor`) |
 | SEC-12 | Tested (partial) | `extra="forbid"` on every API and payload model (`test_governance_domain.py`). Partial: bounded lengths are enforced in services rather than on every schema field |
 | SEC-13 | Tested | `backend/tests/unit/test_static_guards.py` (every `text(...)` takes a literal; no f-strings or concatenation), plus bound parameters throughout |
 | SEC-14 | Tested | `backend/tests/unit/test_api.py` (no internal detail, submitted values, SQL or database URL in problem responses) |
 | SEC-15 | Tested | Web: nonce-based CSP with no `unsafe-inline` (`web/src/proxy.ts`, `web/src/lib/csp.test.ts`, E2E `security-headers.spec.ts` asserts the served header and that the app runs under it). API: `default-src 'none'; frame-ancestors 'none'; base-uri 'none'` (`backend/tests/unit/test_api.py`). CORS is not configured because the browser never calls the API directly (see [decisions/0010](decisions/0010-m9-hardening.md)) |
 | SEC-16 | Tested | `react/no-danger` as a lint error in `make lint`; `web/src/components/ai-finding.test.tsx` renders hostile model and imported text and asserts it is escaped |
 | SEC-17 | Tested | Investigations: at most 20 per person per hour (`relay.investigations.service`). Uploads: at most `RELAY_MAX_UPLOADS_PER_HOUR` (default 60) per person, checked before any bytes are read (`tests/integration/test_persistence.py`). Counted from persisted rows rather than a token bucket; rejected uploads leave no row and so do not count |
+| SEC-18 | Tested | Public demo (`RELAY_ENV=demo`). `tests/unit/test_demo_mode.py` enumerates every route from the app and asserts each mutating one outside a one-entry allowlist is refused with `demo.read_only` before routing, that the paid AI provider is rejected at startup, that the schema and docs are not served, and that local and production are unaffected. `tests/integration/test_demo_mode.py` covers anonymous reads, header impersonation and least privilege |
 
 ### 3.3 Data protection
 

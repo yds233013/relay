@@ -46,7 +46,7 @@ running the entire product with it disabled.
 | **Kestrel Instruments Ltd** | A second fictional company used only to test that the engine generalizes. It is an evaluation scenario, generated and verified from the command line — not a second demo, and not exposed in the UI. |
 | **The engine** | Deterministic. Same inputs, same fingerprint, same results — asserted by tests, not by claim. |
 | **The AI investigator** | Implemented, bounded and tested. Six scripted evals check that it can be right; six adversarial transcripts check that the system does not depend on it being right. **No live-model run has ever been recorded**, so nothing here measures a model's accuracy on this data. It is off by default; a `demo` provider replays authored transcripts against the real database for demonstrations, labelled as scripted wherever it appears. |
-| **Deployment** | None. This runs locally under Docker Compose; the development identity switcher is not authentication. |
+| **Deployment** | Nothing is deployed. Three modes are prepared and tested locally: development, a **public demo** (anonymous, read-only, deterministic AI replay, no cost) and production — which deliberately serves nobody, because real authentication is post-MVP. The development identity switcher is not authentication. |
 | **Known limitations** | Listed honestly in [docs/traceability.md](docs/traceability.md) — including one security requirement (separate database roles) that is deliberately not implemented. |
 
 ![Overview: nine of twelve gates failing, each blocker linked to its evidence](docs/images/overview.png)
@@ -302,6 +302,20 @@ workflow still works — that is asserted by an end-to-end test.
 > development identity is not authentication; do not put real data in it. Known limitations are
 > listed in [docs/traceability.md](docs/traceability.md).
 
+There is a **public demo mode** (`RELAY_ENV=demo`, `docker-compose.demo.yml`, `make demo-up`) for
+showing Relay over a link: no sign-in, everything readable, the AI investigation clickable, and
+every other mutation refused before routing by a deny-by-default policy. It cannot reach a paid
+model — the configuration layer rejects any provider but the deterministic replay one — so it
+costs nothing to run. See [docs/public-demo.md](docs/public-demo.md).
+
+There is also a deployment overlay — `docker-compose.prod.yml` with `.env.production.example`, validated
+by `make prod-config` — that runs the stack with production settings, no published database or API
+port, restart policies, resource limits and log rotation. It is genuinely ready to run and
+deliberately cannot serve anyone: under `RELAY_ENV=production` the development identity is refused,
+so every migration endpoint answers 401 until real authentication is built. See
+[docs/deployment.md](docs/deployment.md), which also covers backups (the database and the blob
+volume have to be captured together, in that order).
+
 ---
 
 ## Documentation
@@ -317,6 +331,8 @@ workflow still works — that is asserted by an end-to-end test.
 | [docs/ai-safety.md](docs/ai-safety.md) | AI boundaries, tools, verification, threat model, evals |
 | [docs/demo-scenario.md](docs/demo-scenario.md) | The Brightwater scenario and its expected results |
 | [docs/testing.md](docs/testing.md) | Test strategy and layers |
+| [docs/deployment.md](docs/deployment.md) | Running the deployment overlay, backups, and why a deployment serves no users yet |
+| [docs/public-demo.md](docs/public-demo.md) | The anonymous read-only public demo: what a visitor may do and what stops them |
 | [docs/security-and-correctness.md](docs/security-and-correctness.md) | Requirement IDs |
 | [docs/traceability.md](docs/traceability.md) | Every requirement ID mapped to its tests or a stated limitation |
 | [docs/review-findings.md](docs/review-findings.md) | The six review passes: what was found, fixed, or deliberately left |

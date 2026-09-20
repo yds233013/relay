@@ -761,6 +761,123 @@ exactly what it is for.
 
 ---
 
+## Deployment preparation
+
+Configuration only, on request: nothing was deployed and nothing was published. Added
+`docker-compose.prod.yml` (an overlay on the development stack, not a replacement),
+`.env.production.example`, `make prod-config`, and `docs/deployment.md`.
+
+What the overlay changes: `RELAY_ENV=production`; database, user and password required with no
+defaults; the database and API no longer published to the host; the `./fixtures/ai-scripts` bind
+mount dropped so no repository path is needed at runtime; restart policies, memory and CPU limits,
+JSON log rotation, and a worker stop grace period. It uses the Compose `!reset` and `!override`
+merge tags, so it needs Compose 2.24+ (validated on 2.35.1). `!override` on `environment:` is
+load-bearing: a merged map would carry `RELAY_AI_SCRIPTS_DIR` into a deployment and point the AI
+provider at demo transcripts.
+
+Verified by bringing the overlay up in an isolated Compose project (`relay-prodcheck`, separate
+volumes and ports, torn down with `down -v` afterwards; the demo stack was untouched):
+
+- All five services healthy from an empty database; `migrate` exited 0 and `alembic current`
+  reported `0008_superseded_runs (head)`.
+- `/health` and `/health/ready` answered 200; the web tier's `/status` answered 200.
+- `GET /api/v1/migrations` answered **401 with no identity and 401 with `X-Relay-User`** — SEC-11
+  holding in production. This is the headline: the stack runs correctly and serves nobody, because
+  real authentication does not exist. Recorded in `docs/deployment.md` §1 rather than softened.
+- The startup guards refuse a `local_dev_only` password, an empty password, `dev_identity_enabled`,
+  and `log_format=console` under `RELAY_ENV=production`.
+- The rendered configuration was asserted service by service: 27 checks covering production env,
+  no leaked scripts dir, no fixtures bind mount, only the web port published and only on loopback,
+  restart policies and log rotation on every service.
+
+Two defects were found by verifying claims that had been written down as if true:
+
+- **`make prod-config` rendered with the development password.** This Makefile exports
+  `RELAY_DB_PASSWORD ?= relay_local_dev_only`, and the process environment beats `--env-file`, so a
+  `.env.production` with a blank password validated cleanly. The target now runs `docker compose`
+  under `env -u` for the exported `RELAY_*` variables; a blank password fails loudly again.
+- **`.env.production.example` was git-ignored.** The `.env.*` rule caught it and `!.env.example` did
+  not bring it back, so the template could never have been committed. `.gitignore` now also has
+  `!.env.*.example`; verified with `git add --dry-run` that the template is addable and that
+  `.env.production` still is not.
+
+One product defect found and **not** fixed (out of the configuration-only scope, recorded in
+`docs/deployment.md` §9): `Settings` refuses `ai_provider=anthropic` when `ANTHROPIC_API_KEY` is
+absent, but an empty value parses as `SecretStr('')`, which is not `None`, so the guard passes. Both
+compose files set `ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}`, so in any Compose deployment the
+variable is always present and the fail-fast check never fires. Harmless while the provider is
+`disabled` (the default). The fix belongs in `relay.core.config`.
+
+Not done, and still blocking a real deployment: authentication (post-MVP by design; the seam is
+`current_actor()` in `relay/api/deps.py`) and SEC-25 (the application still connects as a role with
+full DML rights, so append-only is enforced in application code and by the hash chains rather than
+by database grants).
+
+---
+
+## Public demo mode
+
+A third deployment mode so the product can be shown over a link without an account and without
+anyone being able to damage the shared copy. Nothing was deployed.
+
+**`RELAY_ENV=demo`**, a value beside `local`/`test` and `production` rather than a flag, so the
+three cannot be confused. In demo: the identity header is **ignored** and every caller resolves to
+one seeded `demo_visitor`; `relay.api.demo_policy` refuses mutations before routing; the paid AI
+provider is rejected by configuration; `/api/v1/openapi.json`, `/api/v1/docs` and
+`/api/v1/dev/users` are 404; a real database password and json logs are required exactly as in
+production.
+
+**Two independent controls, neither of which is a hidden button.** `demo_policy` is raw ASGI
+middleware outside the router: deny by default, with a one-entry allowlist (`POST
+.../investigations`). Separately the visitor holds only `READ` and a new `REQUEST_INVESTIGATION`
+permission — split out of `MANAGE_ISSUES`, which every role that could investigate before still
+holds, so nobody's access changed. Twenty of the API's twenty-one non-GET routes are refused.
+
+**Investigate stays clickable**, because a demo of an AI-native product that cannot run the AI is a
+screenshot. It is bounded by reuse (same finding, same run → the existing investigation is returned,
+nothing queued), by the shared 20-per-hour limit, and by the fact that an investigation writes only
+its own records. Verified: after one, readiness was still 12 gates / 9 failing and exposure still
+217,212.85. Cost is **structurally** zero — `Settings` refuses `ai_provider=anthropic` under
+`env=demo`, so no key is read and no path to a model exists; a run reports 0 tokens.
+
+Alembic `0009_demo_visitor_role` widens the `users.role` check constraint; the downgrade deletes any
+demo visitor first, since leaving one would violate the narrower constraint it restores.
+
+Verified against a real stack (`make demo-up`: fresh database → migrate → seed → `relay-demo
+public-demo` → serve, in its own compose project with its own volumes):
+
+- eleven read endpoints answered 200 with no identity at all;
+- nine attempted mutations — create migration, change request, pipeline run, mapping set, issue,
+  issue patch, approve, withdraw, upload — all `403 demo.read_only`;
+- `X-Relay-User: <lead>` resolved to `demo.visitor@relay.example` / `demo_visitor`, and approving
+  with that header was still refused;
+- schema, docs and the seeded-user list all 404;
+- clicking Investigate produced a real investigation (4 tool calls, verified finding, **0 tokens**),
+  and a second click returned the same investigation rather than queuing another.
+
+Tests: `tests/unit/test_demo_mode.py` enumerates routes **from the app** and asserts every mutating
+one outside the allowlist is refused, so a route added later is refused until someone deliberately
+allows it; plus provider refusal, schema/docs closure, and that local and production are unchanged.
+`tests/integration/test_demo_mode.py` covers the database-backed half: anonymous reads, header
+impersonation, an unprepared demo refusing rather than improvising an actor, and least privilege.
+
+The web tier runs with `RELAY_PUBLIC_DEMO=1`: no sign-in redirect, no user switcher (a control that
+looked like signing in would claim an access check that does not exist), a "Public demo · portfolio
+prototype · fictional data · view-only" badge, and every action the API would refuse replaced by a
+short note saying what it does in a real deployment. `SubmitButton` is the safety net — in demo it
+renders a note unless explicitly marked `allowedInDemo` — and the form bodies around the fifteen
+most visible actions are hidden so nothing reads as broken.
+
+Also fixed here: an empty `ANTHROPIC_API_KEY` parsed as `SecretStr("")` and defeated its own
+fail-fast guard, which mattered because both compose files pass the variable unconditionally. Blank
+and whitespace-only values are now absent, with tests.
+
+Not done and still true: SEC-25 (separate database roles) remains unimplemented and documented as
+such, and there is no network-level rate limit — a reverse proxy in front is expected to provide
+one. The demo is not production and holds no real data.
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.

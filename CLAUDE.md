@@ -22,6 +22,8 @@ Canonical documents (read the relevant one before working in an area):
 | AI boundaries, tools, verification, evals | `docs/ai-safety.md` |
 | Demo data and expected results | `docs/demo-scenario.md` |
 | Test layers and commands | `docs/testing.md` |
+| Deployment overlay, backups, why production serves no users | `docs/deployment.md` |
+| Public demo mode: anonymous access, the demo policy, zero-cost AI | `docs/public-demo.md` |
 | Security & correctness requirement IDs | `docs/security-and-correctness.md` |
 | Milestones and acceptance criteria | `docs/implementation-plan.md` |
 | What has actually been built | `docs/progress.md` (created in M0) |
@@ -98,6 +100,9 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make build-web` | Next.js production build |
 | `make build` | build-web + `docker compose build` |
 | `make compose-config` | Validate `docker-compose.yml` |
+| `make demo-config` | Render and validate the public-demo overlay against `.env.demo`; starts nothing |
+| `make demo-up` / `make demo-down` | Build and start the PUBLIC DEMO stack locally in its own compose project (`relay-demo`, own volumes) from a fresh database — migrate, seed, `relay-demo public-demo`, serve / stop it and delete its volumes |
+| `make prod-config` | Render the deployment overlay (`docker-compose.prod.yml`) against `.env.production` and validate it; starts nothing. Needs `.env.production` (from `.env.production.example`); see `docs/deployment.md` |
 | `make db-up` / `make db-stop` | Start (and wait for healthy) / stop Compose PostgreSQL |
 | `make db-migrate` | `alembic upgrade head` against the local database |
 | `make db-downgrade` | `alembic downgrade -1` |
