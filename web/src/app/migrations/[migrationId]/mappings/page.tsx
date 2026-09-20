@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { FilterForm, SelectFilter } from "@/components/filters";
+import { DemoUnavailable } from "@/components/demo-note";
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
@@ -8,6 +9,7 @@ import { Callout, Panel } from "@/components/ui";
 import { SignalChips } from "@/components/signal-chips";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { proposeAccountMapping } from "../governance-actions";
@@ -220,27 +222,33 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
               </tbody>
             </table>
           </Panel>
-          <div className="mt-4 max-w-2xl rounded-md border border-[var(--border)] bg-[var(--surface-sunken)] p-3">
-            <p className="mb-2 text-sm font-medium text-[var(--ink)]">
-              Propose a change to this mapping
-            </p>
-            <p className="mb-2 text-xs text-[var(--ink-muted)]">
-              Fill in a new target above for the accounts you are changing. Nothing moves until the
-              implementation lead and the customer controller both approve.
-            </p>
-            <div className="flex flex-col gap-2">
-              <TextField
-                name="title"
-                label="Title"
-                required
-                defaultValue="Account mapping change"
-              />
-              <TextArea name="justification" label="Justification" required />
-              <span>
-                <SubmitButton>Propose mapping change</SubmitButton>
-              </span>
+          {isPublicDemo() ? (
+            <div className="mt-4 max-w-2xl">
+              <DemoUnavailable what="Re-pointing a legacy account at a different target is a change request the implementation lead and the customer controller both approve, after which a fresh run re-checks every number it touches." />
             </div>
-          </div>
+          ) : (
+            <div className="mt-4 max-w-2xl rounded-md border border-[var(--border)] bg-[var(--surface-sunken)] p-3">
+              <p className="mb-2 text-sm font-medium text-[var(--ink)]">
+                Propose a change to this mapping
+              </p>
+              <p className="mb-2 text-xs text-[var(--ink-muted)]">
+                Fill in a new target above for the accounts you are changing. Nothing moves until
+                the implementation lead and the customer controller both approve.
+              </p>
+              <div className="flex flex-col gap-2">
+                <TextField
+                  name="title"
+                  label="Title"
+                  required
+                  defaultValue="Account mapping change"
+                />
+                <TextArea name="justification" label="Justification" required />
+                <span>
+                  <SubmitButton>Propose mapping change</SubmitButton>
+                </span>
+              </div>
+            </div>
+          )}
         </form>
       </Section>
       <Section

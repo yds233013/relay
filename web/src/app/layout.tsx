@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { isPublicDemo } from "@/lib/demo";
 import { currentUserEmail } from "@/lib/session";
 
 import "./globals.css";
@@ -12,7 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const user = await currentUserEmail();
+  const publicDemo = isPublicDemo();
+  const user = publicDemo ? null : await currentUserEmail();
   return (
     <html lang="en">
       <body className="min-h-screen bg-[var(--surface)]">
@@ -34,17 +36,30 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               Migration operations
             </span>
           </div>
-          <nav aria-label="Account" className="flex items-center gap-3 text-sm">
-            <span className="text-[var(--ink-muted)]" data-testid="current-user">
-              {user ? `Acting as ${user}` : "No user selected"}
-            </span>
-            <Link
-              href="/select-user"
-              className="rounded border border-[var(--border-strong)] bg-white px-2 py-0.5 text-[var(--ink)] no-underline hover:bg-[var(--surface-sunken)]"
-            >
-              Switch user
-            </Link>
-          </nav>
+          {publicDemo ? (
+            // No switcher: in the demo there is nothing to switch between, and a control that
+            // looked like signing in would be claiming an access check that does not exist.
+            <p className="flex items-center gap-2 text-sm" data-testid="demo-badge">
+              <span className="rounded-full border border-[var(--border-strong)] bg-white px-2 py-0.5 text-xs font-medium text-[var(--ink)]">
+                Public demo
+              </span>
+              <span className="hidden text-[var(--ink-muted)] sm:inline">
+                Portfolio prototype · fictional data · view-only
+              </span>
+            </p>
+          ) : (
+            <nav aria-label="Account" className="flex items-center gap-3 text-sm">
+              <span className="text-[var(--ink-muted)]" data-testid="current-user">
+                {user ? `Acting as ${user}` : "No user selected"}
+              </span>
+              <Link
+                href="/select-user"
+                className="rounded border border-[var(--border-strong)] bg-white px-2 py-0.5 text-[var(--ink)] no-underline hover:bg-[var(--surface-sunken)]"
+              >
+                Switch user
+              </Link>
+            </nav>
+          )}
         </header>
         <div id="main">{children}</div>
       </body>

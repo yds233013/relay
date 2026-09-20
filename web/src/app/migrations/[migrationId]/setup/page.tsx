@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { SubmitButton, TextField } from "@/components/forms";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
 import { Callout, EmptyState, Panel } from "@/components/ui";
 import { apiGet, type Schemas } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { createDataset, createSourceSystem, requestRun } from "../workflow-actions";
@@ -83,12 +85,22 @@ export default async function SetupPage(props: PageProps<"/migrations/[migration
               ))
             )}
           </ul>
-          <form action={createSourceSystem} className="flex flex-wrap items-end gap-3 p-3">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <TextField name="name" label="Name" required />
-            <Select name="kind" label="Kind" options={SYSTEM_KINDS.map((k) => [k, humanize(k)])} />
-            <SubmitButton tone="secondary">Add source system</SubmitButton>
-          </form>
+          {isPublicDemo() ? (
+            <div className="p-3">
+              <DemoUnavailable what="Declaring the systems a company is migrating from is the first step of a real implementation." />
+            </div>
+          ) : (
+            <form action={createSourceSystem} className="flex flex-wrap items-end gap-3 p-3">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <TextField name="name" label="Name" required />
+              <Select
+                name="kind"
+                label="Kind"
+                options={SYSTEM_KINDS.map((k) => [k, humanize(k)])}
+              />
+              <SubmitButton tone="secondary">Add source system</SubmitButton>
+            </form>
+          )}
         </Panel>
       </Section>
 
@@ -98,33 +110,39 @@ export default async function SetupPage(props: PageProps<"/migrations/[migration
           description="One dataset per exported file. The type tells Relay how to read it; agings need an as-of date and bank statements name the account they belong to."
         >
           <Panel className="mb-3">
-            <form action={createDataset} className="p-3">
-              <input type="hidden" name="migrationId" value={migrationId} />
-              <div className="flex flex-wrap items-end gap-3">
-                <Select
-                  name="sourceSystemId"
-                  label="Source system"
-                  options={systems.map((s) => [s.id, s.name])}
-                />
-                <Select
-                  name="datasetType"
-                  label="Dataset type"
-                  options={DATASET_TYPES.map((t) => [t, humanize(t)])}
-                />
-                <TextField name="name" label="Name" required />
+            {isPublicDemo() ? (
+              <div className="p-3">
+                <DemoUnavailable what="Each dataset declares what a file is, which is how Relay knows an aging needs an as-of date and a bank statement needs the GL cash account it reconciles to." />
               </div>
-              <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-[var(--border)] pt-3">
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="text-xs font-medium text-[var(--ink-muted)]">
-                    As of (agings only)
-                  </span>
-                  <input type="date" name="asOfDate" className={CONTROL} />
-                </label>
-                <TextField name="bankAccount" label="Bank account (bank statements)" />
-                <TextField name="glAccount" label="GL cash account (bank statements)" />
-                <SubmitButton tone="secondary">Add dataset</SubmitButton>
-              </div>
-            </form>
+            ) : (
+              <form action={createDataset} className="p-3">
+                <input type="hidden" name="migrationId" value={migrationId} />
+                <div className="flex flex-wrap items-end gap-3">
+                  <Select
+                    name="sourceSystemId"
+                    label="Source system"
+                    options={systems.map((s) => [s.id, s.name])}
+                  />
+                  <Select
+                    name="datasetType"
+                    label="Dataset type"
+                    options={DATASET_TYPES.map((t) => [t, humanize(t)])}
+                  />
+                  <TextField name="name" label="Name" required />
+                </div>
+                <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-[var(--border)] pt-3">
+                  <label className="flex flex-col gap-1 text-sm">
+                    <span className="text-xs font-medium text-[var(--ink-muted)]">
+                      As of (agings only)
+                    </span>
+                    <input type="date" name="asOfDate" className={CONTROL} />
+                  </label>
+                  <TextField name="bankAccount" label="Bank account (bank statements)" />
+                  <TextField name="glAccount" label="GL cash account (bank statements)" />
+                  <SubmitButton tone="secondary">Add dataset</SubmitButton>
+                </div>
+              </form>
+            )}
           </Panel>
           <Panel>
             <ul className="text-sm" data-testid="setup-datasets">
@@ -187,11 +205,17 @@ export default async function SetupPage(props: PageProps<"/migrations/[migration
             Nothing here is destructive: a run recomputes results from the current inputs and leaves
             the imported rows untouched.
           </Callout>
-          <form action={requestRun} className="mt-3">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <input type="hidden" name="returnTo" value={`/migrations/${migrationId}/setup`} />
-            <SubmitButton>Run the pipeline</SubmitButton>
-          </form>
+          {isPublicDemo() ? (
+            <div className="mt-3">
+              <DemoUnavailable what="A run re-reads every dataset and recomputes every accounting control, reconciliation and readiness gate from scratch. The latest run is where every number on this demo comes from." />
+            </div>
+          ) : (
+            <form action={requestRun} className="mt-3">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="returnTo" value={`/migrations/${migrationId}/setup`} />
+              <SubmitButton>Run the pipeline</SubmitButton>
+            </form>
+          )}
         </Panel>
       </Section>
     </div>

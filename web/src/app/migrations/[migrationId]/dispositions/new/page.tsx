@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
@@ -5,6 +6,7 @@ import { Money } from "@/components/money";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
+import { isPublicDemo } from "@/lib/demo";
 import { ApiError, apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
@@ -24,6 +26,11 @@ export default async function NewDispositionPage(
   props: PageProps<"/migrations/[migrationId]/dispositions/new">,
 ) {
   const { migrationId } = await props.params;
+  // This page exists only to propose a change, which the demo refuses server-side.
+  if (isPublicDemo()) {
+    redirect(`/migrations/${migrationId}/issues`);
+  }
+
   const query = await props.searchParams;
   const issueId = param(query.issue) ?? "";
   const issue = await apiGet<Schemas["IssueDetailOut"]>(`/api/v1/issues/${issueId}`);

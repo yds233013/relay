@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { EvidenceLink } from "@/components/evidence-link";
 import { SubmitButton, TextArea } from "@/components/forms";
 import { LocalTime } from "@/components/local-time";
@@ -7,6 +8,7 @@ import { Money } from "@/components/money";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
 import { Callout, Panel } from "@/components/ui";
+import { isPublicDemo } from "@/lib/demo";
 import { groupGates } from "@/lib/readiness";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
@@ -78,17 +80,21 @@ export default async function ReadinessPage(
             ready until it is signed again.
           </Callout>
         ) : prerequisitesMet ? (
-          <form action={proposeSignoff} className="flex max-w-2xl flex-col gap-2">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <p className="text-sm">
-              G1 to G11 pass or are waived on the current run. The implementation lead and the
-              customer controller must both approve the sign-off.
-            </p>
-            <TextArea name="justification" label="Sign-off statement" required />
-            <span>
-              <SubmitButton>Request sign-off</SubmitButton>
-            </span>
-          </form>
+          isPublicDemo() ? (
+            <DemoUnavailable what="Sign-off is the last step: the lead and the controller both sign against this exact run fingerprint, and it lapses the moment any input changes." />
+          ) : (
+            <form action={proposeSignoff} className="flex max-w-2xl flex-col gap-2">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <p className="text-sm">
+                G1 to G11 pass or are waived on the current run. The implementation lead and the
+                customer controller must both approve the sign-off.
+              </p>
+              <TextArea name="justification" label="Sign-off statement" required />
+              <span>
+                <SubmitButton>Request sign-off</SubmitButton>
+              </span>
+            </form>
+          )
         ) : (
           <div data-testid="signoff-unavailable">
             <Callout>
@@ -265,21 +271,25 @@ export default async function ReadinessPage(
                   readiness.run_is_current ? (
                     <details className="mt-2 rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2">
                       <summary className="cursor-pointer font-medium">Propose a waiver</summary>
-                      <form action={proposeWaiver} className="mt-2 flex max-w-2xl flex-col gap-2">
-                        <input type="hidden" name="migrationId" value={migrationId} />
-                        <input type="hidden" name="gateId" value={gate.gate_id} />
-                        <p className="text-xs text-[var(--ink-muted)]">
-                          Covers exactly the {Object.keys(gate.scope).length} items failing now.
-                        </p>
-                        <TextArea
-                          name="justification"
-                          label="Why this gate can be waived"
-                          required
-                        />
-                        <span>
-                          <SubmitButton tone="secondary">Propose waiver</SubmitButton>
-                        </span>
-                      </form>
+                      {isPublicDemo() ? (
+                        <DemoUnavailable what="A waiver covers exactly the items failing now, needs a written reason and two approvals, and lapses as soon as a new one appears." />
+                      ) : (
+                        <form action={proposeWaiver} className="mt-2 flex max-w-2xl flex-col gap-2">
+                          <input type="hidden" name="migrationId" value={migrationId} />
+                          <input type="hidden" name="gateId" value={gate.gate_id} />
+                          <p className="text-xs text-[var(--ink-muted)]">
+                            Covers exactly the {Object.keys(gate.scope).length} items failing now.
+                          </p>
+                          <TextArea
+                            name="justification"
+                            label="Why this gate can be waived"
+                            required
+                          />
+                          <span>
+                            <SubmitButton tone="secondary">Propose waiver</SubmitButton>
+                          </span>
+                        </form>
+                      )}
                     </details>
                   ) : null}
                 </li>

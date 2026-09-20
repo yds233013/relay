@@ -13,6 +13,7 @@ import {
   Panel,
   Section,
 } from "@/components/ui";
+import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize } from "@/lib/format";
 
@@ -112,9 +113,11 @@ export default async function PortfolioPage() {
           ) : null
         }
       >
-        <ButtonLink href="/migrations/new" variant="primary">
-          New migration
-        </ButtonLink>
+        {isPublicDemo() ? null : (
+          <ButtonLink href="/migrations/new" variant="primary">
+            New migration
+          </ButtonLink>
+        )}
       </PageHeader>
 
       {migrations.length === 0 ? (

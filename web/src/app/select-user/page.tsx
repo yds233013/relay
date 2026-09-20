@@ -1,5 +1,8 @@
+import { redirect } from "next/navigation";
+
 import { BUTTON_STYLES, Callout, EmptyState, PageHeader, Panel } from "@/components/ui";
 import { apiGet, type Schemas } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { selectUser } from "./actions";
@@ -16,6 +19,11 @@ const ROLE_HINT: Record<string, string> = {
 };
 
 export default async function SelectUserPage(props: PageProps<"/select-user">) {
+  // The public demo has one read-only identity and no way to change it, so this page has nothing
+  // to offer there — and leaving it reachable would look like a sign-in screen that does nothing.
+  if (isPublicDemo()) {
+    redirect("/migrations");
+  }
   const returnTo = param((await props.searchParams).returnTo) ?? "/migrations";
   const users = await apiGet<Schemas["UserOut"][]>("/api/v1/dev/users");
   return (

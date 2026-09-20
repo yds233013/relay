@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SubmitButton, TextArea } from "@/components/forms";
 import { Section } from "@/components/page-header";
+import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { Panel } from "@/components/ui";
 
@@ -70,13 +71,28 @@ export async function InvestigatePanel({
           The investigator reads this migration with read-only tools and cites its evidence. It
           cannot change anything.
         </p>
+        {isPublicDemo() ? (
+          <p className="mb-2 text-xs text-[var(--ink-muted)]">
+            In this public demo every visitor shares one copy, so a finding is investigated once and
+            everyone sees that same result. The tools really run against this database — the
+            evidence is genuine — and the reasoning is a scripted transcript, not a model.
+          </p>
+        ) : null}
         <form action={startInvestigation} className="flex max-w-2xl flex-col gap-2">
           <input type="hidden" name="migrationId" value={migrationId} />
           <input type="hidden" name="issueId" value={issueId ?? ""} />
           <input type="hidden" name="returnTo" value={returnTo} />
-          <TextArea name="question" label="Question" defaultValue={defaultQuestion} required />
+          {isPublicDemo() ? (
+            // The answer is derived per finding and per run, so a typed question would not change
+            // it here. Offering the box anyway would imply an interaction the demo does not have.
+            <input type="hidden" name="question" value={defaultQuestion} />
+          ) : (
+            <TextArea name="question" label="Question" defaultValue={defaultQuestion} required />
+          )}
           <span>
-            <SubmitButton tone="secondary">Investigate</SubmitButton>
+            <SubmitButton tone="secondary" allowedInDemo>
+              Investigate
+            </SubmitButton>
           </span>
         </form>
         {previous.length > 0 ? (

@@ -1,5 +1,6 @@
 /** Form controls with visible labels. Forms post to Server Functions and work without JavaScript. */
 import { BUTTON_STYLES } from "@/components/ui";
+import { DEMO_VIEW_ONLY, isPublicDemo } from "@/lib/demo";
 
 const CONTROL =
   "rounded border border-[var(--border-strong)] bg-white px-2 py-1 text-sm text-[var(--ink)]";
@@ -67,12 +68,26 @@ export function SubmitButton({
   tone = "primary",
   name,
   value,
+  allowedInDemo = false,
 }: {
   children: React.ReactNode;
   tone?: "primary" | "secondary" | "danger";
   name?: string;
   value?: string;
+  /**
+   * Render normally in the public demo. Only for actions the server-side demo policy actually
+   * permits — today just starting an investigation. Everything else becomes a short note, because
+   * a button that submits into a 403 reads as a broken product rather than a deliberate boundary.
+   */
+  allowedInDemo?: boolean;
 }) {
+  if (isPublicDemo() && !allowedInDemo) {
+    return (
+      <span className="inline-flex items-center rounded border border-dashed border-[var(--border-strong)] px-2 py-1 text-xs text-[var(--ink-muted)]">
+        {DEMO_VIEW_ONLY}
+      </span>
+    );
+  }
   return (
     <button type="submit" name={name} value={value} className={BUTTON_STYLES[tone]}>
       {children}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { FindingCard, Transcript } from "@/components/ai-finding";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Timestamp } from "@/components/dates";
@@ -9,6 +10,7 @@ import { Notice } from "@/components/notice";
 import { StatusChip } from "@/components/status-chip";
 import { Callout, MetaList, PageHeader, Panel, Section } from "@/components/ui";
 import { apiGet, type Schemas } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { draftFromFinding, reviewFinding } from "../../ai-actions";
@@ -173,7 +175,12 @@ export default async function InvestigationPage(
                     . It still needs a justification, a submission and two approvals.
                   </p>
                 ) : null}
-                {finding.review_status === "proposed" ? (
+                {isPublicDemo() ? (
+                  <div className="mt-3">
+                    <DemoUnavailable what="Accepting a proposal, dismissing it, or turning it into a change request is a person's decision, and the change request that follows still needs two approvals and a fresh run before anything moves." />
+                  </div>
+                ) : null}
+                {!isPublicDemo() && finding.review_status === "proposed" ? (
                   <form action={reviewFinding} className="mt-3 flex flex-wrap items-end gap-2">
                     <input type="hidden" name="migrationId" value={migrationId} />
                     <input type="hidden" name="investigationId" value={investigationId} />
@@ -189,7 +196,7 @@ export default async function InvestigationPage(
                     </SubmitButton>
                   </form>
                 ) : null}
-                {finding.draftable ? (
+                {!isPublicDemo() && finding.draftable ? (
                   <form action={draftFromFinding} className="mt-3">
                     <input type="hidden" name="migrationId" value={migrationId} />
                     <input type="hidden" name="investigationId" value={investigationId} />

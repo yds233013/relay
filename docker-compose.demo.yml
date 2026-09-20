@@ -1,0 +1,111 @@
+# Relay PUBLIC DEMO overlay. Layer it on the base file; it is not standalone:
+#
+#   docker compose --env-file .env.demo \
+#     -f docker-compose.yml -f docker-compose.demo.yml up -d --build
+#
+# Read docs/public-demo.md first.
+#
+# This is the one mode meant to face the internet with nobody signed in. It is NOT production: it
+# serves a single fictional company that every visitor shares, refuses every mutation but one, and
+# cannot reach a paid AI provider. Do not point it at real data.
+#
+# How it differs from the production overlay (docker-compose.prod.yml):
+#   - RELAY_ENV=demo, so the API resolves every caller to the read-only `demo_visitor` and
+#     relay.api.demo_policy refuses mutations before routing, instead of answering 401 to everyone
+#   - RELAY_AI_PROVIDER=demo, which replays authored transcripts against the real database. The
+#     configuration layer refuses anything else in this environment, so no key is read and no
+#     network call to a model is possible
+#   - the web tier runs with RELAY_PUBLIC_DEMO=1: no sign-in prompt, no user switcher, and the
+#     actions the API would refuse are replaced by "View-only in public demo"
+#   - the transcript directory is mounted read-only, because the demo provider is the point here
+#     rather than something left over from development
+
+x-demo-env: &demo-env
+  RELAY_ENV: demo
+  RELAY_DATABASE_URL: postgresql+psycopg://${RELAY_DB_USER:?set RELAY_DB_USER in .env.demo}:${RELAY_DB_PASSWORD:?set RELAY_DB_PASSWORD in .env.demo}@db:5432/${RELAY_DB_NAME:?set RELAY_DB_NAME in .env.demo}
+  RELAY_LOG_LEVEL: ${RELAY_LOG_LEVEL:-INFO}
+  RELAY_LOG_FORMAT: json
+  RELAY_DB_POOL_SIZE: ${RELAY_DB_POOL_SIZE:-10}
+  # Nobody uploads anything in the demo — the policy refuses it — so these only bound the seeder.
+  RELAY_MAX_UPLOAD_BYTES: ${RELAY_MAX_UPLOAD_BYTES:-52428800}
+  RELAY_MAX_ROWS_PER_IMPORT: ${RELAY_MAX_ROWS_PER_IMPORT:-500000}
+  # Deterministic replay against this database. RELAY_ENV=demo refuses any other provider.
+  RELAY_AI_PROVIDER: demo
+  RELAY_AI_SCRIPTS_DIR: /ai-scripts
+  # Deliberately absent: no ANTHROPIC_API_KEY is passed into a demo process at all.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    ports: !reset null
+    environment: !override
+      POSTGRES_USER: ${RELAY_DB_USER:?set RELAY_DB_USER in .env.demo}
+      POSTGRES_PASSWORD: ${RELAY_DB_PASSWORD:?set RELAY_DB_PASSWORD in .env.demo}
+      POSTGRES_DB: ${RELAY_DB_NAME:?set RELAY_DB_NAME in .env.demo}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: UTC
+      PGTZ: UTC
+    restart: unless-stopped
+    shm_size: 256mb
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: ${RELAY_DB_MEMORY_LIMIT:-2g}
+
+  migrate:
+    environment: !override
+      <<: *demo-env
+    logging: *logging
+
+  api:
+    ports: !reset null
+    environment: !override
+      <<: *demo-env
+    restart: unless-stopped
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: ${RELAY_API_CPU_LIMIT:-2}
+          memory: ${RELAY_API_MEMORY_LIMIT:-1g}
+
+  worker:
+    volumes: !override
+      - relay-blobs:/data/blobs
+      - ./fixtures/ai-scripts:/ai-scripts:ro
+    environment: !override
+      <<: *demo-env
+      RELAY_WORKER_HEARTBEAT_FILE: /tmp/relay-worker-heartbeat
+    restart: unless-stopped
+    # An investigation replay is seconds, not minutes.
+    stop_grace_period: ${RELAY_WORKER_STOP_GRACE:-30s}
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: ${RELAY_WORKER_CPU_LIMIT:-1}
+          memory: ${RELAY_WORKER_MEMORY_LIMIT:-1g}
+
+  web:
+    # Loopback by default: put a reverse proxy in front for TLS. Set RELAY_WEB_BIND=0.0.0.0 only
+    # when something else terminates TLS and can absorb traffic.
+    ports: !override
+      - "${RELAY_WEB_BIND:-127.0.0.1}:${RELAY_WEB_HOST_PORT:-3000}:3000"
+    environment: !override
+      RELAY_API_URL: http://api:8000
+      NODE_ENV: production
+      # Anonymous visitors: no sign-in prompt, no switcher, unavailable actions labelled.
+      RELAY_PUBLIC_DEMO: "1"
+    restart: unless-stopped
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: ${RELAY_WEB_CPU_LIMIT:-1}
+          memory: ${RELAY_WEB_MEMORY_LIMIT:-1g}

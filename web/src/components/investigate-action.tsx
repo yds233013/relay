@@ -77,7 +77,9 @@ export async function InvestigateAction({
         name="question"
         value={`${item.title}. What is the likely cause, and what should we do about it?`}
       />
-      <SubmitButton tone="secondary">Investigate</SubmitButton>
+      <SubmitButton tone="secondary" allowedInDemo>
+        Investigate
+      </SubmitButton>
     </form>
   );
 }

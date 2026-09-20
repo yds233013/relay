@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { SubmitButton, TextArea } from "@/components/forms";
 import { Notice } from "@/components/notice";
 import { StatusChip } from "@/components/status-chip";
@@ -12,6 +13,7 @@ import {
   ProvenanceBadge,
   Section,
 } from "@/components/ui";
+import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
@@ -209,53 +211,57 @@ export default async function CandidatePage(
           </Callout>
         ) : (
           <Panel className="p-4">
-            <form action={proposeEntityDecision} className="flex max-w-2xl flex-col gap-4">
-              <input type="hidden" name="migrationId" value={migrationId} />
-              <input type="hidden" name="runId" value={detail.run_id} />
-              <input type="hidden" name="partyType" value={candidate.party_type} />
-              <input
-                type="hidden"
-                name="returnTo"
-                value={`/migrations/${migrationId}/entities/${candidateId}`}
-              />
-              {codes.map((code) => (
-                <input key={code} type="hidden" name="member" value={code} />
-              ))}
-              {related.map((i) => (
-                <input key={i.id} type="hidden" name="evidenceIssueId" value={i.id} />
-              ))}
-              <fieldset className="flex flex-col gap-1.5 text-sm">
-                <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
-                  These parties are
-                </legend>
-                <label className="flex items-center gap-2">
-                  <input type="radio" name="decision" value="same_entity" defaultChecked /> the same
-                  entity
+            {isPublicDemo() ? (
+              <DemoUnavailable what="Deciding whether two parties are one is a governed change request: merge them and name the surviving record, or keep them distinct, with evidence." />
+            ) : (
+              <form action={proposeEntityDecision} className="flex max-w-2xl flex-col gap-4">
+                <input type="hidden" name="migrationId" value={migrationId} />
+                <input type="hidden" name="runId" value={detail.run_id} />
+                <input type="hidden" name="partyType" value={candidate.party_type} />
+                <input
+                  type="hidden"
+                  name="returnTo"
+                  value={`/migrations/${migrationId}/entities/${candidateId}`}
+                />
+                {codes.map((code) => (
+                  <input key={code} type="hidden" name="member" value={code} />
+                ))}
+                {related.map((i) => (
+                  <input key={i.id} type="hidden" name="evidenceIssueId" value={i.id} />
+                ))}
+                <fieldset className="flex flex-col gap-1.5 text-sm">
+                  <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                    These parties are
+                  </legend>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="decision" value="same_entity" defaultChecked /> the
+                    same entity
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="decision" value="distinct" /> distinct entities
+                  </label>
+                </fieldset>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-xs font-medium text-[var(--ink-muted)]">
+                    Surviving record (same entity only)
+                  </span>
+                  <select
+                    name="survivor"
+                    className="rounded border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--ink)] sm:max-w-xs"
+                  >
+                    {codes.map((code) => (
+                      <option key={code} value={code}>
+                        {code}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <label className="flex items-center gap-2">
-                  <input type="radio" name="decision" value="distinct" /> distinct entities
-                </label>
-              </fieldset>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs font-medium text-[var(--ink-muted)]">
-                  Surviving record (same entity only)
+                <TextArea name="justification" label="Justification and evidence" required />
+                <span>
+                  <SubmitButton>Propose decision</SubmitButton>
                 </span>
-                <select
-                  name="survivor"
-                  className="rounded border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--ink)] sm:max-w-xs"
-                >
-                  {codes.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <TextArea name="justification" label="Justification and evidence" required />
-              <span>
-                <SubmitButton>Propose decision</SubmitButton>
-              </span>
-            </form>
+              </form>
+            )}
           </Panel>
         )}
       </Section>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { SubmitButton, TextArea } from "@/components/forms";
 import { LocalTime } from "@/components/local-time";
 import { Money } from "@/components/money";
@@ -8,6 +9,7 @@ import { PageHeader, Section } from "@/components/page-header";
 import { Callout, MetaList, Panel, ProvenanceBadge, type Tone } from "@/components/ui";
 import { SignalChips } from "@/components/signal-chips";
 import { StatusChip } from "@/components/status-chip";
+import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
@@ -556,19 +558,23 @@ export default async function ChangeRequestPage(
               outstanding, the change is applied in a single transaction and a fresh run is
               requested straight away. Rejecting ends the change request and needs a comment.
             </p>
-            <form action={reviewChangeRequest} className="flex max-w-xl flex-col gap-2">
-              <input type="hidden" name="migrationId" value={migrationId} />
-              <input type="hidden" name="changeId" value={change.id} />
-              <TextArea name="comment" label="Comment (required to reject)" rows={2} />
-              <span className="flex gap-2">
-                <SubmitButton name="decision" value="approve">
-                  Approve
-                </SubmitButton>
-                <SubmitButton name="decision" value="reject" tone="danger">
-                  Reject
-                </SubmitButton>
-              </span>
-            </form>
+            {isPublicDemo() ? (
+              <DemoUnavailable what="Approving or rejecting is the control this whole system exists for, and it is never the requester who does it." />
+            ) : (
+              <form action={reviewChangeRequest} className="flex max-w-xl flex-col gap-2">
+                <input type="hidden" name="migrationId" value={migrationId} />
+                <input type="hidden" name="changeId" value={change.id} />
+                <TextArea name="comment" label="Comment (required to reject)" rows={2} />
+                <span className="flex gap-2">
+                  <SubmitButton name="decision" value="approve">
+                    Approve
+                  </SubmitButton>
+                  <SubmitButton name="decision" value="reject" tone="danger">
+                    Reject
+                  </SubmitButton>
+                </span>
+              </form>
+            )}
           </Panel>
         ) : (
           <div
@@ -592,25 +598,33 @@ export default async function ChangeRequestPage(
                 ? " This draft came from an investigation, so the reasoning is yours to confirm before anyone reviews it."
                 : ""}
             </p>
-            <form action={submitChangeRequest} className="mt-2 flex flex-col gap-2">
-              <input type="hidden" name="migrationId" value={migrationId} />
-              <input type="hidden" name="changeId" value={change.id} />
-              <TextArea name="justification" label="Justification" required rows={3} />
-              <span>
-                <SubmitButton>Submit for approval</SubmitButton>
-              </span>
-            </form>
+            {isPublicDemo() ? (
+              <DemoUnavailable what="Submitting writes the justification into the audit trail, where it cannot be edited afterwards." />
+            ) : (
+              <form action={submitChangeRequest} className="mt-2 flex flex-col gap-2">
+                <input type="hidden" name="migrationId" value={migrationId} />
+                <input type="hidden" name="changeId" value={change.id} />
+                <TextArea name="justification" label="Justification" required rows={3} />
+                <span>
+                  <SubmitButton>Submit for approval</SubmitButton>
+                </span>
+              </form>
+            )}
           </div>
         ) : null}
         {detail.viewer.is_requester && open ? (
-          <form action={withdrawChangeRequest} className="mt-3 flex items-end gap-2">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <input type="hidden" name="changeId" value={change.id} />
-            <SubmitButton tone="secondary">Withdraw</SubmitButton>
-            <span className="text-xs text-[var(--ink-subtle)]">
-              Withdrawing is yours to do as the requester, and is itself recorded in the history.
-            </span>
-          </form>
+          isPublicDemo() ? (
+            <DemoUnavailable what="Withdrawing is the requester's to do, and is itself recorded in the history." />
+          ) : (
+            <form action={withdrawChangeRequest} className="mt-3 flex items-end gap-2">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="changeId" value={change.id} />
+              <SubmitButton tone="secondary">Withdraw</SubmitButton>
+              <span className="text-xs text-[var(--ink-subtle)]">
+                Withdrawing is yours to do as the requester, and is itself recorded in the history.
+              </span>
+            </form>
+          )
         ) : null}
       </Section>
       {detail.runs.length > 0 ? (

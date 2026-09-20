@@ -7,6 +7,7 @@ import { StatusChip } from "@/components/status-chip";
 import { Callout, MetricCard, Panel, Section } from "@/components/ui";
 import { InvestigateAction } from "@/components/investigate-action";
 import { WorkItemCard } from "@/components/work-item";
+import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize } from "@/lib/format";
 import { groupGates } from "@/lib/readiness";
@@ -384,8 +385,9 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
         <Section title="Assigned to you">
           {data.my_issues.length === 0 && data.my_approvals.length === 0 ? (
             <Callout>
-              Nothing is assigned to you and no approval is waiting on your role. Switch user to act
-              as the implementation lead or the customer controller.
+              {isPublicDemo()
+                ? "Relay routes work to the person whose role can act on it — the implementation specialist who proposes a fix, the lead and the customer controller who approve it. In this public demo you are a read-only visitor, so nothing is assigned here."
+                : "Nothing is assigned to you and no approval is waiting on your role. Switch user to act as the implementation lead or the customer controller."}
             </Callout>
           ) : (
             <Panel className="divide-y divide-[var(--border)]">

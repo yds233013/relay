@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
+import { DemoUnavailable } from "@/components/demo-note";
 import { InvestigatePanel } from "@/components/investigate-panel";
 import { LocalTime } from "@/components/local-time";
 import { Money } from "@/components/money";
@@ -19,6 +20,7 @@ import {
   Section,
 } from "@/components/ui";
 import { ApiError, apiGet, type Schemas } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { proposeQuarantineRepair } from "../../governance-actions";
@@ -187,59 +189,73 @@ export default async function IssuePage(
               {ownerName(issue.owner_user_id)}
             </span>
           </p>
-          <form action={updateIssue} className="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <input type="hidden" name="issueId" value={issue.id} />
-            <input type="hidden" name="version" value={issue.version} />
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-medium text-[var(--ink-muted)]">Owner</span>
-              <select name="owner" defaultValue={issue.owner_user_id ?? "none"} className={CONTROL}>
-                <option value="none">Unassigned</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.display_name} ({humanize(user.role)})
-                  </option>
-                ))}
-              </select>
-            </label>
-            {statusOptions.length > 0 ? (
+          {isPublicDemo() ? (
+            <DemoUnavailable what="Assigning an owner or moving an issue's status is ordinary operator work here." />
+          ) : (
+            <form action={updateIssue} className="flex flex-wrap items-end gap-3">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="issueId" value={issue.id} />
+              <input type="hidden" name="version" value={issue.version} />
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs font-medium text-[var(--ink-muted)]">Status</span>
-                <select name="status" defaultValue={issue.status} className={CONTROL}>
-                  {statusOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {humanize(option)}
+                <span className="text-xs font-medium text-[var(--ink-muted)]">Owner</span>
+                <select
+                  name="owner"
+                  defaultValue={issue.owner_user_id ?? "none"}
+                  className={CONTROL}
+                >
+                  <option value="none">Unassigned</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.display_name} ({humanize(user.role)})
                     </option>
                   ))}
                 </select>
               </label>
-            ) : null}
-            <TextField name="note" label="Note (optional)" />
-            <SubmitButton tone="secondary">Save</SubmitButton>
-          </form>
+              {statusOptions.length > 0 ? (
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-xs font-medium text-[var(--ink-muted)]">Status</span>
+                  <select name="status" defaultValue={issue.status} className={CONTROL}>
+                    {statusOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {humanize(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <TextField name="note" label="Note (optional)" />
+              <SubmitButton tone="secondary">Save</SubmitButton>
+            </form>
+          )}
         </Panel>
         {issue.fingerprint && OPEN.has(issue.status) ? (
-          <Panel tone="accent" className="mt-3 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
-              Governed actions
-            </p>
-            <p className="mt-0.5 text-sm text-[var(--ink-muted)]">
-              These start a change request. Nothing takes effect until it is approved.
-            </p>
-            <span className="mt-2 flex flex-wrap gap-2">
-              <ButtonLink
-                href={`/migrations/${migrationId}/dispositions/new?issue=${issue.id}`}
-                variant="primary"
-              >
-                Propose a disposition
-              </ButtonLink>
-              {issue.rule_or_recon_id?.startsWith("PARTY.") ? (
-                <ButtonLink href={`/migrations/${migrationId}/entities`}>
-                  Review entity candidates
+          isPublicDemo() ? (
+            <div className="mt-3">
+              <DemoUnavailable what="A disposition records a decision about a real legacy misstatement — carry it forward, adjust it, or rule it out — as a change request two people approve." />
+            </div>
+          ) : (
+            <Panel tone="accent" className="mt-3 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
+                Governed actions
+              </p>
+              <p className="mt-0.5 text-sm text-[var(--ink-muted)]">
+                These start a change request. Nothing takes effect until it is approved.
+              </p>
+              <span className="mt-2 flex flex-wrap gap-2">
+                <ButtonLink
+                  href={`/migrations/${migrationId}/dispositions/new?issue=${issue.id}`}
+                  variant="primary"
+                >
+                  Propose a disposition
                 </ButtonLink>
-              ) : null}
-            </span>
-          </Panel>
+                {issue.rule_or_recon_id?.startsWith("PARTY.") ? (
+                  <ButtonLink href={`/migrations/${migrationId}/entities`}>
+                    Review entity candidates
+                  </ButtonLink>
+                ) : null}
+              </span>
+            </Panel>
+          )
         ) : null}
       </Section>
       {exception && exception.rule_id === "NORM.MALFORMED_ROW" && issue.status !== "resolved" ? (
@@ -322,14 +338,18 @@ export default async function IssuePage(
             </li>
           ))}
         </ol>
-        <form action={addIssueComment} className="flex max-w-2xl flex-col gap-2">
-          <input type="hidden" name="migrationId" value={migrationId} />
-          <input type="hidden" name="issueId" value={issue.id} />
-          <TextArea name="body" label="Add a comment" required rows={3} />
-          <span>
-            <SubmitButton tone="secondary">Comment</SubmitButton>
-          </span>
-        </form>
+        {isPublicDemo() ? (
+          <DemoUnavailable what="Commenting is how the implementation team works an issue between runs." />
+        ) : (
+          <form action={addIssueComment} className="flex max-w-2xl flex-col gap-2">
+            <input type="hidden" name="migrationId" value={migrationId} />
+            <input type="hidden" name="issueId" value={issue.id} />
+            <TextArea name="body" label="Add a comment" required rows={3} />
+            <span>
+              <SubmitButton tone="secondary">Comment</SubmitButton>
+            </span>
+          </form>
+        )}
       </Section>
       <Section title="History" description="Every governed change to this issue, in order.">
         <Panel>

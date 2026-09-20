@@ -49,8 +49,11 @@ async function request(
   extraHeaders: Record<string, string> = {},
 ) {
   const config = parseServerConfig(process.env);
-  const user = await currentUserEmail();
-  if (user === null && path !== "/api/v1/dev/users") {
+  // In the public demo nobody signs in: the API resolves every caller to its read-only visitor and
+  // ignores the identity header, so asking for one would be a fake sign-in gate in front of a
+  // demo that is open by design.
+  const user = config.publicDemo ? null : await currentUserEmail();
+  if (!config.publicDemo && user === null && path !== "/api/v1/dev/users") {
     redirect("/select-user");
   }
   const url = new URL(buildPath(path, query).replace(/^\//, ""), config.apiBaseUrl);
@@ -74,9 +77,11 @@ async function request(
           : JSON.stringify(body),
     cache: "no-store",
   });
-  if (response.status === 401) {
+  if (response.status === 401 && !config.publicDemo) {
     redirect("/select-user");
   }
+  // A 401 in the demo means the API is not actually in demo mode, or its visitor is missing.
+  // Sending a visitor to a sign-in page they can never satisfy would be worse than saying so.
   if (!response.ok) {
     throw await problem(response);
   }

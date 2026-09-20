@@ -1,9 +1,11 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
+import { isPublicDemo } from "@/lib/demo";
 import { ApiError, apiGet, apiSend, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
@@ -200,19 +202,23 @@ export default async function ColumnMappingPage(
       </Section>
       {preview ? (
         <Section title="Propose">
-          <form action={proposeColumnMapping} className="flex max-w-2xl flex-col gap-2">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <input type="hidden" name="datasetId" value={datasetId} />
-            <input type="hidden" name="config" value={editing} />
-            <TextField name="title" label="Title" required defaultValue="Column mapping change" />
-            <TextArea name="justification" label="Justification" required />
-            <p className="text-xs text-[var(--ink-muted)]">
-              Proposes the mapping previewed above. Edit and preview again to change it.
-            </p>
-            <span>
-              <SubmitButton>Propose the previewed mapping</SubmitButton>
-            </span>
-          </form>
+          {isPublicDemo() ? (
+            <DemoUnavailable what="Changing how a column is read is an approved change request, and a mapping must be previewed against real rows before it can be proposed." />
+          ) : (
+            <form action={proposeColumnMapping} className="flex max-w-2xl flex-col gap-2">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="datasetId" value={datasetId} />
+              <input type="hidden" name="config" value={editing} />
+              <TextField name="title" label="Title" required defaultValue="Column mapping change" />
+              <TextArea name="justification" label="Justification" required />
+              <p className="text-xs text-[var(--ink-muted)]">
+                Proposes the mapping previewed above. Edit and preview again to change it.
+              </p>
+              <span>
+                <SubmitButton>Propose the previewed mapping</SubmitButton>
+              </span>
+            </form>
+          )}
         </Section>
       ) : (
         <p className="mb-6 text-sm text-[var(--ink-muted)]">Preview a mapping to propose it.</p>

@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
 import { LocalTime } from "@/components/local-time";
 import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
 import { apiGet, type Schemas } from "@/lib/api/client";
+import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { proposePolicyChange } from "../workflow-actions";
@@ -68,27 +70,31 @@ export default async function SettingsPage(props: PageProps<"/migrations/[migrat
         </table>
       </Section>
       <Section title="Propose a policy change">
-        <form action={proposePolicyChange} className="flex max-w-2xl flex-col gap-2">
-          <input type="hidden" name="migrationId" value={migrationId} />
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs font-medium text-[var(--ink-muted)]">Setting</span>
-            <select
-              name="key"
-              className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
-            >
-              {scalar.map(([key]) => (
-                <option key={key} value={key}>
-                  {humanize(key)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <TextField name="value" label="New value" required />
-          <TextArea name="justification" label="Justification" required />
-          <span>
-            <SubmitButton>Propose policy change</SubmitButton>
-          </span>
-        </form>
+        {isPublicDemo() ? (
+          <DemoUnavailable what="Changing a policy threshold is a governed change request that the implementation lead and the customer controller both approve, and it invalidates any sign-off." />
+        ) : (
+          <form action={proposePolicyChange} className="flex max-w-2xl flex-col gap-2">
+            <input type="hidden" name="migrationId" value={migrationId} />
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-medium text-[var(--ink-muted)]">Setting</span>
+              <select
+                name="key"
+                className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+              >
+                {scalar.map(([key]) => (
+                  <option key={key} value={key}>
+                    {humanize(key)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <TextField name="value" label="New value" required />
+            <TextArea name="justification" label="Justification" required />
+            <span>
+              <SubmitButton>Propose policy change</SubmitButton>
+            </span>
+          </form>
+        )}
       </Section>
     </div>
   );

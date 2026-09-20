@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { BusinessDate } from "@/components/dates";
 import { SubmitButton } from "@/components/forms";
 import { LocalTime } from "@/components/local-time";
@@ -7,6 +8,7 @@ import { Notice } from "@/components/notice";
 import { PageHeader, Section } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { Callout, EmptyState, Panel } from "@/components/ui";
+import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
@@ -65,16 +67,26 @@ export default async function DatasetPage(
         description="A new file becomes a new import. When it has been read, it replaces the active import and the previous one is kept as superseded. Uploading a file that was already imported changes nothing."
       >
         <Panel className="p-3">
-          <form action={uploadImport} className="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <input type="hidden" name="datasetId" value={datasetId} />
-            <input type="hidden" name="returnTo" value={page} />
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-xs font-medium text-[var(--ink-muted)]">CSV file</span>
-              <input type="file" name="file" accept=".csv,text/csv" required className="text-sm" />
-            </label>
-            <SubmitButton>Upload</SubmitButton>
-          </form>
+          {isPublicDemo() ? (
+            <DemoUnavailable what="Uploading a corrected export replaces the active import, keeps the previous one as evidence, and re-runs every check." />
+          ) : (
+            <form action={uploadImport} className="flex flex-wrap items-end gap-3">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="datasetId" value={datasetId} />
+              <input type="hidden" name="returnTo" value={page} />
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="text-xs font-medium text-[var(--ink-muted)]">CSV file</span>
+                <input
+                  type="file"
+                  name="file"
+                  accept=".csv,text/csv"
+                  required
+                  className="text-sm"
+                />
+              </label>
+              <SubmitButton>Upload</SubmitButton>
+            </form>
+          )}
         </Panel>
       </Section>
 
@@ -184,11 +196,15 @@ export default async function DatasetPage(
           <Callout>
             A run recomputes results from the current inputs of every dataset, not only this one.
           </Callout>
-          <form action={requestRun} className="mt-3">
-            <input type="hidden" name="migrationId" value={migrationId} />
-            <input type="hidden" name="returnTo" value={page} />
-            <SubmitButton tone="secondary">Run the pipeline on the current inputs</SubmitButton>
-          </form>
+          {isPublicDemo() ? (
+            <DemoUnavailable what="A run recomputes every result from the current inputs of every dataset, not just this one." />
+          ) : (
+            <form action={requestRun} className="mt-3">
+              <input type="hidden" name="migrationId" value={migrationId} />
+              <input type="hidden" name="returnTo" value={page} />
+              <SubmitButton tone="secondary">Run the pipeline on the current inputs</SubmitButton>
+            </form>
+          )}
         </Panel>
       </Section>
     </div>

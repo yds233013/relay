@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DemoUnavailable } from "@/components/demo-note";
 import { BusinessDate } from "@/components/dates";
 import { SubmitButton, TextArea, TextField } from "@/components/forms";
 import { Money } from "@/components/money";
@@ -15,6 +16,7 @@ import {
   ProvenanceBadge,
   Section,
 } from "@/components/ui";
+import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
@@ -347,39 +349,43 @@ export default async function RecordInspector(
               The field below belongs to the normalized record on the right, not to the exported row
               on the left.
             </p>
-            <form action={proposeFieldOverride} className="mt-2 flex max-w-2xl flex-col gap-2">
-              <input type="hidden" name="migrationId" value={migrationId} />
-              <input type="hidden" name="runId" value={runId} />
-              <input type="hidden" name="naturalKey" value={key} />
-              <input
-                type="hidden"
-                name="returnTo"
-                value={`/migrations/${migrationId}/records/${runId}/${encodeURIComponent(key)}`}
-              />
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-xs font-medium text-[var(--ink-muted)]">Field</span>
-                <select
-                  name="field"
-                  className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
-                >
-                  {overridable.map((field) => (
-                    <option key={field} value={field}>
-                      {field.replaceAll("_", " ")} (currently {String(record.data[field] ?? "—")})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <TextField
-                name="newValue"
-                label="New value"
-                required
-                placeholder="YYYY-MM-DD or YYYY-MM"
-              />
-              <TextArea name="justification" label="Justification and evidence" required />
-              <span>
-                <SubmitButton>Propose correction</SubmitButton>
-              </span>
-            </form>
+            {isPublicDemo() ? (
+              <DemoUnavailable what="A correction never edits the exported row: it is an approved overlay applied on top of it on every run." />
+            ) : (
+              <form action={proposeFieldOverride} className="mt-2 flex max-w-2xl flex-col gap-2">
+                <input type="hidden" name="migrationId" value={migrationId} />
+                <input type="hidden" name="runId" value={runId} />
+                <input type="hidden" name="naturalKey" value={key} />
+                <input
+                  type="hidden"
+                  name="returnTo"
+                  value={`/migrations/${migrationId}/records/${runId}/${encodeURIComponent(key)}`}
+                />
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-xs font-medium text-[var(--ink-muted)]">Field</span>
+                  <select
+                    name="field"
+                    className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+                  >
+                    {overridable.map((field) => (
+                      <option key={field} value={field}>
+                        {field.replaceAll("_", " ")} (currently {String(record.data[field] ?? "—")})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <TextField
+                  name="newValue"
+                  label="New value"
+                  required
+                  placeholder="YYYY-MM-DD or YYYY-MM"
+                />
+                <TextArea name="justification" label="Justification and evidence" required />
+                <span>
+                  <SubmitButton>Propose correction</SubmitButton>
+                </span>
+              </form>
+            )}
           </Panel>
         </Section>
       ) : null}

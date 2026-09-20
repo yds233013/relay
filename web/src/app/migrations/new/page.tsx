@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+
+import { isPublicDemo } from "@/lib/demo";
 import Link from "next/link";
 
 import { SubmitButton, TextField } from "@/components/forms";
@@ -24,6 +27,12 @@ function DateField({ name, label }: { name: string; label: string }) {
 }
 
 export default async function NewMigrationPage(props: PageProps<"/migrations/new">) {
+  // Creating a migration is refused server-side in the public demo, so a visitor who lands here
+  // (a stale link, a typed URL) goes back to the portfolio instead of meeting a dead form.
+  if (isPublicDemo()) {
+    redirect("/migrations");
+  }
+
   const query = await props.searchParams;
   return (
     <main className="mx-auto max-w-3xl p-4">
