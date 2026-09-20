@@ -114,6 +114,117 @@ def test_dev_identity_defaults_by_environment_and_is_refused_in_production() -> 
         )
 
 
+@pytest.mark.parametrize("blank", ["", "   ", "\t", "\n", "  \n\t "])
+def test_blank_anthropic_key_is_treated_as_absent(
+    monkeypatch: pytest.MonkeyPatch, blank: str
+) -> None:
+    """A present-but-empty key is the same as no key.
+
+    Both compose files pass ``ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}``, so the variable is
+    normally present and empty. Before this, ``""`` became a ``SecretStr`` and defeated the
+    ai_provider guard below.
+    """
+    monkeypatch.setenv("ANTHROPIC_API_KEY", blank)
+    settings = Settings(database_url=LOCAL_URL)  # type: ignore[arg-type]
+    assert settings.anthropic_api_key is None
+
+
+@pytest.mark.parametrize("blank", ["", "   ", "\n"])
+def test_anthropic_provider_is_refused_when_the_key_is_blank(
+    monkeypatch: pytest.MonkeyPatch, blank: str
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", blank)
+    with pytest.raises(ValidationError, match="ANTHROPIC_API_KEY"):
+        Settings(
+            database_url=LOCAL_URL,  # type: ignore[arg-type]
+            ai_provider="anthropic",
+        )
+
+
+def test_anthropic_provider_is_refused_when_the_key_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    with pytest.raises(ValidationError, match="ANTHROPIC_API_KEY"):
+        Settings(
+            database_url=LOCAL_URL,  # type: ignore[arg-type]
+            ai_provider="anthropic",
+        )
+
+
+def test_a_real_anthropic_key_is_kept_and_stays_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-not-a-real-key")
+    settings = Settings(
+        database_url=LOCAL_URL,  # type: ignore[arg-type]
+        ai_provider="anthropic",
+    )
+    assert settings.anthropic_api_key is not None
+    assert settings.anthropic_api_key.get_secret_value() == "sk-ant-not-a-real-key"
+    assert "sk-ant-not-a-real-key" not in repr(settings)
+    assert "sk-ant-not-a-real-key" not in str(settings.model_dump())
+
+
+DEPLOYED_URL = "postgresql+psycopg://relay:Xk2-long-random@db/relay"
+
+
+def _demo(**overrides: object) -> Settings:
+    kwargs: dict[str, object] = {
+        "env": "demo",
+        "database_url": DEPLOYED_URL,
+        "ai_provider": "demo",
+    }
+    kwargs.update(overrides)
+    return Settings(**kwargs)  # type: ignore[arg-type]
+
+
+def test_demo_is_its_own_environment() -> None:
+    settings = _demo()
+    assert settings.env is Environment.DEMO
+    assert settings.public_demo
+    assert not Settings(database_url=LOCAL_URL).public_demo  # type: ignore[arg-type]
+    assert not Settings(
+        env="production",  # type: ignore[arg-type]
+        database_url=DEPLOYED_URL,  # type: ignore[arg-type]
+    ).public_demo
+
+
+def test_demo_never_accepts_an_identity_header() -> None:
+    """A visitor must not be able to choose who they are (SEC-11)."""
+    assert not _demo().dev_identity_active
+    with pytest.raises(ValidationError, match="development identity"):
+        _demo(dev_identity_enabled=True)
+
+
+@pytest.mark.parametrize("provider", ["anthropic", "scripted"])
+def test_demo_refuses_providers_other_than_demo_and_disabled(provider: str) -> None:
+    """The structural guarantee that the public demo cannot spend money.
+
+    A paid provider is rejected by configuration, so the process never starts and no request path
+    can reach it — rather than being blocked somewhere a later change might miss.
+    """
+    with pytest.raises(ValidationError, match="public demo accepts only"):
+        _demo(ai_provider=provider)
+
+
+@pytest.mark.parametrize("provider", ["demo", "disabled"])
+def test_demo_accepts_the_replay_providers(provider: str) -> None:
+    assert _demo(ai_provider=provider).ai_provider == provider
+
+
+def test_demo_refuses_a_key_being_pointless(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Even with a real key in the environment, demo cannot select the paid provider."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-not-a-real-key")
+    with pytest.raises(ValidationError, match="public demo accepts only"):
+        _demo(ai_provider="anthropic")
+
+
+def test_demo_needs_real_deployment_settings() -> None:
+    with pytest.raises(ValidationError, match="demo requires a real database password"):
+        _demo(database_url=LOCAL_URL)
+    with pytest.raises(ValidationError, match="demo requires log_format=json"):
+        _demo(log_format="console")
+
+
 def test_settings_are_immutable() -> None:
     settings = Settings(database_url=LOCAL_URL)  # type: ignore[arg-type]
     with pytest.raises(ValidationError):

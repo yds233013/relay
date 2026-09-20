@@ -18,14 +18,40 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Marker embedded in the local development password; production refuses URLs containing it.
+# Marker embedded in the local development password; deployed environments refuse URLs with it.
 _LOCAL_DEV_PASSWORD_MARKER = "local_dev_only"  # noqa: S105 - a marker, not a credential
 
 
 class Environment(StrEnum):
+    """Where this process is running, which decides who may act and what they may do.
+
+    The three deployable modes are deliberately separate values rather than flags, so a public
+    deployment can never be one forgotten boolean away from a development one:
+
+    ``local``/``test``  the development identity header names a seeded user; everything is allowed.
+    ``demo``            internet-facing portfolio demo. Nobody signs in: every caller is the one
+                        seeded read-only visitor, the header is ignored, and a server-side policy
+                        (``relay.api.demo_policy``) refuses every mutation outside a small
+                        allowlist. A paid AI provider cannot be selected at all.
+    ``production``      real deployment. The header is refused and no other identity exists yet,
+                        so every authenticated endpoint answers 401 until real authentication is
+                        built (docs/deployment.md §1).
+    """
+
     LOCAL = "local"
     TEST = "test"
+    DEMO = "demo"
     PRODUCTION = "production"
+
+
+# Reachable from the internet: real credentials, json logs, no impersonation header.
+_DEPLOYED_ENVIRONMENTS: frozenset[Environment] = frozenset(
+    {Environment.DEMO, Environment.PRODUCTION}
+)
+
+# Providers the public demo may use. Both replay authored transcripts against the real database:
+# no network call, no key, no cost. "scripted" is left out because it exists for tests.
+_DEMO_AI_PROVIDERS: frozenset[str] = frozenset({"demo", "disabled"})
 
 
 class Settings(BaseSettings):
@@ -74,6 +100,22 @@ class Settings(BaseSettings):
     ai_max_seconds: int = Field(default=120, ge=5, le=600)
     ai_max_total_tokens: int = Field(default=200_000, ge=1_000, le=2_000_000)
 
+    @field_validator("anthropic_api_key", mode="before")
+    @classmethod
+    def _blank_api_key_is_absent(cls, value: object) -> object:
+        """An empty or whitespace-only key means no key.
+
+        Deployments pass the variable unconditionally — both compose files set
+        ``ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}`` — so it is normally present and empty rather
+        than unset. Without this, ``""`` parsed as a ``SecretStr``, which is not ``None``, so the
+        ``ai_provider=anthropic`` guard below could not tell a missing key from a real one: the
+        stack started healthy and failed later, per investigation, against the provider.
+        """
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+        if isinstance(raw, str) and not raw.strip():
+            return None
+        return value  # unchanged, so a real key is never unwrapped here
+
     @field_validator("database_url")
     @classmethod
     def _validate_database_url(cls, value: SecretStr) -> SecretStr:
@@ -87,24 +129,44 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def _validate_production(self) -> Settings:
-        if self.env is Environment.PRODUCTION:
+    def _validate_deployment(self) -> Settings:
+        # demo and production are both reachable from the internet, so both need real credentials,
+        # machine-readable logs and no impersonation header.
+        if self.env in _DEPLOYED_ENVIRONMENTS:
+            where = self.env.value
             if self.log_format != "json":
-                raise ValueError("production requires log_format=json")
+                raise ValueError(f"{where} requires log_format=json")
             password = urlsplit(self.database_url.get_secret_value()).password or ""
             if not password or _LOCAL_DEV_PASSWORD_MARKER in password:
-                raise ValueError("production requires a real database password")
+                raise ValueError(f"{where} requires a real database password")
             if self.dev_identity_enabled:
-                raise ValueError("the development identity header cannot be enabled in production")
+                raise ValueError(f"the development identity header cannot be enabled in {where}")
+        # Structural guarantee that the public demo cannot spend money (§8 of the demo design):
+        # the paid provider is rejected by configuration, before any request path exists to reach
+        # it, so no key is needed and none can be used.
+        if self.env is Environment.DEMO and self.ai_provider not in _DEMO_AI_PROVIDERS:
+            raise ValueError(
+                "the public demo accepts only ai_provider=demo or disabled; "
+                f"{self.ai_provider!r} is refused"
+            )
         if self.ai_provider == "anthropic" and self.anthropic_api_key is None:
             raise ValueError("ai_provider=anthropic requires ANTHROPIC_API_KEY in the environment")
         return self
 
     @property
     def dev_identity_active(self) -> bool:
+        """Whether ``X-Relay-User`` names the acting person (SEC-11).
+
+        False in demo: a visitor must not be able to choose who they are by sending a header.
+        """
         if self.dev_identity_enabled is None:
             return self.env in {Environment.LOCAL, Environment.TEST}
-        return self.dev_identity_enabled and self.env is not Environment.PRODUCTION
+        return self.dev_identity_enabled and self.env not in _DEPLOYED_ENVIRONMENTS
+
+    @property
+    def public_demo(self) -> bool:
+        """Anonymous read-only visitors, mutations refused by ``relay.api.demo_policy``."""
+        return self.env is Environment.DEMO
 
 
 @lru_cache(maxsize=1)
