@@ -13,6 +13,7 @@ from relay.core.clock import Clock
 from relay.core.config import Settings
 from relay.core.db import session_scope
 from relay.identity import service as identity
+from relay.identity.models import DEMO_VISITOR_EMAIL
 from relay.identity.permissions import Permission
 from relay.imports.blob_store import BlobStore
 
@@ -55,7 +56,25 @@ def current_actor(
     settings: SettingsDep,
     x_relay_user: Annotated[str | None, Header(alias=DEV_USER_HEADER, max_length=254)] = None,
 ) -> Actor:
-    """Development identity only (SEC-11): the header names a seeded user by email."""
+    """Who is acting.
+
+    Local and test: the development identity header names a seeded user by email (SEC-11).
+
+    Public demo: nobody signs in and the header is **ignored**, so a visitor cannot choose who they
+    are. Every caller is the one seeded ``demo_visitor``, which can read and start an
+    investigation and nothing else; ``relay.api.demo_policy`` has already refused anything
+    mutating before this runs.
+
+    Production: neither path applies and this raises, because real authentication does not exist
+    yet (docs/deployment.md §1).
+    """
+    if settings.public_demo:
+        user = identity.find_active_user_by_email(session, DEMO_VISITOR_EMAIL)
+        if user is None:
+            raise identity.AuthenticationRequiredError(
+                "the public demo is not prepared: no demo visitor exists"
+            )
+        return identity.actor_for(user)
     if not settings.dev_identity_active or not x_relay_user:
         raise identity.AuthenticationRequiredError("sign-in is required")
     user = identity.find_active_user_by_email(session, x_relay_user)

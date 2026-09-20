@@ -17,11 +17,14 @@ from collections import Counter
 from pathlib import Path
 
 from relay.canonical.enums import PaymentDirection
+from relay.core.actor import Actor
 from relay.core.config import get_settings
 from relay.core.db import create_db_engine, create_session_factory, session_scope
 from relay.core.logging import configure_logging
 from relay.engine.inputs import build_inputs
 from relay.engine.pipeline import run_engine
+from relay.identity import service as identity
+from relay.identity.models import DEMO_VISITOR_EMAIL, Role
 from relay.imports.blob_store import LocalBlobStore
 from relay.imports.service import ImportLimits
 from relay_scenarios.brightwater.constants import DEFAULT_SEED
@@ -134,6 +137,43 @@ def enable_ai_for_demo() -> int:
         f"AI investigation for Brightwater (fictional): {state}\n"
         f"  provider in this process: {settings.ai_provider}\n"
         "  consent was recorded by a policy change approved by the lead and the controller\n"
+    )
+    return 0
+
+
+def prepare_public_demo() -> int:
+    """Make a seeded database serviceable as a public demo.
+
+    Two things, both through the ordinary path: the read-only visitor every anonymous caller will
+    be resolved to, and the customer's AI consent as an approved policy change. Idempotent, so
+    re-running it after a reseed is safe.
+    """
+    settings = get_settings()
+    configure_logging("WARNING", settings.log_format)
+    factory = create_session_factory(create_db_engine(settings))
+    with session_scope(factory) as session:
+        migration_id = brightwater_migration(session)
+        existing = identity.find_active_user_by_email(session, DEMO_VISITOR_EMAIL)
+        if existing is None:
+            identity.create_user(
+                session,
+                email=DEMO_VISITOR_EMAIL,
+                display_name="Public demo visitor",
+                role=Role.DEMO_VISITOR,
+                actor=Actor.system(),
+            )
+        visitor = "created" if existing is None else "already present"
+    state = enable_ai(
+        factory,
+        LocalBlobStore(settings.storage_dir),
+        ImportLimits(settings.max_upload_bytes, settings.max_rows_per_import),
+        migration_id=migration_id,
+    )
+    sys.stdout.write(
+        f"Public demo visitor ({DEMO_VISITOR_EMAIL}): {visitor}\n"
+        f"AI investigation for Brightwater (fictional): {state}\n"
+        "  consent was recorded by a policy change approved by the lead and the controller\n"
+        "  start the API with RELAY_ENV=demo and RELAY_AI_PROVIDER=demo\n"
     )
     return 0
 
@@ -311,6 +351,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     check_kestrel.add_argument("--out", type=Path, default=DEFAULT_KESTREL_OUT)
     sub.add_parser(
+        "public-demo",
+        help="prepare a seeded database to be served publicly: create the read-only demo visitor "
+        "and record AI consent (idempotent)",
+    )
+    sub.add_parser(
         "enable-ai",
         help="record customer consent to AI investigation for the seeded migration "
         "(a governed policy change, approved by the seeded lead and controller)",
@@ -341,6 +386,9 @@ def main(argv: list[str] | None = None) -> int:
         count = len(fresh) + 1
         sys.stdout.write(f"{count} second-company fixture files match a fresh generation.\n")
         return 0
+
+    if args.command == "public-demo":
+        return prepare_public_demo()
 
     if args.command == "enable-ai":
         return enable_ai_for_demo()

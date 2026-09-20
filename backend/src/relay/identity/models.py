@@ -19,6 +19,21 @@ class Role(StrEnum):
     CUSTOMER_CONTROLLER = "customer_controller"
     ADMIN = "admin"
     VIEWER = "viewer"
+    DEMO_VISITOR = "demo_visitor"
+    """The single identity every caller shares in the public demo (``RELAY_ENV=demo``).
+
+    Reading, plus starting an investigation so the hero workflow can be clicked. It deliberately
+    holds no permission that writes accounting data, and ``relay.api.demo_policy`` refuses those
+    requests before routing anyway — the role is the second of the two controls, not the only one.
+    """
+
+
+DEMO_VISITOR_EMAIL = "demo.visitor@relay.example"
+"""The account behind :attr:`Role.DEMO_VISITOR`, created by ``relay-demo public-demo``.
+
+In ``RELAY_ENV=demo`` every request is resolved to this user and the identity header is ignored, so
+a visitor cannot choose who they are. It exists in no other environment unless that command is run.
+"""
 
 
 class User(Base):

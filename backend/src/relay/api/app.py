@@ -11,11 +11,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from relay import __version__
+from relay.api.demo_policy import DemoReadOnlyMiddleware
 from relay.api.middleware import RequestContextMiddleware
 from relay.api.problems import install_problem_handlers
 from relay.api.routers import ai, governance, health, issues, runs, setup, workspace
 from relay.core.clock import SystemClock
-from relay.core.config import Settings, get_settings
+from relay.core.config import Environment, Settings, get_settings
 from relay.core.db import create_db_engine, create_session_factory
 from relay.core.logging import configure_logging
 from relay.imports.blob_store import LocalBlobStore
@@ -37,12 +38,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         finally:
             engine.dispose()
 
+    # The schema and the docs page describe every route and payload shape. They are a development
+    # convenience; a deployed process (demo or production) publishes neither. The committed
+    # web/src/lib/api/openapi.json is generated offline by `make openapi`, so nothing at runtime
+    # needs these endpoints.
+    developing = resolved.env in {Environment.LOCAL, Environment.TEST}
     app = FastAPI(
         title="Relay API",
         version=__version__,
         lifespan=lifespan,
-        openapi_url=f"{API_PREFIX}/openapi.json",
-        docs_url=f"{API_PREFIX}/docs" if resolved.env != "production" else None,
+        openapi_url=f"{API_PREFIX}/openapi.json" if developing else None,
+        docs_url=f"{API_PREFIX}/docs" if developing else None,
         redoc_url=None,
     )
     app.state.settings = resolved
@@ -51,6 +57,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.blob_store = LocalBlobStore(resolved.storage_dir)
     app.state.clock = SystemClock()
 
+    # Outermost: a public demo refuses mutations before routing, dependencies or body reading.
+    app.add_middleware(DemoReadOnlyMiddleware, settings=resolved)
     app.add_middleware(RequestContextMiddleware)
     install_problem_handlers(app)
     app.include_router(health.router)

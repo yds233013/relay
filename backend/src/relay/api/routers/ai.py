@@ -32,6 +32,9 @@ from relay.workspace import service as workspace
 router = APIRouter(prefix="/api/v1", tags=["ai"])
 
 InvestigatorDep = Annotated[Actor, Depends(require(Permission.MANAGE_ISSUES))]
+# Starting an investigation queues work and spends a budget, so it has its own permission: the
+# public demo's visitor holds this and nothing else that writes.
+InvestigationStarterDep = Annotated[Actor, Depends(require(Permission.REQUEST_INVESTIGATION))]
 DrafterDep = Annotated[Actor, Depends(require(Permission.DRAFT_CHANGE_REQUEST))]
 
 
@@ -95,7 +98,7 @@ def ai_status(
 def start_investigation(
     migration_id: uuid.UUID,
     body: InvestigationIn,
-    actor: InvestigatorDep,
+    actor: InvestigationStarterDep,
     session: SessionDep,
     settings: SettingsDep,
     clock: ClockDep,
@@ -110,6 +113,9 @@ def start_investigation(
         settings=settings,
         model=model,
         clock=clock,
+        # Public visitors share one identity, so without this every click would queue another
+        # run of a question already answered from the same run's evidence.
+        reuse_existing=settings.public_demo,
     )
     return investigation_out(row)
 

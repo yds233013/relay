@@ -92,8 +92,15 @@ def start(
     settings: Settings,
     model: str,
     clock: Clock | None = None,
+    reuse_existing: bool = False,
 ) -> Investigation:
-    """Queue an investigation pinned to the latest succeeded run (SEC-17, SEC-22)."""
+    """Queue an investigation pinned to the latest succeeded run (SEC-17, SEC-22).
+
+    With ``reuse_existing`` an investigation of the same issue against the same run is returned
+    as it stands instead of a second one being queued. The public demo needs that because every
+    visitor is the same person: the answer depends only on the issue and the run's evidence, so
+    re-deriving it per click would queue unbounded identical work for an identical result.
+    """
     if actor.user_id is None:
         raise InvalidInputError("investigations are started by a person")
     migration = workspace.get_migration(session, migration_id)
@@ -111,6 +118,24 @@ def start(
         issue = session.get(Issue, issue_id)
         if issue is None or issue.migration_id != migration_id:
             raise NotFoundError("issue not found in this migration")
+    run = runs_read.latest_succeeded_run(session, migration_id)
+    if run is None:
+        raise InvalidInputError("the migration has no succeeded pipeline run to investigate")
+    if reuse_existing:
+        # Before the rate limit: repeating a question already answered from this run costs
+        # nothing and must not consume anyone's budget.
+        existing = session.scalars(
+            select(Investigation)
+            .where(
+                Investigation.migration_id == migration_id,
+                Investigation.issue_id == issue_id,
+                Investigation.run_id == run.id,
+            )
+            .order_by(Investigation.created_at.desc())
+            .limit(1)
+        ).first()
+        if existing is not None:
+            return existing
     now = (clock or SystemClock()).now()
     recent = session.scalar(
         select(func.count())
@@ -122,9 +147,6 @@ def start(
     )
     if (recent or 0) >= MAX_INVESTIGATIONS_PER_HOUR:
         raise RateLimitedError("at most 20 investigations per person per hour")
-    run = runs_read.latest_succeeded_run(session, migration_id)
-    if run is None:
-        raise InvalidInputError("the migration has no succeeded pipeline run to investigate")
     investigation = Investigation(
         id=uuid7(clock),
         migration_id=migration_id,

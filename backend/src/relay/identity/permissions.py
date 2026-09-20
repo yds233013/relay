@@ -16,6 +16,13 @@ class Permission(StrEnum):
     DRAFT_CHANGE_REQUEST = "draft_change_request"
     REVIEW_CHANGE_REQUEST = "review_change_request"
     MANAGE_ISSUES = "manage_issues"
+    REQUEST_INVESTIGATION = "request_investigation"
+    """Start an AI investigation.
+
+    Separate from MANAGE_ISSUES, which it used to share: starting an investigation spends a budget
+    and queues work, while managing issues does not, and the public demo needs to grant exactly
+    this one without the rest. Every role that could start an investigation before still can.
+    """
 
 
 _OPERATOR: Final = frozenset(
@@ -25,6 +32,7 @@ _OPERATOR: Final = frozenset(
         Permission.REQUEST_PIPELINE_RUN,
         Permission.DRAFT_CHANGE_REQUEST,
         Permission.MANAGE_ISSUES,
+        Permission.REQUEST_INVESTIGATION,
     }
 )
 
@@ -39,9 +47,13 @@ ROLE_PERMISSIONS: Final[dict[Role, frozenset[Permission]]] = {
             Permission.DRAFT_CHANGE_REQUEST,
             Permission.REVIEW_CHANGE_REQUEST,
             Permission.MANAGE_ISSUES,
+            Permission.REQUEST_INVESTIGATION,
         }
     ),
     Role.ADMIN: frozenset({Permission.READ, Permission.MANAGE_WORKSPACE}),
+    # The public demo's only identity: read everything, start the one investigation the hero
+    # story needs, write nothing.
+    Role.DEMO_VISITOR: frozenset({Permission.READ, Permission.REQUEST_INVESTIGATION}),
 }
 
 
