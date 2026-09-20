@@ -25,7 +25,11 @@ from relay.engine.pipeline import run_engine
 from relay.imports.blob_store import LocalBlobStore
 from relay.imports.service import ImportLimits
 from relay_scenarios.brightwater.constants import DEFAULT_SEED
-from relay_scenarios.brightwater.fast_forward import brightwater_migration, fast_forward
+from relay_scenarios.brightwater.fast_forward import (
+    brightwater_migration,
+    enable_ai,
+    fast_forward,
+)
 from relay_scenarios.brightwater.scenario import (
     CHECKSUM_FILE,
     Scenario,
@@ -109,6 +113,27 @@ def fast_forward_database() -> int:
         f"Fast-forwarded Brightwater (fictional) {result.migration_id} to before sign-off\n"
         + "".join(f"  applied: {step}\n" for step in result.applied)
         + f"  failing gates: {', '.join(result.failing_gates)}\n"
+    )
+    return 0
+
+
+def enable_ai_for_demo() -> int:
+    """Record AI consent for the seeded migration, through the same approvals as any change."""
+    settings = get_settings()
+    configure_logging("WARNING", settings.log_format)
+    factory = create_session_factory(create_db_engine(settings))
+    with session_scope(factory) as session:
+        migration_id = brightwater_migration(session)
+    state = enable_ai(
+        factory,
+        LocalBlobStore(settings.storage_dir),
+        ImportLimits(settings.max_upload_bytes, settings.max_rows_per_import),
+        migration_id=migration_id,
+    )
+    sys.stdout.write(
+        f"AI investigation for Brightwater (fictional): {state}\n"
+        f"  provider in this process: {settings.ai_provider}\n"
+        "  consent was recorded by a policy change approved by the lead and the controller\n"
     )
     return 0
 
@@ -285,6 +310,11 @@ def main(argv: list[str] | None = None) -> int:
         help="verify the committed second-company fixtures match a fresh generation",
     )
     check_kestrel.add_argument("--out", type=Path, default=DEFAULT_KESTREL_OUT)
+    sub.add_parser(
+        "enable-ai",
+        help="record customer consent to AI investigation for the seeded migration "
+        "(a governed policy change, approved by the seeded lead and controller)",
+    )
     forward = sub.add_parser(
         "fast-forward",
         help="apply the documented resolutions as the seeded users (demo walkthrough step 10)",
@@ -311,6 +341,9 @@ def main(argv: list[str] | None = None) -> int:
         count = len(fresh) + 1
         sys.stdout.write(f"{count} second-company fixture files match a fresh generation.\n")
         return 0
+
+    if args.command == "enable-ai":
+        return enable_ai_for_demo()
 
     if args.command == "fast-forward":
         return fast_forward_database()

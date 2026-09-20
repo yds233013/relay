@@ -5,6 +5,7 @@ import { InvestigatePanel } from "@/components/investigate-panel";
 import { Money } from "@/components/money";
 import { StatusChip } from "@/components/status-chip";
 import { Callout, MetricCard, Panel, Section } from "@/components/ui";
+import { InvestigateAction } from "@/components/investigate-action";
 import { WorkItemCard } from "@/components/work-item";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize } from "@/lib/format";
@@ -224,7 +225,20 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
         ) : (
           <div className="space-y-3">
             {approvals.slice(0, 1).map((item) => (
-              <WorkItemCard key={item.key} item={item} base={base} runId={data.run_id ?? null} />
+              <WorkItemCard
+                key={item.key}
+                item={item}
+                base={base}
+                runId={data.run_id ?? null}
+                investigate={
+                  <InvestigateAction
+                    item={item}
+                    base={base}
+                    migrationId={migrationId}
+                    returnTo={base}
+                  />
+                }
+              />
             ))}
             {top.map((item, index) => (
               <WorkItemCard
@@ -233,6 +247,14 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
                 base={base}
                 runId={data.run_id ?? null}
                 emphasis={index === 0 && approvals.length === 0}
+                investigate={
+                  <InvestigateAction
+                    item={item}
+                    base={base}
+                    migrationId={migrationId}
+                    returnTo={base}
+                  />
+                }
               />
             ))}
           </div>

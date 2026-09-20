@@ -200,6 +200,9 @@ def work_item_out(item: work_queue.WorkItem, currency: Currency) -> WorkItemOut:
         action_label=item.action_label,
         target_kind=item.target_kind,
         target_id=item.target_id,
+        issue_id=item.issue_id,
+        issue_key=item.issue_key,
+        investigation=item.investigation,
         blocks=list(item.blocks),
         detail=item.detail,
     )

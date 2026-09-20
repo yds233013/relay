@@ -56,7 +56,7 @@ class Settings(BaseSettings):
         ),
     )
 
-    ai_provider: Literal["disabled", "scripted", "anthropic"] = Field(
+    ai_provider: Literal["disabled", "scripted", "demo", "anthropic"] = Field(
         default="disabled",
         description="AI investigation provider. Every workflow works with 'disabled'.",
     )

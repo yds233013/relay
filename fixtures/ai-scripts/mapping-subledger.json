@@ -1,0 +1,63 @@
+{
+  "match": {
+    "rules": ["MAP.SUBTYPE_COMPATIBLE", "MAP.TYPE_COMPATIBLE", "RECON.R3"]
+  },
+  "note": "Authored transcript. Replayed verbatim; the tools below really run against the database, so the evidence is real even though the reasoning is canned.",
+  "turns": [
+    {
+      "text": "The issue names an accounts receivable control difference. I will read the reconciliation first, then the mapping of any account the engine attributes it to.",
+      "tool_uses": [{ "name": "get_reconciliation", "arguments": { "recon_id": "R3" } }]
+    },
+    {
+      "text": "One line differs with no customer against it, and the engine attributes the whole difference to a single legacy account. I will look at how that account is mapped.",
+      "tool_uses": [
+        { "name": "get_account_mapping", "arguments": { "account_code": "1205" } }
+      ]
+    },
+    {
+      "text": "The account is a contra-asset mapped into a receivables control account. I will check the document-level control to see whether anything else contributes.",
+      "tool_uses": [{ "name": "get_reconciliation", "arguments": { "recon_id": "R3b" } }]
+    },
+    {
+      "tool_uses": [
+        {
+          "name": "submit_findings",
+          "arguments": {
+            "findings": [
+              {
+                "hypothesis": "Legacy account 1205 Allowance for Doubtful Accounts is a contra-asset mapped onto target 1200 Accounts Receivable. Its balance therefore joins the receivables control total while belonging to no customer, which is why the subledger differs with nothing assigned to a party.",
+                "evidence": [
+                  {
+                    "claim": "The receivables control differs on a line with no customer against it, and the engine attributes the whole difference to legacy account 1205.",
+                    "step_seqs": [3],
+                    "record_refs": [],
+                    "quoted_values": [{ "label": "difference", "value": "-38400.00" }]
+                  },
+                  {
+                    "claim": "Account 1205 is a contra-asset whose approved mapping points at target account 1200.",
+                    "step_seqs": [6],
+                    "record_refs": ["acct:legacy:1205"],
+                    "quoted_values": [
+                      { "label": "legacy subtype", "value": "contra_asset" },
+                      { "label": "target", "value": "1200" }
+                    ]
+                  }
+                ],
+                "affected_records": ["acct:legacy:1205"],
+                "confidence": "high",
+                "suggested_action": {
+                  "type": "change_account_mapping",
+                  "legacy_account": "1205",
+                  "target_account": "1210"
+                },
+                "open_questions": [
+                  "Confirm with the customer that 1210 is the allowance account they intend to use in the new chart."
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

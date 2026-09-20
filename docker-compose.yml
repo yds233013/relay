@@ -18,6 +18,12 @@ x-backend-env: &backend-env
   RELAY_DATABASE_URL: postgresql+psycopg://relay:${RELAY_DB_PASSWORD:-relay_local_dev_only}@db:5432/relay
   RELAY_LOG_LEVEL: ${RELAY_LOG_LEVEL:-INFO}
   RELAY_LOG_FORMAT: json
+  # AI is off unless asked for. `demo` replays authored transcripts against the real database and
+  # needs no key; `anthropic` calls a live model and needs ANTHROPIC_API_KEY in the environment.
+  RELAY_AI_PROVIDER: ${RELAY_AI_PROVIDER:-disabled}
+  RELAY_AI_SCRIPTS_DIR: /ai-scripts
+  RELAY_AI_MODEL: ${RELAY_AI_MODEL:-claude-opus-5}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
 services:
   db:
@@ -73,6 +79,7 @@ services:
       RELAY_WORKER_HEARTBEAT_FILE: /tmp/relay-worker-heartbeat
     volumes:
       - relay-blobs:/data/blobs
+      - ./fixtures/ai-scripts:/ai-scripts:ro
     healthcheck:
       # Healthy while the worker loop keeps touching its heartbeat file (at least every poll).
       test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time() - os.path.getmtime('/tmp/relay-worker-heartbeat') < 60 else 1)"]

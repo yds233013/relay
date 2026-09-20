@@ -67,11 +67,14 @@ export function WorkItemCard({
   base,
   runId,
   emphasis = false,
+  investigate,
 }: {
   item: WorkItem;
   base: string;
   runId: string | null;
   emphasis?: boolean;
+  /** The investigation control for this item, rendered by the server where one applies. */
+  investigate?: React.ReactNode;
 }) {
   const kind = KIND[item.kind] ?? {
     label: item.kind.replaceAll("_", " "),
@@ -129,10 +132,11 @@ export function WorkItemCard({
           ) : null}
           <Link
             href={actionHref(base, item, runId)}
-            className={`${BUTTON_STYLES.secondary} no-underline`}
+            className={`${BUTTON_STYLES.primary} no-underline`}
           >
             {item.action_label}
           </Link>
+          {investigate}
         </div>
       </div>
     </article>

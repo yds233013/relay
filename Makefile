@@ -143,7 +143,7 @@ test-e2e: ## Playwright end-to-end tests against a freshly seeded stack (`make u
 
 # ------------------------------------------------------------------------------------ demo data
 
-.PHONY: demo-data demo-kestrel demo-kestrel-check demo-kestrel-verify demo-check demo-verify demo-manifest demo-seed demo-reset demo-portfolio demo-fast-forward demo-seed-host verify-audit eval-ai eval-ai-scripted
+.PHONY: demo-ai demo-ai-off demo-data demo-kestrel demo-kestrel-check demo-kestrel-verify demo-check demo-verify demo-manifest demo-seed demo-reset demo-portfolio demo-fast-forward demo-seed-host verify-audit eval-ai eval-ai-scripted
 demo-data: ## Generate Brightwater source fixtures into fixtures/demo/brightwater and print a summary
 	$(UV) relay-demo generate
 
@@ -163,6 +163,15 @@ demo-portfolio: ## With the stack up and seeded: add two more fictional migratio
 	docker compose run --rm --no-deps -v "$(CURDIR)/fixtures:/fixtures:ro" api \
 		relay-demo seed-portfolio \
 		--mapping-set /fixtures/demo/brightwater_config/column_mapping_set_v1.json
+
+demo-ai: ## Turn on AI investigation for the demo: restart the stack with the demo provider and record consent through an approved policy change
+	RELAY_AI_PROVIDER=demo docker compose up -d --build --wait
+	docker compose run --rm --no-deps api relay-demo enable-ai
+	@echo "AI investigation is on, replaying authored transcripts (no model, no key)."
+
+demo-ai-off: ## Restart the stack with AI off (consent stays recorded; the provider is what changes)
+	RELAY_AI_PROVIDER=disabled docker compose up -d --build --wait
+	@echo "AI investigation is off."
 
 demo-fast-forward: ## Apply the documented resolutions to the seeded Brightwater stack as the seeded users (demo step 10); needs `make up` and a seed
 	docker compose run --rm --no-deps api relay-demo fast-forward --to before-signoff

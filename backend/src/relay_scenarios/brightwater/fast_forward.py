@@ -324,3 +324,30 @@ def brightwater_migration(session: Session) -> uuid.UUID:
     if len(matches) != 1:
         raise FastForwardError(f"expected one Brightwater migration, found {len(matches)}")
     return matches[0]
+
+
+def enable_ai(
+    factory: sessionmaker[Session],
+    blob_store: BlobStore,
+    limits: imports.ImportLimits,
+    *,
+    migration_id: uuid.UUID,
+) -> str:
+    """Record the customer's consent to AI processing, through the governed path.
+
+    Consent is a `policy_change` carrying `ai_enabled`, and it needs the implementation lead and
+    the customer controller exactly like any other policy change. There is deliberately no shortcut
+    that writes the flag directly: a demo that bypassed the control would be demonstrating
+    something Relay does not do.
+    """
+    context = WorkerContext(session_factory=factory, blob_store=blob_store, limits=limits)
+    script = _Script(factory, context, migration_id)
+    script.change(
+        "Enable AI investigation for this implementation",
+        ChangeRequestKind.POLICY_CHANGE,
+        "The customer agreed that Relay may read this migration's data to investigate findings. "
+        "Investigations are read-only and cannot change anything.",
+        payload={"changes": {"ai_enabled": True}},
+    )
+    with session_scope(factory) as session:
+        return "enabled" if workspace.get_migration(session, migration_id).ai_enabled else "off"

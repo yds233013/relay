@@ -1,0 +1,38 @@
+{
+  "note": "Replayed when no authored transcript matches the issue. It concludes nothing, on purpose: a canned provider must not invent an explanation for a question it was not written for.",
+  "turns": [
+    {
+      "text": "I will read the issue and the findings behind it.",
+      "tool_uses": [{ "name": "get_issue", "arguments": { "issue_key": "{{issue_key}}" } }]
+    },
+    {
+      "tool_uses": [
+        {
+          "name": "submit_findings",
+          "arguments": {
+            "findings": [
+              {
+                "hypothesis": "No authored transcript covers this issue, so this run has not reasoned about it. The deterministic finding above stands on its own; this investigation adds nothing to it.",
+                "evidence": [
+                  {
+                    "claim": "The issue exists and was read, and nothing further was established about its cause.",
+                    "step_seqs": [3],
+                    "record_refs": [],
+                    "quoted_values": []
+                  }
+                ],
+                "affected_records": [],
+                "confidence": "low",
+                "suggested_action": {
+                  "type": "investigate_further",
+                  "what": "Run this investigation against a live model, or review the evidence directly."
+                },
+                "open_questions": ["What caused the finding the deterministic checks raised?"]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

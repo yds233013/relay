@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Timestamp } from "@/components/dates";
 import { Callout, EmptyState, PageHeader, Panel, Section } from "@/components/ui";
+import { InvestigateAction } from "@/components/investigate-action";
 import { WorkItemCard } from "@/components/work-item";
 import { apiGet, type Schemas } from "@/lib/api/client";
 
@@ -75,6 +76,14 @@ export default async function WorkQueuePage(props: PageProps<"/migrations/[migra
                 item={item}
                 base={base}
                 runId={overview.run_id ?? null}
+                investigate={
+                  <InvestigateAction
+                    item={item}
+                    base={base}
+                    migrationId={migrationId}
+                    returnTo={`${base}/work`}
+                  />
+                }
               />
             ))}
           </div>
@@ -96,6 +105,14 @@ export default async function WorkQueuePage(props: PageProps<"/migrations/[migra
                   base={base}
                   runId={overview.run_id ?? null}
                   emphasis={index === 0}
+                  investigate={
+                    <InvestigateAction
+                      item={item}
+                      base={base}
+                      migrationId={migrationId}
+                      returnTo={`${base}/work`}
+                    />
+                  }
                 />
               ))}
           </div>

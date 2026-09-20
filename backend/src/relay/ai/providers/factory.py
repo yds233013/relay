@@ -7,6 +7,7 @@ from typing import Final
 
 from relay.ai.providers.anthropic import AnthropicProvider
 from relay.ai.providers.base import AIUnavailableError, LLMProvider
+from relay.ai.providers.demo import DemoProvider
 from relay.ai.providers.disabled import DisabledProvider
 from relay.ai.providers.scripted import ScriptedProvider
 from relay.core.config import Settings
@@ -23,6 +24,10 @@ def provider_from_settings(settings: Settings) -> LLMProvider:
             model=settings.ai_model,
             base_url=settings.ai_api_base_url,
         )
+    if settings.ai_provider == "demo":
+        if settings.ai_scripts_dir is None:
+            raise AIUnavailableError("RELAY_AI_SCRIPTS_DIR is not set for the demo provider")
+        return DemoProvider(settings.ai_scripts_dir)
     if settings.ai_provider == "scripted":
         if settings.ai_scripts_dir is None:
             raise AIUnavailableError("RELAY_AI_SCRIPTS_DIR is not set for the scripted provider")

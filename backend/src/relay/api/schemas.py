@@ -384,6 +384,11 @@ class WorkItemOut(Schema):
     action_label: str
     target_kind: str
     target_id: str | None
+    issue_id: uuid.UUID | None = None
+    """The finding an AI investigation of this item would be about, when one exists."""
+    issue_key: str | None = None
+    investigation: dict[str, Any] | None = None
+    """Latest investigation of that finding: id, status, finding_count. Null when never run."""
     blocks: list[str]
     detail: dict[str, Any]
 

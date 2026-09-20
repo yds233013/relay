@@ -15,7 +15,7 @@ from __future__ import annotations
 import ast
 import uuid
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Final
 
@@ -25,6 +25,8 @@ from sqlalchemy.orm import Session
 from relay.changes.models import Approval, ChangeRequest, ChangeRequestStatus
 from relay.changes.read_model import active_entity_decisions
 from relay.core.currency import Currency
+from relay.investigations.models import Finding as AIFinding
+from relay.investigations.models import Investigation
 from relay.issues.models import Issue
 from relay.mapping_sets import accounts
 from relay.pipeline import read_model
@@ -56,6 +58,11 @@ class WorkItem:
     """Where acting happens: mappings, reconciliation_line, issue, entities, change_request,
     import."""
     target_id: str | None
+    issue_id: uuid.UUID | None = None
+    """The finding an investigation would be about, when one exists."""
+    issue_key: str | None = None
+    investigation: dict[str, Any] | None = None
+    """The latest investigation of that finding: id, status, and how many findings it produced."""
     evidence: tuple[str, ...] = ()
     """Issue fingerprints, reconciliation line keys or candidate keys, as gates record them."""
     blocks: tuple[str, ...] = ()
@@ -503,6 +510,57 @@ def _data_items(session: Session, run: PipelineRun) -> list[WorkItem]:
     ]
 
 
+def _issue_by_subject(session: Session, migration_id: uuid.UUID) -> dict[str, Issue]:
+    """Open issues indexed by each subject they name, so an item can find its finding."""
+    index: dict[str, Issue] = {}
+    for issue in session.scalars(
+        select(Issue)
+        .where(Issue.migration_id == migration_id, Issue.status.in_(_OPEN))
+        .order_by(Issue.key)
+    ):
+        for subject in issue.subjects:
+            index.setdefault(str(subject), issue)
+    return index
+
+
+def _attach_investigations(session: Session, items: list[WorkItem]) -> list[WorkItem]:
+    """Give every item that names a finding the latest investigation of it, if there is one."""
+    issue_ids = {item.issue_id for item in items if item.issue_id}
+    if not issue_ids:
+        return items
+    latest: dict[uuid.UUID, Investigation] = {}
+    for row in session.scalars(
+        select(Investigation)
+        .where(Investigation.issue_id.in_(issue_ids))
+        .order_by(Investigation.created_at)
+    ):
+        if row.issue_id is not None:
+            latest[row.issue_id] = row  # ordered ascending, so the last write wins
+    counts: dict[uuid.UUID, int] = {}
+    if latest:
+        for finding_id, investigation_id in session.execute(
+            select(AIFinding.id, AIFinding.investigation_id).where(
+                AIFinding.investigation_id.in_([row.id for row in latest.values()])
+            )
+        ):
+            del finding_id
+            counts[investigation_id] = counts.get(investigation_id, 0) + 1
+    attached: list[WorkItem] = []
+    for item in items:
+        found = latest.get(item.issue_id) if item.issue_id is not None else None
+        state = (
+            None
+            if found is None
+            else {
+                "id": str(found.id),
+                "status": found.status,
+                "finding_count": counts.get(found.id, 0),
+            }
+        )
+        attached.append(replace(item, investigation=state))
+    return attached
+
+
 def work_items(
     session: Session, migration: Migration, *, user_id: uuid.UUID | None, role: str | None
 ) -> list[WorkItem]:
@@ -528,7 +586,29 @@ def work_items(
         items += _issue_items(session, migration.id, run, gates, covered)
         items += entities
         items += data
+        by_subject = _issue_by_subject(session, migration.id)
+        items = [_with_issue(item, by_subject) for item in items]
+        items = _attach_investigations(session, items)
     return sorted(items, key=lambda item: item.sort_key)
+
+
+def _with_issue(item: WorkItem, by_subject: dict[str, Issue]) -> WorkItem:
+    """Attach the finding an item is about: its own, or the one naming the record it concerns."""
+    if item.issue_id is not None:
+        return item
+    if item.target_kind == "issue" and item.target_id:
+        # The item already points at its finding; name it so an investigation can be run from here.
+        issue = next((i for i in by_subject.values() if str(i.id) == item.target_id), None)
+        return item if issue is None else replace(item, issue_id=issue.id, issue_key=issue.key)
+    subject = None
+    if item.kind == "account_mapping" and item.detail.get("legacy_account"):
+        subject = f"acct:legacy:{item.detail['legacy_account']}"
+    elif item.kind == "reconciliation" and item.detail.get("reconciliation"):
+        subject = next(
+            (s for s in by_subject if s.startswith(f"recon:{item.detail['reconciliation']}:")), None
+        )
+    issue = by_subject.get(subject) if subject else None
+    return item if issue is None else replace(item, issue_id=issue.id, issue_key=issue.key)
 
 
 def automation_summary(session: Session, run: PipelineRun | None) -> dict[str, Any]:

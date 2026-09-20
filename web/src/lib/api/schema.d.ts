@@ -3212,6 +3212,14 @@ export interface components {
             detail: {
                 [key: string]: unknown;
             };
+            /** Investigation */
+            investigation?: {
+                [key: string]: unknown;
+            } | null;
+            /** Issue Id */
+            issue_id?: string | null;
+            /** Issue Key */
+            issue_key?: string | null;
             /** Judgement */
             judgement: string | null;
             /** Key */
