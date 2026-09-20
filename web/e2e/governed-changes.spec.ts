@@ -150,11 +150,16 @@ test("E2E-2: account mapping change needs lead and controller, never the request
   await expect(page.locator("[data-status='applied']").first()).toBeVisible();
   await expect(page.getByTestId("history")).toContainText("Change request applied");
 
+  // The correction is only real if a fresh run says so. The work queue is where that shows: the
+  // mapping decision it led with is gone, and the unrelated subledger difference is still there.
   await waitForRuns(request, migrationId, before.sequence);
-  await page.goto(`/migrations/${migrationId}`);
-  const blockers = page.getByTestId("blockers");
-  await expect(blockers.getByRole("link", { name: "R3:party=C-0233" })).toBeVisible();
-  await expect(blockers.getByRole("link", { name: "R3:party=unassigned" })).toHaveCount(0);
+  await page.goto(`/migrations/${migrationId}/work`);
+  await expect(page.locator("[data-work-kind='account_mapping']")).toHaveCount(0);
+  await expect(
+    page
+      .locator("[data-work-kind='reconciliation']")
+      .filter({ hasText: "AR subledger vs GL control accounts" }),
+  ).toBeVisible();
   const mappingIssue = await issue(
     request,
     migrationId,
