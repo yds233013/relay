@@ -1,7 +1,9 @@
-# Secrets and local environment
+# Secrets and local environment. The *.example templates are committed; nothing else matching
+# .env* is, so .env.production (a real one) stays out even though .env.production.example is in.
 .env
 .env.*
 !.env.example
+!.env.*.example
 *.pem
 *.key
 

@@ -231,7 +231,7 @@ pipeline-perf: db-up ## Measure imports, runs, readiness and reads on a syntheti
 
 # ------------------------------------------------------------------------------------ build & verify
 
-.PHONY: build build-web compose-config compose-build check test-all clean
+.PHONY: build build-web compose-config prod-config demo-config demo-up demo-down compose-build check test-all clean
 build: build-web compose-build ## Production web build and Docker images
 
 build-web: ## Next.js production build
@@ -239,6 +239,55 @@ build-web: ## Next.js production build
 
 compose-config: ## Validate docker-compose.yml
 	docker compose config --quiet
+
+# Renders the deployment overlay only; it starts nothing. Reads .env.production, which is
+# git-ignored and has no defaults for the database credentials, so this fails loudly when the file
+# is missing or incomplete. See docs/deployment.md.
+#
+# `env -u` matters: this Makefile exports RELAY_DB_PASSWORD (defaulted to the local development
+# password) and the host port variables, and the process environment beats --env-file. Without the
+# unset, a .env.production with a blank password would render using the development password and
+# look valid here, failing only later against the production startup guard.
+prod-config: ## Validate the deployment overlay against .env.production (renders only, deploys nothing)
+	@test -f .env.production || { \
+		echo "missing .env.production - copy .env.production.example and fill it in (docs/deployment.md §4)"; \
+		exit 1; }
+	env -u RELAY_DB_PASSWORD -u RELAY_DB_HOST_PORT -u RELAY_API_HOST_PORT -u RELAY_WEB_HOST_PORT \
+		docker compose --env-file .env.production \
+		-f docker-compose.yml -f docker-compose.prod.yml config --quiet
+	@echo "prod-config: the deployment overlay renders"
+
+# `env -u` for the same reason as prod-config. `-p relay-demo` is not cosmetic: the base file names
+# the project `relay`, so without it the demo would take over the development stack's containers
+# and, worse, its database and blob volumes.
+DEMO_COMPOSE := env -u RELAY_DB_PASSWORD -u RELAY_DB_HOST_PORT -u RELAY_API_HOST_PORT -u RELAY_WEB_HOST_PORT \
+	docker compose -p relay-demo --env-file .env.demo \
+	-f docker-compose.yml -f docker-compose.demo.yml
+
+demo-config: ## Validate the public-demo overlay against .env.demo (renders only, starts nothing)
+	@test -f .env.demo || { \
+		echo "missing .env.demo - copy .env.demo.example and fill it in (docs/public-demo.md)"; \
+		exit 1; }
+	$(DEMO_COMPOSE) config --quiet
+	@echo "demo-config: the public-demo overlay renders"
+
+demo-up: ## Build and start the PUBLIC DEMO stack locally from a fresh database, seeded and prepared
+	@test -f .env.demo || { \
+		echo "missing .env.demo - copy .env.demo.example and fill it in (docs/public-demo.md)"; \
+		exit 1; }
+	$(DEMO_COMPOSE) build
+	$(DEMO_COMPOSE) up -d --wait db
+	$(DEMO_COMPOSE) run --rm migrate
+	$(DEMO_COMPOSE) up -d --wait
+	$(DEMO_COMPOSE) run --rm --no-deps -v "$(CURDIR)/fixtures:/fixtures:ro" api \
+		relay-demo seed --fixtures /fixtures/demo/brightwater \
+		--mapping-set /fixtures/demo/brightwater_config/column_mapping_set_v1.json
+	$(DEMO_COMPOSE) run --rm --no-deps api relay-demo public-demo
+	@echo
+	@echo "Public demo is up: http://127.0.0.1:$$(grep -E '^RELAY_WEB_HOST_PORT=' .env.demo | cut -d= -f2)/migrations"
+
+demo-down: ## Stop the public-demo stack and delete its database and blob volumes
+	$(DEMO_COMPOSE) down -v
 
 compose-build: ## Build Docker images
 	docker compose build

@@ -1,0 +1,114 @@
+# Relay deployment overlay. Layer it on the base file; it is not standalone:
+#
+#   docker compose --env-file .env.production \
+#     -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# READ docs/deployment.md BEFORE USING THIS. Relay has no authentication: real auth (OIDC/SSO) is
+# post-MVP, and with RELAY_ENV=production the development identity header is refused, so every
+# authenticated endpoint answers 401. This overlay makes the stack correct to run; it does not make
+# Relay ready to serve users. Do not work around that by deploying with RELAY_ENV=local — the
+# header would let any caller act as any seeded person, including the approving controller.
+#
+# What it changes relative to the development stack:
+#   - RELAY_ENV=production, which turns on the startup guards in relay.core.config
+#   - credentials and tuning come from .env.production; nothing has a usable default
+#   - the database and the API are no longer published to the host; only the web tier is
+#   - the demo transcript bind mount is dropped, so no repository path is needed at runtime
+#   - restart policies, resource limits, log rotation and a worker stop grace period
+#
+# `environment:` uses !override so the base map is replaced rather than merged: a leftover
+# RELAY_AI_SCRIPTS_DIR would point the AI provider at demo transcripts.
+
+x-prod-env: &prod-env
+  RELAY_ENV: production
+  RELAY_DATABASE_URL: postgresql+psycopg://${RELAY_DB_USER:?set RELAY_DB_USER in .env.production}:${RELAY_DB_PASSWORD:?set RELAY_DB_PASSWORD in .env.production}@db:5432/${RELAY_DB_NAME:?set RELAY_DB_NAME in .env.production}
+  RELAY_LOG_LEVEL: ${RELAY_LOG_LEVEL:-INFO}
+  # The production guard requires json; console logging fails startup.
+  RELAY_LOG_FORMAT: json
+  RELAY_DB_POOL_SIZE: ${RELAY_DB_POOL_SIZE:-10}
+  RELAY_MAX_UPLOAD_BYTES: ${RELAY_MAX_UPLOAD_BYTES:-52428800}
+  RELAY_MAX_ROWS_PER_IMPORT: ${RELAY_MAX_ROWS_PER_IMPORT:-500000}
+  RELAY_MAX_UPLOADS_PER_HOUR: ${RELAY_MAX_UPLOADS_PER_HOUR:-300}
+  # AI stays off unless asked for. 'demo' and 'scripted' replay authored transcripts and must never
+  # be used where their output could be mistaken for a model's.
+  RELAY_AI_PROVIDER: ${RELAY_AI_PROVIDER:-disabled}
+  RELAY_AI_MODEL: ${RELAY_AI_MODEL:-claude-opus-5}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    # Not published: only the compose network reaches PostgreSQL. Use `docker compose exec db` or
+    # an SSH tunnel for maintenance.
+    ports: !reset null
+    environment: !override
+      POSTGRES_USER: ${RELAY_DB_USER:?set RELAY_DB_USER in .env.production}
+      POSTGRES_PASSWORD: ${RELAY_DB_PASSWORD:?set RELAY_DB_PASSWORD in .env.production}
+      POSTGRES_DB: ${RELAY_DB_NAME:?set RELAY_DB_NAME in .env.production}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: UTC
+      PGTZ: UTC
+    restart: unless-stopped
+    shm_size: 256mb
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: ${RELAY_DB_MEMORY_LIMIT:-2g}
+
+  migrate:
+    environment: !override
+      <<: *prod-env
+    logging: *logging
+
+  api:
+    # Reached by the web tier over the compose network; never published directly.
+    ports: !reset null
+    environment: !override
+      <<: *prod-env
+    restart: unless-stopped
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: ${RELAY_API_CPU_LIMIT:-2}
+          memory: ${RELAY_API_MEMORY_LIMIT:-1g}
+
+  worker:
+    # !override drops the base bind mount of ./fixtures/ai-scripts: a deployment must not depend on
+    # a path inside the repository, and demo transcripts have no place outside the demo.
+    volumes: !override
+      - relay-blobs:/data/blobs
+    environment: !override
+      <<: *prod-env
+      RELAY_WORKER_HEARTBEAT_FILE: /tmp/relay-worker-heartbeat
+    restart: unless-stopped
+    # A pipeline run over a large migration takes minutes; let an in-flight job finish before SIGKILL.
+    stop_grace_period: ${RELAY_WORKER_STOP_GRACE:-120s}
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: ${RELAY_WORKER_CPU_LIMIT:-2}
+          memory: ${RELAY_WORKER_MEMORY_LIMIT:-2g}
+
+  web:
+    # Bound to loopback by default: terminate TLS and apply access control in a reverse proxy in
+    # front of this. Set RELAY_WEB_BIND=0.0.0.0 only when something else is doing that job.
+    ports: !override
+      - "${RELAY_WEB_BIND:-127.0.0.1}:${RELAY_WEB_HOST_PORT:-3000}:3000"
+    environment: !override
+      RELAY_API_URL: http://api:8000
+      NODE_ENV: production
+    restart: unless-stopped
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          cpus: ${RELAY_WEB_CPU_LIMIT:-1}
+          memory: ${RELAY_WEB_MEMORY_LIMIT:-1g}
