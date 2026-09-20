@@ -82,8 +82,9 @@ def _money(value: Decimal | None, currency: Currency) -> str:
 def _canonical(reference: str) -> str:
     """Compare evidence by meaning, not by how a dict happened to be printed.
 
-    Gate evidence and reconciliation lines both name a line as ``R3:{'party': 'C-0233'}``, but the
-    key order of the printed mapping is not guaranteed to match, so both sides are normalised.
+    Gate evidence and reconciliation lines both name a line by its reconciliation id and grain,
+    printed as a mapping, but the key order of that mapping is not guaranteed to match on both
+    sides, so each reference is reduced to a sorted, order-independent form before comparing.
     """
     recon, _, grain = reference.partition(":")
     if not grain.startswith("{"):

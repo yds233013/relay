@@ -715,6 +715,52 @@ update, and ORM bulk update) and that exempt job-queue writes pass.
 
 ---
 
+## Productization pass
+
+The system was correct and the interface had been cleaned up, but Relay still asked its user to
+think like its author: gates, reconciliation ids, rule ids, and a list of sixty-five findings that
+nobody had turned into a day's work. This pass changed what the product *is about* without changing
+what it computes.
+
+### What changed
+
+- **A work queue, server-side** (`relay.pipeline.work_queue`, `GET /migrations/{id}/work-queue`).
+  Findings become decisions: what happened, why it matters, how much money, what only a person can
+  decide, and where to act. On Brightwater, 65 findings become 20 decisions.
+- **The strongest decision is composed, not scripted.** When a reconciliation attributes a
+  difference to exactly one legacy account (the engine's `single_account_contribution` explainer)
+  and that account's mapping is one the compatibility check doubts, the two become a single item
+  carrying the difference. The module names no company, account or amount; the second company
+  produces the same shape of item from its own defect (a −6,500.00 contribution attributed to its
+  own mis-mapped account).
+- **An automation summary** counted from what the run stored — records normalized, controls run,
+  reconciliations performed, findings raised — so the product shows what it did rather than
+  implying a human typed it in.
+- **An implementation command center**, an overview built around "can this customer go live?", a
+  lifecycle derived from run data, readiness restated as six operator questions (G1–G12 kept
+  underneath), governed change presented as proposed → approved → applied → re-verified, and
+  investigation in plain language with the exported row beside Relay's normalized reading.
+
+### What did not change
+
+The engine, the rules, the reconciliations, the gates, the golden truth. Brightwater still passes
+115/115 and Kestrel 31/31. No runtime code branches on scenario knowledge — the anti-cheating scan
+caught a Brightwater customer code in a docstring of the new module during this pass, which is
+exactly what it is for.
+
+### Honest limits of the new work queue
+
+- It groups by cause, not by root cause: two items can share an underlying defect (a mapping problem
+  also raises its own finding, which is suppressed, but a knock-on reconciliation difference in a
+  different control is still listed separately).
+- Its ordering is blocking-first, then amount, then count. An item with no amount sorts below small
+  amounts even when it needs more thought.
+- "Blocks go-live" is computed by intersecting an item's evidence with failing gates' evidence, so
+  items whose evidence a gate does not record (approvals, unreadable rows) show no gate even when
+  they matter.
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.

@@ -53,6 +53,14 @@ anti-cheating, code quality, UX, documentation). They changed real behaviour —
 stricter G5, a real R6 source side, ASCII-only numerals, a nonce CSP — so read
 `docs/review-findings.md` alongside the milestone log.
 
+A later productization pass turned the same capabilities into an operator-facing product: a work
+queue (`relay.pipeline.work_queue`, `GET /migrations/{id}/work-queue`) that groups findings into the
+decisions a person actually makes, an implementation command center, an overview built around "can
+this customer go live?", and readiness restated as six operator questions with G1–G12 preserved
+underneath. **The work queue composes engine output — it must never branch on scenario knowledge**;
+the mapping decision exists because a reconciliation attributed a difference to one legacy account
+whose mapping the compatibility check doubts, not because a demo has such an account.
+
 `docs/progress.md` is the recovery log: read it first in a new session.
 
 Layout:
@@ -65,7 +73,7 @@ Layout:
 - `fixtures/demo/brightwater_config/`: the approved column mapping set for those files (configuration, no answers)
 - `evaluation/brightwater/golden_manifest.toml`: hand-authored ground truth (never read by runtime code)
 - `fixtures/demo/kestrel/`, `fixtures/demo/kestrel_config/`, `evaluation/kestrel/expected.toml`: the **second company** (Kestrel Instruments Ltd), the generalization test — a different legacy system, file conventions, currency, fiscal year and defects, run through the same unchanged engine ([0011](docs/decisions/0011-second-company-generalization.md))
-- `web/`: Next.js app. `src/app` (routes; Server Components call the API server-side), `src/components` (shared UI), `src/lib` (API client and generated types, formatting, session), `e2e/` (Playwright)
+- `web/`: Next.js app. `src/app` (routes; Server Components call the API server-side), `src/components` (shared UI, including the design layer in `ui.tsx` and the work-item card), `src/lib` (API client and generated types, formatting, session, and the readiness-category translation in `readiness.ts`), `e2e/` (Playwright)
   - `web/AGENTS.md` and `web/CLAUDE.md` are generated and re-created by `next dev`. They only point to the Next.js 16 docs bundled in `node_modules/next/dist/docs/`. Read those docs before writing Next.js code; every rule in this file still applies inside `web/`.
 - `docs/`: planning documents, `decisions/`, `progress.md`
 
