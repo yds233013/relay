@@ -100,6 +100,9 @@ re-run `make demo-reset`.
 | Verified on | the first evaluated run, marked *current* |
 | Signed in as | Maya Chen (implementation specialist) |
 
+If you ran `make demo-ai`, one extra approved change request appears — the recorded AI consent.
+It does not touch the migration's inputs, so every number above is the same either way.
+
 The seeded people, and what each may do:
 
 | Person | Role | Can |
