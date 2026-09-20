@@ -25,8 +25,6 @@ from sqlalchemy.orm import Session
 from relay.changes.models import Approval, ChangeRequest, ChangeRequestStatus
 from relay.changes.read_model import active_entity_decisions
 from relay.core.currency import Currency
-from relay.investigations.models import Finding as AIFinding
-from relay.investigations.models import Investigation
 from relay.issues.models import Issue
 from relay.mapping_sets import accounts
 from relay.pipeline import read_model
@@ -59,10 +57,12 @@ class WorkItem:
     import."""
     target_id: str | None
     issue_id: uuid.UUID | None = None
-    """The finding an investigation would be about, when one exists."""
+    """The finding an investigation would be about, when one exists.
+
+    The investigation *itself* is attached by the API layer: this module sits below the AI layer
+    and may not import it, which the import contracts enforce.
+    """
     issue_key: str | None = None
-    investigation: dict[str, Any] | None = None
-    """The latest investigation of that finding: id, status, and how many findings it produced."""
     evidence: tuple[str, ...] = ()
     """Issue fingerprints, reconciliation line keys or candidate keys, as gates record them."""
     blocks: tuple[str, ...] = ()
@@ -523,44 +523,6 @@ def _issue_by_subject(session: Session, migration_id: uuid.UUID) -> dict[str, Is
     return index
 
 
-def _attach_investigations(session: Session, items: list[WorkItem]) -> list[WorkItem]:
-    """Give every item that names a finding the latest investigation of it, if there is one."""
-    issue_ids = {item.issue_id for item in items if item.issue_id}
-    if not issue_ids:
-        return items
-    latest: dict[uuid.UUID, Investigation] = {}
-    for row in session.scalars(
-        select(Investigation)
-        .where(Investigation.issue_id.in_(issue_ids))
-        .order_by(Investigation.created_at)
-    ):
-        if row.issue_id is not None:
-            latest[row.issue_id] = row  # ordered ascending, so the last write wins
-    counts: dict[uuid.UUID, int] = {}
-    if latest:
-        for finding_id, investigation_id in session.execute(
-            select(AIFinding.id, AIFinding.investigation_id).where(
-                AIFinding.investigation_id.in_([row.id for row in latest.values()])
-            )
-        ):
-            del finding_id
-            counts[investigation_id] = counts.get(investigation_id, 0) + 1
-    attached: list[WorkItem] = []
-    for item in items:
-        found = latest.get(item.issue_id) if item.issue_id is not None else None
-        state = (
-            None
-            if found is None
-            else {
-                "id": str(found.id),
-                "status": found.status,
-                "finding_count": counts.get(found.id, 0),
-            }
-        )
-        attached.append(replace(item, investigation=state))
-    return attached
-
-
 def work_items(
     session: Session, migration: Migration, *, user_id: uuid.UUID | None, role: str | None
 ) -> list[WorkItem]:
@@ -588,7 +550,6 @@ def work_items(
         items += data
         by_subject = _issue_by_subject(session, migration.id)
         items = [_with_issue(item, by_subject) for item in items]
-        items = _attach_investigations(session, items)
     return sorted(items, key=lambda item: item.sort_key)
 
 

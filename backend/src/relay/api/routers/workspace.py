@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated, Literal
+from collections.abc import Mapping, Sequence
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Query
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from relay.api.deps import ActorDep, ClockDep, ReaderDep, SessionDep, SettingsDep
 from relay.api.schemas import (
@@ -44,6 +47,8 @@ from relay.changes import kinds as governance_read
 from relay.core.currency import Currency
 from relay.engine.readiness import WAIVABLE
 from relay.identity import service as identity
+from relay.investigations.models import Finding as AIFinding
+from relay.investigations.models import Investigation
 from relay.issues import read_model as issues_read
 from relay.issues.models import Issue
 from relay.pipeline import overview as overview_read
@@ -134,6 +139,7 @@ def get_overview(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDep)
     company_name = found[1].name if found else ""
     currency = migration.functional_currency
     data = overview_read.overview(session, migration, user_id=actor.user_id, role=actor.role)
+    queue = work_queue.work_items(session, migration, user_id=actor.user_id, role=actor.role)
     run = data["run"]
     names = identity.display_names(
         session,
@@ -178,16 +184,54 @@ def get_overview(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDep)
         recent_activity=[audit_event_out(e) for e in data["recent_activity"]],
         currency=currency.code,
         work_items=[
-            work_item_out(i, currency)
-            for i in work_queue.work_items(
-                session, migration, user_id=actor.user_id, role=actor.role
-            )
+            work_item_out(i, currency, _latest_investigations(session, queue)) for i in queue
         ],
         automation=AutomationSummaryOut(**work_queue.automation_summary(session, run)),
     )
 
 
-def work_item_out(item: work_queue.WorkItem, currency: Currency) -> WorkItemOut:
+def _latest_investigations(
+    session: Session, items: Sequence[work_queue.WorkItem]
+) -> dict[uuid.UUID, dict[str, Any]]:
+    """The latest investigation of each work item's finding.
+
+    Composed here rather than in the work queue itself: `relay.pipeline` sits below the AI layer
+    and must not import it (enforced by the import contracts). The API is the one place that may
+    see both.
+    """
+    issue_ids = {item.issue_id for item in items if item.issue_id is not None}
+    if not issue_ids:
+        return {}
+    latest: dict[uuid.UUID, Investigation] = {}
+    for row in session.scalars(
+        select(Investigation)
+        .where(Investigation.issue_id.in_(issue_ids))
+        .order_by(Investigation.created_at)
+    ):
+        if row.issue_id is not None:
+            latest[row.issue_id] = row  # ascending, so the last one written wins
+    counts: dict[uuid.UUID, int] = {}
+    for investigation_id, count in session.execute(
+        select(AIFinding.investigation_id, func.count())
+        .where(AIFinding.investigation_id.in_([row.id for row in latest.values()]))
+        .group_by(AIFinding.investigation_id)
+    ):
+        counts[investigation_id] = int(count)
+    return {
+        issue_id: {
+            "id": str(row.id),
+            "status": row.status,
+            "finding_count": counts.get(row.id, 0),
+        }
+        for issue_id, row in latest.items()
+    }
+
+
+def work_item_out(
+    item: work_queue.WorkItem,
+    currency: Currency,
+    investigations_by_issue: Mapping[uuid.UUID, dict[str, Any]] | None = None,
+) -> WorkItemOut:
     return WorkItemOut(
         key=item.key,
         kind=item.kind,
@@ -202,7 +246,9 @@ def work_item_out(item: work_queue.WorkItem, currency: Currency) -> WorkItemOut:
         target_id=item.target_id,
         issue_id=item.issue_id,
         issue_key=item.issue_key,
-        investigation=item.investigation,
+        investigation=(investigations_by_issue or {}).get(item.issue_id)
+        if item.issue_id is not None
+        else None,
         blocks=list(item.blocks),
         detail=item.detail,
     )
@@ -214,9 +260,10 @@ def get_work_queue(migration_id: uuid.UUID, actor: ReaderDep, session: SessionDe
     migration = workspace.get_migration(session, migration_id)
     currency = migration.functional_currency
     items = work_queue.work_items(session, migration, user_id=actor.user_id, role=actor.role)
+    found = _latest_investigations(session, items)
     run = runs_read.latest_succeeded_run(session, migration_id)
     return WorkQueueOut(
-        items=[work_item_out(i, currency) for i in items],
+        items=[work_item_out(i, currency, found) for i in items],
         automation=AutomationSummaryOut(**work_queue.automation_summary(session, run)),
     )
 
