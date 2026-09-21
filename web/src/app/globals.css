@@ -1,19 +1,25 @@
 @import "tailwindcss";
 
 /*
- * Relay's visual language: an internal financial operations console.
+ * Relay's visual language: an audit-grade operations console.
  *
  * Restrained on purpose. Ink on paper, one accent for navigation and links, and semantic colour
  * reserved for states that need a person to act. Everything that is merely informational stays
  * neutral, so that red genuinely means "this blocks go-live" rather than "this is a number".
+ *
+ * Depth carries the hierarchy: the workspace is sunken, content sits on raised white surfaces, and
+ * exactly one surface per screen may be emphasised with a ring. Three levels, no more — no
+ * gradients, no glass, no shadow larger than a hairline lift.
  */
 :root {
   color-scheme: light;
 
+  /* page < surface < emphasised surface */
+  --app: #e9ecf1;
   --surface: #ffffff;
-  --surface-sunken: #f6f7f9;
-  --surface-raised: #fbfcfd;
-  --border: #d8dce3;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f4f6f9;
+  --border: #dde1e8;
   --border-strong: #b5bcc7;
 
   --ink: #14181f;
@@ -23,18 +29,29 @@
 
   --accent: #1c4f8f;
   --accent-ink: #123663;
-  --accent-soft: #eef3fa;
+  --accent-soft: #e8eff8;
 
   --critical: #9b1c1c;
-  --critical-soft: #fdf2f2;
+  --critical-soft: #fbe9e9;
   --warning: #92400e;
-  --warning-soft: #fffaf0;
+  --warning-soft: #fdf3e2;
   --positive: #14602f;
-  --positive-soft: #f1f8f3;
+  --positive-soft: #e9f5ed;
+
+  /* Corner radius is a scale, not a guess: panels, then controls, then pills. */
+  --radius-card: 8px;
+  --radius-control: 6px;
+
+  /*
+   * One card lift and one emphasis lift. Both are hairlines — an operations console that casts
+   * real shadows reads as a marketing page, and a console with none reads as a wireframe.
+   */
+  --shadow-card: 0 1px 1px rgb(20 24 31 / 0.03), 0 1px 3px rgb(20 24 31 / 0.05);
+  --shadow-raised: 0 1px 2px rgb(20 24 31 / 0.04), 0 4px 10px rgb(20 24 31 / 0.06);
 }
 
 body {
-  background: var(--surface);
+  background: var(--app);
   color: var(--ink);
   font-family:
     ui-sans-serif,
@@ -50,7 +67,19 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* One focus treatment everywhere, visible against both the page and the sunken surfaces. */
+/*
+ * The one number a screen is about. Nothing else in the product uses this size, which is what
+ * makes it mean "read this first" rather than "this is a heading".
+ */
+.figure-hero {
+  font-size: 1.875rem;
+  line-height: 2.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* One focus treatment everywhere, visible against the workspace and every surface on it. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -74,5 +103,10 @@ body {
 
   a:hover {
     text-decoration-color: currentColor;
+  }
+
+  /* Disclosure arrows are part of the type, not a browser default in a different colour. */
+  summary {
+    cursor: pointer;
   }
 }

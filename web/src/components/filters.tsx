@@ -5,7 +5,7 @@ export function FilterForm({ children }: { children: React.ReactNode }) {
       {children}
       <button
         type="submit"
-        className="rounded border border-[var(--border-strong)] bg-white px-3 py-1 font-medium text-[var(--ink)] hover:bg-[var(--surface-sunken)]"
+        className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-1.5 font-medium text-[var(--ink)] transition-colors hover:border-[var(--ink-muted)] hover:bg-[var(--surface-sunken)]"
       >
         Apply
       </button>
@@ -26,11 +26,13 @@ export function SelectFilter({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-[var(--ink-muted)]">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
+        {label}
+      </span>
       <select
         name={name}
         defaultValue={value ?? ""}
-        className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+        className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 py-1.5 transition-colors hover:border-[var(--ink-muted)]"
       >
         <option value="">Any</option>
         {options.map(([optionValue, optionLabel]) => (

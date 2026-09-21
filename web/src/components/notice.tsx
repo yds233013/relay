@@ -5,7 +5,7 @@ export function Notice({ error, notice }: { error?: string; notice?: string }) {
       {error ? (
         <p
           role="alert"
-          className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900"
+          className="mb-4 rounded-[var(--radius-card)] border border-[var(--critical)]/30 bg-[var(--critical-soft)] px-3.5 py-2.5 text-sm text-[var(--critical)]"
         >
           {error}
         </p>
@@ -13,7 +13,7 @@ export function Notice({ error, notice }: { error?: string; notice?: string }) {
       {notice ? (
         <p
           role="status"
-          className="mb-3 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-900"
+          className="mb-4 rounded-[var(--radius-card)] border border-[var(--positive)]/30 bg-[var(--positive-soft)] px-3.5 py-2.5 text-sm text-[var(--positive)]"
         >
           {notice}
         </p>

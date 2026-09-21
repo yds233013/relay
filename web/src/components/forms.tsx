@@ -2,8 +2,9 @@
 import { BUTTON_STYLES } from "@/components/ui";
 import { DEMO_VIEW_ONLY, isPublicDemo } from "@/lib/demo";
 
+/** One control treatment: same radius, same border, same hover as every button in the product. */
 const CONTROL =
-  "rounded border border-[var(--border-strong)] bg-white px-2 py-1 text-sm text-[var(--ink)]";
+  "rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] px-2.5 py-1.5 text-sm text-[var(--ink)] transition-colors placeholder:text-[var(--ink-subtle)] hover:border-[var(--ink-muted)]";
 
 export function TextField({
   name,
@@ -22,7 +23,9 @@ export function TextField({
 }) {
   return (
     <label className={`flex flex-col gap-1 text-sm ${className}`}>
-      <span className="text-xs font-medium text-[var(--ink-muted)]">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
+        {label}
+      </span>
       <input
         name={name}
         defaultValue={defaultValue}
@@ -51,7 +54,9 @@ export function TextArea({
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="text-xs font-medium text-[var(--ink-muted)]">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
+        {label}
+      </span>
       <textarea
         name={name}
         defaultValue={defaultValue}
@@ -83,7 +88,7 @@ export function SubmitButton({
 }) {
   if (isPublicDemo() && !allowedInDemo) {
     return (
-      <span className="inline-flex items-center rounded border border-dashed border-[var(--border-strong)] px-2 py-1 text-xs text-[var(--ink-muted)]">
+      <span className="inline-flex items-center rounded-full border border-dashed border-[var(--border-strong)] bg-[var(--surface-sunken)] px-2.5 py-1 text-xs font-medium text-[var(--ink-muted)]">
         {DEMO_VIEW_ONLY}
       </span>
     );
