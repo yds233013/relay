@@ -878,6 +878,57 @@ one. The demo is not production and holds no real data.
 
 ---
 
+## Presentation pass (web only)
+
+A presentation-layer pass over the whole web tier. Nothing about the engine, the pipeline, the work
+queue composition, the AI layer, governance, readiness, the demo policy, the schema, the fixtures or
+the golden manifests changed; `make check` passes with the same numbers as before it.
+
+The problem it fixed: Relay rendered a white page carrying near-white cards with one-pixel borders
+and no shadow anywhere, so every surface collapsed into every other one, and the type lived almost
+entirely in `text-xs`/`text-sm` with nothing above — a product with a single number that matters had
+no way to say which one it was. The direction was "audit-grade console, properly lit": keep the
+information architecture, change surface, elevation, scale and rhythm.
+
+- **Tokens** (`web/src/app/globals.css`): the workspace is sunken (`--app`) and content is raised
+  white, inverting the old arrangement; `--radius-card` (8px) and `--radius-control` (6px) replace
+  the flat 4px everywhere; `--shadow-card` and `--shadow-raised` are the only two lifts in the
+  product; `.figure-hero` is the one type size reserved for the number a screen is about.
+- **Primitives** (`ui.tsx`): `MetricCard` became `MetricTile` — white surface, ink figure, tone on
+  the label and the emphasis ring rather than on the number, so a screen whose verdict, blocking
+  work and headline figure were all red keeps some hierarchy to spend. `Panel` gained `emphasis`.
+- **Status** (`status-chip.tsx`): outlined pills became tinted fills in four semantic families, and
+  critical is now rationed to blocked go-live and controls that did not tie. Kind chips on work
+  items are neutral: a category is not a severity.
+- **Tables** (`table.tsx`, new): one treatment — sunken header, hairline rows, hover, right-aligned
+  tabular numerals, row tints only where a table mixes states. `TABLE_SCROLL` is `relative
+  overflow-x-auto`, which is load-bearing: overflow only clips an absolutely positioned descendant
+  when the scroller is its containing block, and without it the `sr-only` label in a last column
+  landed hundreds of pixels past a phone viewport and scrolled the whole page sideways.
+- **Shell**: the sidebar stays (fourteen destinations in five groups is better information
+  architecture than a flat bar) with a filled active pill instead of a developer-tool rail, a white
+  chrome bar, a 1440px content cap, and a quiet application-level prototype disclosure in the
+  footer. Below `lg` the rail becomes one scrollable row of pills per group — same markup, same
+  `nav`, no JavaScript and nothing behind a toggle.
+- **Investigation** became a two-pane case file: process on the left (the deterministic finding it
+  started from, then every tool call with the server's own `latency_ms`), assessment on the right
+  (inference, verified evidence, recommended action, open questions, human decision). Deterministic
+  result, investigator inference, verified evidence and human decision each carry their own label
+  and surface, because conflating them is how an assistant becomes untrustworthy.
+- **`splitTitle`** (`lib/format.ts`) lifts the sentence out of a finding title whose tail is exactly
+  its own `subjects` field, so a list of sixty-five findings reads as sixty-five sentences rather
+  than sixty-five record keys. It matches the payload structurally and never guesses what an
+  identifier looks like.
+
+Verified: `make check` (1,096 unit and scenario, 135 integration, 46 web, 115/115 manifest checks);
+axe `wcag2a`+`wcag2aa` over twenty pages at 1440 and 390 with zero serious or critical violations —
+two of which this pass introduced and fixed (a `<p>` between `dt` and `dd` in `MetricTile`, and
+scroll containers that were not keyboard focusable); and no horizontal page overflow at 1440, 1280,
+1024, 768 or 390 on eight representative pages. Screenshots in `docs/images/` were recaptured from
+the running public demo at 1440×900.
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.

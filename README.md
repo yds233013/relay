@@ -49,7 +49,7 @@ running the entire product with it disabled.
 | **Deployment** | Nothing is deployed. Three modes are prepared and tested locally: development, a **public demo** (anonymous, read-only, deterministic AI replay, no cost) and production — which deliberately serves nobody, because real authentication is post-MVP. The development identity switcher is not authentication. |
 | **Known limitations** | Listed honestly in [docs/traceability.md](docs/traceability.md) — including one security requirement (separate database roles) that is deliberately not implemented. |
 
-![Overview: nine of twelve gates failing, each blocker linked to its evidence](docs/images/overview.png)
+![Overview: the go-live verdict, the exposure behind it, and the decisions that need a person](docs/images/02-overview.png)
 
 ### What is technically interesting
 
@@ -115,8 +115,11 @@ minutes on this machine), so the demo path is tested, not rehearsed prose.
 
 | | |
 |---|---|
-| ![Portfolio](docs/images/portfolio.png) | ![Reconciliation R3 with its discrepancy lines](docs/images/reconciliation.png) |
-| ![Readiness gates](docs/images/readiness.png) | ![Audit log with a verified hash chain](docs/images/audit-log.png) |
+| ![Implementation command center](docs/images/01-command-center.png) | ![Work queue: every decision still waiting on a person](docs/images/03-work-queue.png) |
+| ![One finding, with its evidence and its source rows](docs/images/04-work-item-detail.png) | ![An investigation: the process on the left, the assessment on the right](docs/images/05-investigation.png) |
+| ![Reconciliation, control by control](docs/images/06-reconciliation.png) | ![Record inspector: the exported row beside Relay's reading of it](docs/images/07-record-inspector.png) |
+| ![Readiness: six questions, twelve checks](docs/images/08-readiness.png) | ![A change request, from proposal to re-verification](docs/images/09-change-request.png) |
+| ![Audit log with a verified hash chain](docs/images/10-audit.png) | |
 
 ---
 
