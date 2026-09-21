@@ -54,3 +54,8 @@ tmp/
 
 # Local blob storage for host-run API and worker
 backend/.data/
+
+# Where deploy/public-backup.sh writes database dumps and blob archives on a server. They contain
+# the whole database, so an untracked directory of them next to a git repo is an accident waiting
+# for a `git add -A`.
+/backups/

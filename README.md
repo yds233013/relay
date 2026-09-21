@@ -1,8 +1,10 @@
 # Relay
 
-**An AI-native ERP implementation operations system: it takes legacy accounting data through
-automated migration QA, evidence-grounded investigation, governed remediation, and a verified
-go-live.**
+**An implementation-operations system for taking legacy accounting data through migration QA to a
+verified ERP go-live** — ingest and profile, map and normalize, check and reconcile
+deterministically, turn the failures into an operator work queue, trace each one to its evidence,
+put every material change through human approval, re-run the checks to prove the fix worked, and
+decide readiness on what the last run actually says.
 
 An implementation team has to answer one question before a customer can launch: *is the migrated
 financial data complete, correctly mapped, reconciled, and safe to go live on?* Today that answer is
@@ -32,6 +34,14 @@ results it cited; it can propose a correction but cannot make one, approve one, 
 financial record. Turning it off removes no correctness — which the end-to-end suite asserts by
 running the entire product with it disabled.
 
+In the public demo that investigator is a **scripted demonstration — not a model**, and the UI says
+so on the page. The distinction is worth being precise about: the *reasoning* is an authored
+transcript, written in advance, and is not a model's output. Everything around it is the real
+thing — the same fifteen read-only tools really execute against the real database, the evidence
+they return is genuine, and Relay runs the same provenance verification over every claim before a
+finding can be promoted to a draft change request. What is replayed is the argument, not the
+evidence.
+
 > *An independent portfolio project exploring the operational problem of ERP implementation. It is
 > not any company's internal system, and it integrates with no vendor's APIs.*
 
@@ -45,8 +55,8 @@ running the entire product with it disabled.
 | **Brightwater Provisions, Inc.** | A fictional demo customer. Every company, person, account and figure in it is invented; no real financial or customer data was used at any point. |
 | **Kestrel Instruments Ltd** | A second fictional company used only to test that the engine generalizes. It is an evaluation scenario, generated and verified from the command line — not a second demo, and not exposed in the UI. |
 | **The engine** | Deterministic. Same inputs, same fingerprint, same results — asserted by tests, not by claim. |
-| **The AI investigator** | Implemented, bounded and tested. Six scripted evals check that it can be right; six adversarial transcripts check that the system does not depend on it being right. **No live-model run has ever been recorded**, so nothing here measures a model's accuracy on this data. It is off by default; a `demo` provider replays authored transcripts against the real database for demonstrations, labelled as scripted wherever it appears. |
-| **Deployment** | Nothing is deployed. Three modes are prepared and tested locally: development, a **public demo** (anonymous, read-only, deterministic AI replay, no cost) and production — which deliberately serves nobody, because real authentication is post-MVP. The development identity switcher is not authentication. |
+| **The AI investigator** | Implemented, bounded and tested. Six scripted evals check that it can be right; six adversarial transcripts check that the system does not depend on it being right. **No live-model run has ever been recorded**, so nothing here measures any model's accuracy on this data, and no claim is made about one. It is off by default; the `demo` provider replays authored transcripts against the real database and is labelled **"Scripted demonstration — not a model"** everywhere it appears. |
+| **Deployment** | Nothing is deployed and no cloud resource exists. Three modes are prepared and tested locally: development, a **public demo** (anonymous, read-only, scripted AI replay, no cost) and production — which deliberately serves nobody, because real authentication is post-MVP. A single-node public topology behind a Caddy TLS edge is prepared and verified locally in [docs/public-deployment.md](docs/public-deployment.md). The development identity switcher is not authentication. |
 | **Known limitations** | Listed honestly in [docs/traceability.md](docs/traceability.md) — including one security requirement (separate database roles) that is deliberately not implemented. |
 
 ![Overview: the go-live verdict, the exposure behind it, and the decisions that need a person](docs/images/02-overview.png)
@@ -115,11 +125,18 @@ minutes on this machine), so the demo path is tested, not rehearsed prose.
 
 | | |
 |---|---|
-| ![Implementation command center](docs/images/01-command-center.png) | ![Work queue: every decision still waiting on a person](docs/images/03-work-queue.png) |
-| ![One finding, with its evidence and its source rows](docs/images/04-work-item-detail.png) | ![An investigation: the process on the left, the assessment on the right](docs/images/05-investigation.png) |
-| ![Reconciliation, control by control](docs/images/06-reconciliation.png) | ![Record inspector: the exported row beside Relay's reading of it](docs/images/07-record-inspector.png) |
-| ![Readiness: six questions, twelve checks](docs/images/08-readiness.png) | ![A change request, from proposal to re-verification](docs/images/09-change-request.png) |
-| ![Audit log with a verified hash chain](docs/images/10-audit.png) | |
+| ![Implementation command center: every migration, its readiness verdict and its exposure](docs/images/01-command-center.png) | ![Work queue: every decision still waiting on a person, most consequential first](docs/images/03-work-queue.png) |
+| ![Reconciliation: each control report against the detail Relay staged](docs/images/06-reconciliation.png) | ![Readiness: six operator questions, answered by twelve checks](docs/images/08-readiness.png) |
+
+The investigation page is the one worth looking at closely, because it is where the whole loop
+becomes visible on a single screen: the deterministic finding it started from, every read-only tool
+call with its own timing, the investigator's reading of that evidence kept visually separate from
+it, Relay's verdict on each claim, and the decision left to a person.
+
+![An investigation: the deterministic finding and the tool calls on the left, the investigator's assessment, the verified evidence and the human decision on the right](docs/images/05-investigation.png)
+
+The remaining screens — the work-item detail, the record inspector, a change request through its
+whole lifecycle, and the audit log — are in [docs/images/](docs/images/).
 
 ---
 
@@ -336,9 +353,19 @@ volume have to be captured together, in that order).
 | [docs/testing.md](docs/testing.md) | Test strategy and layers |
 | [docs/deployment.md](docs/deployment.md) | Running the deployment overlay, backups, and why a deployment serves no users yet |
 | [docs/public-demo.md](docs/public-demo.md) | The anonymous read-only public demo: what a visitor may do and what stops them |
+| [docs/public-deployment.md](docs/public-deployment.md) | Putting the public demo on the internet: single-node topology, the Caddy edge, DNS, backups, runbook |
 | [docs/security-and-correctness.md](docs/security-and-correctness.md) | Requirement IDs |
 | [docs/traceability.md](docs/traceability.md) | Every requirement ID mapped to its tests or a stated limitation |
 | [docs/review-findings.md](docs/review-findings.md) | The six review passes: what was found, fixed, or deliberately left |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Milestones and acceptance criteria |
 | [docs/decisions/](docs/decisions/) | Decision records (0001–0011) |
 | [CLAUDE.md](CLAUDE.md) | Working rules for contributors and AI coding sessions |
+
+---
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Yash Shah.
+
+The fictional accounting data in `fixtures/` is generated by the code in this repository and is
+covered by the same licence. It describes no real company, person, account or transaction.
