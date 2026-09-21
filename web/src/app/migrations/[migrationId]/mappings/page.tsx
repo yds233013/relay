@@ -13,6 +13,7 @@ import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { proposeAccountMapping } from "../governance-actions";
+import { TD, THEAD_ROW } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -133,23 +134,23 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                 {show === "doubtful" ? " that need attention" : ""}
               </caption>
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-                  <th scope="col" className="px-2 py-1.5">
+                <tr className={THEAD_ROW}>
+                  <th scope="col" className={TD}>
                     Legacy account
                   </th>
-                  <th scope="col" className="px-2 py-1.5">
+                  <th scope="col" className={TD}>
                     Current target
                   </th>
-                  <th scope="col" className="px-2 py-1.5">
+                  <th scope="col" className={TD}>
                     Compatibility
                   </th>
-                  <th scope="col" className="px-2 py-1.5">
+                  <th scope="col" className={TD}>
                     Suggestion
                   </th>
-                  <th scope="col" className="px-2 py-1.5">
+                  <th scope="col" className={TD}>
                     New target
                   </th>
-                  <th scope="col" className="px-2 py-1.5">
+                  <th scope="col" className={TD}>
                     Rationale
                   </th>
                 </tr>
@@ -166,24 +167,24 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                     }`}
                     data-legacy={row.legacy_account_code}
                   >
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       <span className="font-mono">{row.legacy_account_code}</span>{" "}
                       {row.legacy_name ?? "not in legacy chart"}
                       <span className="block text-xs text-[var(--ink-subtle)]">
                         {row.legacy_subtype ? humanize(row.legacy_subtype) : ""}
                       </span>
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       <span className="font-mono">{row.target_account_code ?? "unmapped"}</span>{" "}
                       {row.target_name ?? ""}
                       <span className="block text-xs text-[var(--ink-subtle)]">
                         {row.target_subtype ? humanize(row.target_subtype) : ""}
                       </span>
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       <SignalChips signals={row.signals} />
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       {row.proposal ? (
                         <>
                           <span className="font-mono">{row.proposal.target}</span>{" "}
@@ -196,7 +197,7 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                         "—"
                       )}
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       <label className="sr-only" htmlFor={`target-${row.legacy_account_code}`}>
                         New target for {row.legacy_account_code}
                       </label>
@@ -204,17 +205,17 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
                         id={`target-${row.legacy_account_code}`}
                         name={`target:${row.legacy_account_code}`}
                         placeholder={row.proposal?.target ?? ""}
-                        className="w-24 rounded border border-[var(--border-strong)] px-2 py-1 font-mono"
+                        className="w-24 rounded-[var(--radius-control)] border border-[var(--border-strong)] px-2 py-1 font-mono"
                       />
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       <label className="sr-only" htmlFor={`rationale-${row.legacy_account_code}`}>
                         Rationale for {row.legacy_account_code}
                       </label>
                       <input
                         id={`rationale-${row.legacy_account_code}`}
                         name={`rationale:${row.legacy_account_code}`}
-                        className="w-56 rounded border border-[var(--border-strong)] px-2 py-1"
+                        className="w-56 rounded-[var(--radius-control)] border border-[var(--border-strong)] px-2 py-1"
                       />
                     </td>
                   </tr>
@@ -227,7 +228,7 @@ export default async function MappingsPage(props: PageProps<"/migrations/[migrat
               <DemoUnavailable what="Re-pointing a legacy account at a different target is a change request the implementation lead and the customer controller both approve, after which a fresh run re-checks every number it touches." />
             </div>
           ) : (
-            <div className="mt-4 max-w-2xl rounded-md border border-[var(--border)] bg-[var(--surface-sunken)] p-3">
+            <div className="mt-4 max-w-2xl rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-sunken)] p-3">
               <p className="mb-2 text-sm font-medium text-[var(--ink)]">
                 Propose a change to this mapping
               </p>

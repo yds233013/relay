@@ -10,6 +10,7 @@ import { ApiError, apiGet, apiSend, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
 import { proposeColumnMapping } from "../../../governance-actions";
+import { TD, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -85,24 +86,24 @@ export default async function ColumnMappingPage(
       />
       <Notice error={param(query.error) ?? previewError} notice={param(query.notice)} />
       <Section title="Canonical fields and suggestions">
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full border-collapse text-left text-sm">
             <caption className="sr-only">Canonical fields</caption>
             <thead>
-              <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                <th scope="col" className="px-2 py-1.5">
+              <tr className="border-b border-[var(--border)] text-xs uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                <th scope="col" className={TD}>
                   Field
                 </th>
-                <th scope="col" className="px-2 py-1.5">
+                <th scope="col" className={TD}>
                   Required
                 </th>
-                <th scope="col" className="px-2 py-1.5">
+                <th scope="col" className={TD}>
                   Approved source
                 </th>
-                <th scope="col" className="px-2 py-1.5">
+                <th scope="col" className={TD}>
                   Suggested source
                 </th>
-                <th scope="col" className="px-2 py-1.5">
+                <th scope="col" className={TD}>
                   Notes
                 </th>
               </tr>
@@ -119,11 +120,11 @@ export default async function ColumnMappingPage(
                         : "constant"
                     : "—";
                 return (
-                  <tr key={field.field} className="border-b border-[var(--border)]/60 align-top">
+                  <tr key={field.field} className={TR}>
                     <td className="px-2 py-1.5 font-mono text-xs">{field.field}</td>
-                    <td className="px-2 py-1.5">{field.required ? "required" : "optional"}</td>
-                    <td className="px-2 py-1.5">{source(current?.specification)}</td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>{field.required ? "required" : "optional"}</td>
+                    <td className={TD}>{source(current?.specification)}</td>
+                    <td className={TD}>
                       {source(field.specification)}
                       {field.basis ? (
                         <span className="ml-1 text-xs text-[var(--ink-muted)]">
@@ -158,11 +159,11 @@ export default async function ColumnMappingPage(
               Missing required fields: {preview.missing_required_fields.join(", ") || "none"}.
               Unknown fields: {preview.unknown_fields.join(", ") || "none"}.
             </p>
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto" tabIndex={0}>
               <table className="w-full border-collapse text-left text-xs" data-testid="preview">
                 <caption className="sr-only">Preview</caption>
                 <thead>
-                  <tr className="border-b border-[var(--border)] uppercase tracking-wide text-[var(--ink-muted)]">
+                  <tr className="border-b border-[var(--border)] uppercase tracking-[0.06em] text-[var(--ink-muted)]">
                     <th scope="col" className="px-2 py-1">
                       Row
                     </th>
@@ -175,10 +176,7 @@ export default async function ColumnMappingPage(
                 </thead>
                 <tbody>
                   {preview.rows.map((row) => (
-                    <tr
-                      key={row.row_number}
-                      className="border-b border-[var(--border)]/60 align-top"
-                    >
+                    <tr key={row.row_number} className={TR}>
                       <td className="px-2 py-1">
                         {row.row_number}
                         {row.excluded ? <StatusChip status="excluded" /> : null}

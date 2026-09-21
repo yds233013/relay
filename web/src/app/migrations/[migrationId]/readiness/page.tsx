@@ -18,6 +18,17 @@ import { proposeSignoff, proposeWaiver } from "../workflow-actions";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Gate states in the words an operator uses. "Fail" is the engine's word for a condition that is
+ * not met; on this screen the question is what has to happen next, so it says so.
+ */
+const GATE_WORD: Record<string, string> = {
+  pass: "passing",
+  fail: "needs resolution",
+  waived: "waived",
+  not_applicable: "not evaluated",
+};
+
 export default async function ReadinessPage(
   props: PageProps<"/migrations/[migrationId]/readiness">,
 ) {
@@ -33,7 +44,7 @@ export default async function ReadinessPage(
   const signedOff = readiness.signoffs.some((s) => s.status === "active");
   const categories = groupGates(readiness.gates);
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-[1100px]">
       <PageHeader
         title="Can this customer go live?"
         description={
@@ -131,16 +142,16 @@ export default async function ReadinessPage(
             <a
               key={category.id}
               href={`#${category.id}`}
-              className={`rounded border px-3 py-2 no-underline ${
+              className={`block rounded-[var(--radius-card)] border bg-[var(--surface-raised)] px-3.5 py-3 no-underline shadow-[var(--shadow-card)] transition-colors hover:bg-[var(--surface-sunken)] ${
                 category.status === "fail"
-                  ? "border-[var(--critical)]/40 bg-[var(--critical-soft)]"
+                  ? "border-[var(--critical)]/40"
                   : category.status === "waived"
-                    ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
-                    : "border-[var(--positive)]/40 bg-[var(--positive-soft)]"
+                    ? "border-[var(--accent)]/40"
+                    : "border-[var(--positive)]/40"
               }`}
             >
               <span className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-[var(--ink)]">{category.title}</span>
+                <span className="text-sm font-semibold text-[var(--ink)]">{category.title}</span>
                 <span
                   className={`text-xs font-semibold ${
                     category.status === "fail"
@@ -151,13 +162,13 @@ export default async function ReadinessPage(
                   }`}
                 >
                   {category.status === "fail"
-                    ? `${category.failing.length} failing`
+                    ? `${category.failing.length} to resolve`
                     : category.status === "waived"
                       ? "waived"
                       : "clear"}
                 </span>
               </span>
-              <span className="mt-0.5 block text-xs text-[var(--ink-muted)]">
+              <span className="mt-1 block text-xs leading-relaxed text-[var(--ink-muted)]">
                 {category.question}
               </span>
             </a>
@@ -167,8 +178,8 @@ export default async function ReadinessPage(
 
       {categories.map((category) => (
         <section key={category.id} id={category.id} className="mb-6 scroll-mt-4">
-          <div className="mb-2 border-b border-[var(--border)] pb-1">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--ink)]">
+          <div className="mb-2.5">
+            <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold tracking-tight text-[var(--ink)]">
               <span
                 aria-hidden="true"
                 className={
@@ -182,13 +193,13 @@ export default async function ReadinessPage(
                 {category.status === "fail" ? "✕" : category.status === "waived" ? "~" : "✓"}
               </span>
               {category.title}
-              <span className="text-xs font-normal text-[var(--ink-subtle)]">
-                {category.members.map((gate) => gate.gate_id).join(", ")}
+              <span className="font-mono text-[11px] font-normal text-[var(--ink-subtle)]">
+                {category.members.map((gate) => gate.gate_id).join(" · ")}
               </span>
             </h2>
-            <p className="text-sm text-[var(--ink-muted)]">{category.question}</p>
+            <p className="mt-0.5 text-sm text-[var(--ink-muted)]">{category.question}</p>
           </div>
-          <ol className="space-y-3">
+          <ol className="divide-y divide-[var(--border)] overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-raised)] shadow-[var(--shadow-card)]">
             {category.members.map((gate) => {
               const waiver = readiness.waivers.find(
                 (w) => w.gate_id === gate.gate_id && w.status === "active",
@@ -197,29 +208,33 @@ export default async function ReadinessPage(
                 <li
                   key={gate.gate_id}
                   id={gate.gate_id}
-                  className={`scroll-mt-4 rounded-md border bg-[var(--surface-raised)] p-3 text-sm ${
-                    gate.status === "fail"
-                      ? "border-[var(--border)] border-l-4 border-l-[var(--critical)]"
-                      : "border-[var(--border)]"
+                  className={`scroll-mt-4 p-4 text-sm ${
+                    gate.status === "fail" ? "border-l-[3px] border-l-[var(--critical)]" : ""
                   }`}
                   data-gate={gate.gate_id}
                 >
                   <p className="flex flex-wrap items-center gap-2">
-                    <StatusChip status={gate.status} label={`${gate.gate_id} ${gate.status}`} />
-                    <span className="font-medium text-[var(--ink)]">{gate.title}</span>
+                    <span className="font-semibold text-[var(--ink)]">{gate.title}</span>
+                    <StatusChip
+                      status={gate.status}
+                      label={GATE_WORD[gate.status] ?? gate.status}
+                    />
                     {gate.waivable ? (
                       <span
-                        className="rounded border border-[var(--border)] px-1 text-[10px] uppercase tracking-wide text-[var(--ink-subtle)]"
+                        className="rounded-full bg-[var(--surface-sunken)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]"
                         title="This gate can be waived for a named scope, with lead and controller approval."
                       >
                         waivable
                       </span>
                     ) : null}
+                    <span className="ml-auto font-mono text-[11px] text-[var(--ink-subtle)]">
+                      {gate.gate_id}
+                    </span>
                   </p>
-                  <p className="mt-0.5 text-[var(--ink-muted)]">{gate.summary}</p>
-                  <p className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1">
+                  <p className="mt-1 leading-relaxed text-[var(--ink-muted)]">{gate.summary}</p>
+                  <p className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
                     <span>
-                      <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                      <span className="text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                         Observed{" "}
                       </span>
                       <span
@@ -233,7 +248,7 @@ export default async function ReadinessPage(
                       </span>
                     </span>
                     <span>
-                      <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                      <span className="text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                         Threshold{" "}
                       </span>
                       <span className="text-[var(--ink-muted)]">{gate.threshold}</span>
@@ -253,7 +268,7 @@ export default async function ReadinessPage(
                   ) : null}
                   {gate.evidence_links.length > 0 ? (
                     <details className="mt-2">
-                      <summary className="cursor-pointer text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                      <summary className="text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                         Evidence ({gate.evidence_links.length})
                       </summary>
                       <ul className="mt-1 space-y-0.5 border-l-2 border-[var(--border)] pl-3">
@@ -269,8 +284,8 @@ export default async function ReadinessPage(
                   gate.waivable &&
                   gate.scope &&
                   readiness.run_is_current ? (
-                    <details className="mt-2 rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2">
-                      <summary className="cursor-pointer font-medium">Propose a waiver</summary>
+                    <details className="mt-3 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-sunken)] p-3">
+                      <summary className="font-medium">Propose a waiver</summary>
                       {isPublicDemo() ? (
                         <DemoUnavailable what="A waiver covers exactly the items failing now, needs a written reason and two approvals, and lapses as soon as a new one appears." />
                       ) : (
@@ -307,7 +322,7 @@ export default async function ReadinessPage(
             <Panel className="divide-y divide-[var(--border)]">
               <ul data-testid="waivers">
                 {readiness.waivers.map((w) => (
-                  <li key={w.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+                  <li key={w.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5 text-sm">
                     <StatusChip status={w.status} />
                     <span className="font-medium">{w.gate_id}</span>
                     <span className="text-[var(--ink-muted)]">{w.reason}</span>

@@ -52,7 +52,7 @@ export async function InvestigateAction({
     return (
       <Link
         href={`${base}/investigations/${state.id}`}
-        className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium no-underline ${style?.className ?? ""}`}
+        className={`inline-flex items-center gap-1 rounded-[var(--radius-control)] border px-2 py-1 text-xs font-medium no-underline ${style?.className ?? ""}`}
       >
         {style?.label ?? "Investigation"}
         {state.status === "succeeded" && typeof state.finding_count === "number"

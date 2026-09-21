@@ -3,13 +3,14 @@ import Link from "next/link";
 import { BusinessDate } from "@/components/dates";
 import { Money } from "@/components/money";
 import { PageHeader, Section } from "@/components/page-header";
-import { Callout, MetricCard, Panel, ProvenanceBadge } from "@/components/ui";
+import { Callout, MetricTile, Panel, ProvenanceBadge } from "@/components/ui";
 import { reconciliationGloss } from "@/components/reconciliation-glossary";
 import { RecordRef } from "@/components/record-ref";
 import { SourceLocation } from "@/components/source-location";
 import { StatusChip } from "@/components/status-chip";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize } from "@/lib/format";
+import { TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -45,19 +46,19 @@ function RecordsTable({
 }) {
   if (records.length === 0) {
     return (
-      <p className="mb-2 rounded border border-dashed border-[var(--border)] px-3 py-2 text-sm text-[var(--ink-muted)]">
+      <p className="mb-2 rounded-[var(--radius-control)] border border-dashed border-[var(--border)] px-3 py-2 text-sm text-[var(--ink-muted)]">
         {caption}: none.
       </p>
     );
   }
   return (
-    <div className="mb-3 overflow-x-auto" tabIndex={0}>
+    <div className="relative mb-3 overflow-x-auto" tabIndex={0}>
       <table className="w-full border-collapse text-left text-sm">
-        <caption className="mb-1 text-left text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
+        <caption className="mb-1 text-left text-xs font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
           {caption}
         </caption>
         <thead>
-          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
             <th scope="col" className="px-2 py-1">
               Record Relay staged
             </th>
@@ -77,10 +78,7 @@ function RecordsTable({
         </thead>
         <tbody>
           {records.map((record) => (
-            <tr
-              key={record.natural_key}
-              className="border-b border-[var(--border)]/60 last:border-0"
-            >
+            <tr key={record.natural_key} className={TR}>
               <th scope="row" className="px-2 py-1 font-normal">
                 <RecordRef
                   migrationId={migrationId}
@@ -142,7 +140,7 @@ export default async function DrilldownPage(
   const tableProps = { migrationId, runId: d.run_id, currency: d.currency };
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title={`${d.recon_id} drill-down: ${grain}`}
         breadcrumbs={[
@@ -195,7 +193,7 @@ export default async function DrilldownPage(
               ],
             ] as const
           ).map(([label, value, tone, hint, emphasis]) => (
-            <MetricCard
+            <MetricTile
               key={label}
               label={label}
               tone={tone}
@@ -234,7 +232,7 @@ export default async function DrilldownPage(
             {d.documents.map((document) => (
               <li
                 key={document.document}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] p-3 transition-colors hover:border-[var(--border-strong)]"
+                className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 transition-colors hover:border-[var(--border-strong)]"
                 data-document={document.document}
               >
                 <p className="flex flex-wrap items-center gap-2 text-sm">
@@ -248,7 +246,7 @@ export default async function DrilldownPage(
                 ) : null}
                 <dl className="mt-2 mb-3 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
                   <div>
-                    <dt className="inline text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                    <dt className="inline text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                       Left{" "}
                     </dt>
                     <dd className="inline font-medium">
@@ -256,7 +254,7 @@ export default async function DrilldownPage(
                     </dd>
                   </div>
                   <div>
-                    <dt className="inline text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                    <dt className="inline text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                       Right{" "}
                     </dt>
                     <dd className="inline font-medium">
@@ -264,7 +262,7 @@ export default async function DrilldownPage(
                     </dd>
                   </div>
                   <div>
-                    <dt className="inline text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                    <dt className="inline text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                       Difference{" "}
                     </dt>
                     <dd className="inline font-medium">
@@ -330,7 +328,7 @@ export default async function DrilldownPage(
             {d.items.map((item, index) => (
               <li
                 key={`${item.classification}-${index}`}
-                className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm"
+                className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm"
               >
                 <p>
                   <span className="font-medium">{humanize(item.classification)}</span>{" "}

@@ -12,11 +12,11 @@ export const dynamic = "force-dynamic";
 /** Strength is a gate fact, not a colour: strong pairs block G10, possible ones do not. */
 function Strength({ strong }: { strong: boolean }) {
   return strong ? (
-    <span className="inline-flex items-center whitespace-nowrap rounded border border-[var(--warning)]/40 bg-[var(--warning-soft)] px-1.5 py-0.5 text-xs font-medium text-[var(--warning)]">
+    <span className="inline-flex items-center whitespace-nowrap rounded-[var(--radius-control)] border border-[var(--warning)]/40 bg-[var(--warning-soft)] px-1.5 py-0.5 text-xs font-medium text-[var(--warning)]">
       strong
     </span>
   ) : (
-    <span className="inline-flex items-center whitespace-nowrap rounded border border-[var(--border-strong)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-xs font-medium text-[var(--ink-muted)]">
+    <span className="inline-flex items-center whitespace-nowrap rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-xs font-medium text-[var(--ink-muted)]">
       possible
     </span>
   );
@@ -29,7 +29,7 @@ export default async function EntitiesPage(props: PageProps<"/migrations/[migrat
     apiGet<Schemas["EntityDecisionOut"][]>(`/api/v1/migrations/${migrationId}/entity-decisions`),
   ]);
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title="Duplicate parties"
         description="Possible duplicate customers and vendors from the latest run. Nothing is merged without an approved decision."
@@ -38,7 +38,7 @@ export default async function EntitiesPage(props: PageProps<"/migrations/[migrat
         title="Candidate pairs"
         description="A strong candidate blocks gate G10 until someone decides it; a possible candidate is shown for review and does not block go-live."
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <DataTable
             caption={`${candidates.length} candidate pairs`}
             rows={candidates}
@@ -71,7 +71,7 @@ export default async function EntitiesPage(props: PageProps<"/migrations/[migrat
         title="Decisions"
         description="Applied through approved change requests. Revert one on the Overrides page."
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <DataTable
             caption={`${decisions.length} decisions`}
             rows={decisions}

@@ -29,7 +29,7 @@ export function PurposeBadge({ purpose }: { purpose: string }) {
   const hint = PURPOSE[purpose];
   return (
     <span
-      className="inline-flex items-center rounded border border-[var(--border)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-muted)]"
+      className="inline-flex items-center rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]"
       title={hint}
     >
       {purpose}

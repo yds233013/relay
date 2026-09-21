@@ -45,3 +45,29 @@ export function humanize(value: string): string {
 export function param(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
+
+export interface TitleParts {
+  /** The sentence a person reads. */
+  readonly headline: string;
+  /** The identifiers it is about, if the title ends in exactly them. */
+  readonly subject: string | null;
+}
+
+/**
+ * Split a finding's title into the sentence and the identifiers appended to it.
+ *
+ * The API composes a title as `<sentence>: <subjects joined by ", ">`, and the same payload
+ * carries those subjects as their own field — so this is an exact structural match against the
+ * response, never a guess at what an identifier looks like. When the tail is not exactly the
+ * subjects, the title is left whole rather than cut somewhere arbitrary.
+ */
+export function splitTitle(title: string, subjects: readonly string[]): TitleParts {
+  if (subjects.length === 0) {
+    return { headline: title, subject: null };
+  }
+  const tail = `: ${subjects.join(", ")}`;
+  if (!title.endsWith(tail) || title.length === tail.length) {
+    return { headline: title, subject: null };
+  }
+  return { headline: title.slice(0, -tail.length), subject: subjects.join(", ") };
+}

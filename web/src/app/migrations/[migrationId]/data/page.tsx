@@ -3,9 +3,10 @@ import Link from "next/link";
 import { BusinessDate } from "@/components/dates";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
-import { EmptyState, MetricCard, Panel, Section } from "@/components/ui";
+import { EmptyState, MetricTile, Panel, Section } from "@/components/ui";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize } from "@/lib/format";
+import { TH, THEAD_ROW } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function DataPage(props: PageProps<"/migrations/[migrationI
   );
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title="Imported data"
         description="Every dataset, the import a run currently reads from it, and the rows that could not be read. Imported rows are kept exactly as exported and are never edited."
@@ -43,18 +44,18 @@ export default async function DataPage(props: PageProps<"/migrations/[migrationI
       ) : (
         <>
           <dl className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MetricCard
+            <MetricTile
               label="Datasets"
               value={datasets.length}
               hint="One per exported file the migration depends on"
             />
-            <MetricCard
+            <MetricTile
               label="Without an active import"
               value={withoutImport}
               hint="A run cannot read these yet"
               tone={withoutImport > 0 ? "warning" : "neutral"}
             />
-            <MetricCard
+            <MetricTile
               label="Quarantined rows"
               value={quarantined}
               hint="Rows the reader could not parse, across active imports"
@@ -66,21 +67,21 @@ export default async function DataPage(props: PageProps<"/migrations/[migrationI
             title="Datasets"
             description="Quarantined rows never reach the canonical model, so anything counted here is missing from the results below."
           >
-            <Panel className="overflow-x-auto">
+            <Panel className="relative overflow-x-auto" tabIndex={0}>
               <table className="w-full border-collapse text-left text-sm">
                 <caption className="sr-only">Datasets</caption>
                 <thead>
-                  <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                    <th scope="col" className="px-3 py-2 font-medium">
+                  <tr className={THEAD_ROW}>
+                    <th scope="col" className={TH}>
                       Dataset
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Type
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       As of
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Active import
                     </th>
                     <th scope="col" className="px-3 py-2 text-right font-medium">

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { ApiError, apiGet, buildPath, type Schemas } from "@/lib/api/client";
 import { param } from "@/lib/format";
+import { TH, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export default async function ImportPage(
   const firstRow = rows.items[0]?.row_number;
   const lastRow = rows.items[rows.items.length - 1]?.row_number;
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         breadcrumbs={[
           { label: "Data", href: `/migrations/${migrationId}/data` },
@@ -59,7 +60,7 @@ export default async function ImportPage(
         <StatusChip status={record.status} />
       </PageHeader>
 
-      <Panel className="mb-5 p-3">
+      <Panel className="mb-5 p-4">
         <MetaList
           columns={4}
           items={[
@@ -96,11 +97,11 @@ export default async function ImportPage(
             <table className="w-full border-collapse text-left text-xs" data-testid="source-rows">
               <caption className="sr-only">Raw rows as read</caption>
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] uppercase tracking-wide text-[var(--ink-muted)]">
-                  <th scope="col" className="px-2 py-1.5 font-medium">
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                  <th scope="col" className={TH}>
                     Row
                   </th>
-                  <th scope="col" className="px-2 py-1.5 font-medium">
+                  <th scope="col" className={TH}>
                     Lines
                   </th>
                   {header.map((column) => (
@@ -198,7 +199,7 @@ export default async function ImportPage(
                       field counts {row.field_counts.join(", ")}
                     </span>
                   </p>
-                  <pre className="mt-2 overflow-x-auto rounded border border-[var(--border)] bg-white p-2 text-xs whitespace-pre-wrap">
+                  <pre className="mt-2 overflow-x-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-white p-2 text-xs whitespace-pre-wrap">
                     {row.raw_text}
                   </pre>
                 </div>
@@ -215,11 +216,11 @@ export default async function ImportPage(
         {columns.length === 0 ? (
           <EmptyState title="No profile" hint="Profiles are written once an import parses." />
         ) : (
-          <Panel className="overflow-x-auto">
+          <Panel className="relative overflow-x-auto" tabIndex={0}>
             <table className="w-full border-collapse text-left text-xs">
               <caption className="sr-only">Column profile</caption>
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] uppercase tracking-wide text-[var(--ink-muted)]">
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] uppercase tracking-[0.06em] text-[var(--ink-muted)]">
                   <th scope="col" className="px-3 py-1.5 font-medium">
                     Column
                   </th>
@@ -242,10 +243,7 @@ export default async function ImportPage(
               </thead>
               <tbody>
                 {columns.map((column) => (
-                  <tr
-                    key={column.name}
-                    className="border-b border-[var(--border)]/60 last:border-0"
-                  >
+                  <tr key={column.name} className={TR}>
                     <th scope="row" className="px-3 py-1.5 font-mono font-normal">
                       {column.name}
                     </th>

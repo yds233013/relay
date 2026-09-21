@@ -10,6 +10,7 @@ import { isPublicDemo } from "@/lib/demo";
 import { humanize, param } from "@/lib/format";
 
 import { proposePolicyChange } from "../workflow-actions";
+import { TD, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -48,18 +49,18 @@ export default async function SettingsPage(props: PageProps<"/migrations/[migrat
         <table className="w-full border-collapse text-left text-sm" data-testid="policy">
           <caption className="sr-only">Policy values</caption>
           <thead>
-            <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-              <th scope="col" className="px-2 py-1.5">
+            <tr className="border-b border-[var(--border)] text-xs uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+              <th scope="col" className={TD}>
                 Setting
               </th>
-              <th scope="col" className="px-2 py-1.5">
+              <th scope="col" className={TD}>
                 Value
               </th>
             </tr>
           </thead>
           <tbody>
             {scalar.map(([key, value]) => (
-              <tr key={key} className="border-b border-[var(--border)]/60">
+              <tr key={key} className={TR}>
                 <th scope="row" className="px-2 py-1.5 font-normal">
                   {humanize(key)}
                 </th>
@@ -79,7 +80,7 @@ export default async function SettingsPage(props: PageProps<"/migrations/[migrat
               <span className="text-xs font-medium text-[var(--ink-muted)]">Setting</span>
               <select
                 name="key"
-                className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+                className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 py-1"
               >
                 {scalar.map(([key]) => (
                   <option key={key} value={key}>

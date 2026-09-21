@@ -9,6 +9,7 @@ import { InvestigateAction } from "@/components/investigate-action";
 import { actionHref, WorkItemCard, type WorkItem } from "@/components/work-item";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { param } from "@/lib/format";
+import { TABLE, TABLE_SCROLL, TD, TH, TH_RIGHT, THEAD_ROW, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -96,21 +97,21 @@ function CompactRows({
   caption: string;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-sm">
+    <div className={TABLE_SCROLL} tabIndex={0}>
+      <table className={TABLE}>
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-            <th scope="col" className="px-2 py-1.5 font-medium">
+          <tr className={THEAD_ROW}>
+            <th scope="col" className={TH}>
               Decision
             </th>
-            <th scope="col" className="px-2 py-1.5 text-right font-medium">
+            <th scope="col" className={TH_RIGHT}>
               Amount
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Investigation
             </th>
-            <th scope="col" className="px-2 py-1.5 text-right font-medium">
+            <th scope="col" className={TH_RIGHT}>
               Next action
             </th>
           </tr>
@@ -120,30 +121,37 @@ function CompactRows({
             <tr
               key={item.key}
               data-work-kind={item.kind}
-              className="border-b border-[var(--border)]/60 align-top hover:bg-[var(--surface-sunken)]"
+              // No row tint here: these rows already sit under a heading that says what they
+              // block, and sixteen tinted rows in a row is a wall rather than a signal.
+              className={TR}
             >
-              <th scope="row" className="px-2 py-2 text-left font-normal">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded border border-[var(--border-strong)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
+              <th scope="row" className={`${TD} text-left font-normal`}>
+                <span className="block font-semibold text-[var(--ink)]">{item.title}</span>
+                <span className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-[var(--surface-sunken)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
                     {kindLabel(item.kind)}
                   </span>
                   {item.blocks.length > 0 ? (
-                    <span className="inline-flex items-center rounded border border-[var(--critical)]/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--critical)]">
-                      Blocks {item.blocks.join(", ")}
+                    <span className="inline-flex items-center rounded-full bg-[var(--critical-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--critical)]">
+                      Blocks go-live
                     </span>
                   ) : null}
                   {item.count > 1 ? (
-                    <span className="text-[11px] text-[var(--ink-subtle)] tabular-nums">
+                    <span className="text-[11px] tabular-nums text-[var(--ink-subtle)]">
                       {item.count} findings
                     </span>
                   ) : null}
+                  {item.blocks.length > 0 ? (
+                    <span className="font-mono text-[11px] text-[var(--ink-subtle)]">
+                      {item.blocks.join(" · ")}
+                    </span>
+                  ) : null}
                 </span>
-                <span className="mt-0.5 block font-medium text-[var(--ink)]">{item.title}</span>
               </th>
-              <td className="px-2 py-2 text-right">
+              <td className={`${TD} text-right font-medium tabular-nums`}>
                 <Money value={item.amount} currency={item.currency} />
               </td>
-              <td className="px-2 py-2">
+              <td className={TD}>
                 <InvestigateAction
                   item={item}
                   base={base}
@@ -151,7 +159,7 @@ function CompactRows({
                   returnTo={`${base}/work`}
                 />
               </td>
-              <td className="px-2 py-2 text-right">
+              <td className={`${TD} text-right`}>
                 <Link
                   href={actionHref(base, item, runId)}
                   className={`${BUTTON_STYLES.secondary} whitespace-nowrap no-underline`}
@@ -222,7 +230,7 @@ function Group({
         ))}
       </div>
       {tail.length > 0 ? (
-        <Panel className="mt-3 px-2 py-1">
+        <Panel className={`mt-3 ${TABLE_SCROLL}`} tabIndex={0}>
           <CompactRows
             items={tail}
             base={base}
@@ -291,7 +299,7 @@ export default async function WorkQueuePage(props: PageProps<"/migrations/[migra
   const rest = visible.filter((item) => item.kind !== "approval" && item.blocks.length === 0);
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-[1200px]">
       <PageHeader
         title="Work queue"
         description="Everything the automatic checks could not settle on their own, most consequential first."
@@ -338,8 +346,8 @@ export default async function WorkQueuePage(props: PageProps<"/migrations/[migra
       ) : (
         <>
           {/* Narrowing the queue, in the URL: every view here is linkable and survives a reload. */}
-          <Panel className="mb-4 p-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--ink-subtle)]">
+          <Panel className="mb-5 p-4">
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--ink-subtle)]">
               Narrow the queue
             </p>
             <FilterForm>
@@ -368,7 +376,7 @@ export default async function WorkQueuePage(props: PageProps<"/migrations/[migra
               />
               <TextField name="q" label="Text in title or summary" defaultValue={filters.q} />
             </FilterForm>
-            <p className="border-t border-[var(--border)] pt-2 text-sm text-[var(--ink-muted)]">
+            <p className="border-t border-[var(--border)] pt-3 text-sm leading-relaxed text-[var(--ink-muted)]">
               {filtered ? (
                 <>
                   <span className="font-medium text-[var(--ink)]">
@@ -431,7 +439,7 @@ export default async function WorkQueuePage(props: PageProps<"/migrations/[migra
         migrationId={migrationId}
       />
 
-      <Panel className="px-3 py-2 text-sm text-[var(--ink-muted)]">
+      <Panel className="px-4 py-3 text-sm leading-relaxed text-[var(--ink-muted)]">
         Every item here is derived from the latest verification run. Resolving one does not tick it
         off by hand: the next run either stops reporting it or does not.{" "}
         <Link href={`${base}/issues`}>See the full finding list</Link> for the underlying detail.

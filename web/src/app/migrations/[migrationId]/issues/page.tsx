@@ -8,7 +8,7 @@ import { Notice } from "@/components/notice";
 import { StatusChip } from "@/components/status-chip";
 import { PageHeader, Panel, Section } from "@/components/ui";
 import { apiGet, buildPath, type Schemas } from "@/lib/api/client";
-import { humanize, param } from "@/lib/format";
+import { humanize, param, splitTitle } from "@/lib/format";
 
 import { createManualIssue } from "../workflow-actions";
 
@@ -16,7 +16,7 @@ const CATEGORIES = ["completeness", "mapping", "ledger_integrity", "subledger", 
   "master_data", "currency", "dates", "ai_safety", "other"] as const; // prettier-ignore
 
 const CONTROL =
-  "rounded border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--ink)]";
+  "rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--ink)]";
 
 function Choice({ name, options }: { name: string; options: readonly string[] }) {
   return (
@@ -60,7 +60,7 @@ export default async function IssuesPage(props: PageProps<"/migrations/[migratio
     filters.fingerprint ? "one finding fingerprint" : null,
   ].filter((entry): entry is string => entry !== null);
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title="Issues"
         description="Findings tracked across runs. Resolved only when a current run no longer reports them."
@@ -68,8 +68,8 @@ export default async function IssuesPage(props: PageProps<"/migrations/[migratio
       <Notice error={param(search.error)} notice={param(search.notice)} />
 
       {/* The filter bar reads as one control surface, and says plainly what it is showing. */}
-      <Panel className="mb-4 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--ink-subtle)]">
+      <Panel className="mb-4 p-4">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
           Filter
         </p>
         <FilterForm>
@@ -153,7 +153,25 @@ export default async function IssuesPage(props: PageProps<"/migrations/[migratio
             },
             { header: "Severity", cell: (i) => <StatusChip status={i.severity} /> },
             { header: "Status", cell: (i) => <StatusChip status={i.status} /> },
-            { header: "Title", cell: (i) => <span className="text-[var(--ink)]">{i.title}</span> },
+            {
+              header: "Finding",
+              // The sentence leads; the identifiers it names follow in the technical tier, so a
+              // reader scanning sixty-five rows reads sixty-five sentences rather than sixty-five
+              // record keys.
+              cell: (i) => {
+                const { headline, subject } = splitTitle(i.title, i.subjects);
+                return (
+                  <>
+                    <span className="text-[var(--ink)]">{headline}</span>
+                    {subject ? (
+                      <span className="mt-0.5 block font-mono text-[11px] text-[var(--ink-subtle)]">
+                        {subject}
+                      </span>
+                    ) : null}
+                  </>
+                );
+              },
+            },
             {
               header: "Nature",
               cell: (i) => (
@@ -187,7 +205,7 @@ export default async function IssuesPage(props: PageProps<"/migrations/[migratio
         title="Manual issue"
         description="For a problem the rules do not catch. It follows the same workflow, but no run can resolve it."
       >
-        <details className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)]">
+        <details className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-raised)]">
           <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-[var(--ink)]">
             Raise a manual issue
           </summary>

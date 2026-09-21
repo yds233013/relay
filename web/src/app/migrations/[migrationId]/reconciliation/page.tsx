@@ -10,6 +10,7 @@ import { StatusChip } from "@/components/status-chip";
 import { Callout, Panel } from "@/components/ui";
 import { apiGet, buildPath, type Schemas } from "@/lib/api/client";
 import { param } from "@/lib/format";
+import { ROW_TONE, TABLE, TABLE_SCROLL, TD, TH, TH_RIGHT, THEAD_ROW, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function ReconciliationPage(
     : null;
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1400px]">
       <PageHeader
         title="Reconciliation"
         description="Each control report against the detail Relay staged. Differences are left minus right."
@@ -60,24 +61,24 @@ export default async function ReconciliationPage(
           />
         }
       />
-      <Panel className="mb-5 overflow-x-auto">
-        <table className="w-full border-collapse text-left text-sm">
+      <Panel className={`mb-5 ${TABLE_SCROLL}`} tabIndex={0}>
+        <table className={TABLE}>
           <caption className="sr-only">Reconciliation results</caption>
           <thead>
-            <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-              <th scope="col" className="px-3 py-2 font-medium">
+            <tr className={THEAD_ROW}>
+              <th scope="col" className={TH}>
                 Control
               </th>
-              <th scope="col" className="px-3 py-2 font-medium">
+              <th scope="col" className={TH}>
                 Left side
               </th>
-              <th scope="col" className="px-3 py-2 font-medium">
+              <th scope="col" className={TH}>
                 Right side
               </th>
-              <th scope="col" className="px-3 py-2 font-medium">
+              <th scope="col" className={TH}>
                 Status
               </th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">
+              <th scope="col" className={TH_RIGHT}>
                 Lines differing
               </th>
             </tr>
@@ -86,33 +87,37 @@ export default async function ReconciliationPage(
             {results.map((result) => (
               <tr
                 key={result.id}
-                className={`border-b border-[var(--border)]/60 last:border-0 ${
+                className={`${TR} ${
                   result.id === selected
-                    ? "bg-[var(--accent-soft)] shadow-[inset_3px_0_0_var(--accent)]"
-                    : ""
+                    ? ROW_TONE.selected
+                    : result.status === "discrepancy"
+                      ? ROW_TONE.blocking
+                      : ""
                 }`}
               >
-                <td className="px-3 py-2">
+                <td className={TD}>
                   <Link
                     href={buildPath(`${base}/reconciliation`, { run: runId, result: result.id })}
-                    className="font-semibold"
+                    className="font-semibold text-[var(--ink)]"
                     aria-current={result.id === selected ? "true" : undefined}
                   >
+                    {result.title}
+                  </Link>
+                  <span className="mt-0.5 block font-mono text-[11px] text-[var(--ink-subtle)]">
                     {result.recon_id}
-                  </Link>{" "}
-                  <span className="text-[var(--ink)]">{result.title}</span>
+                  </span>
                 </td>
-                <td className="px-3 py-2 text-[var(--ink-muted)]">{result.left_label}</td>
-                <td className="px-3 py-2 text-[var(--ink-muted)]">{result.right_label}</td>
-                <td className="px-3 py-2">
+                <td className={`${TD} text-[var(--ink-muted)]`}>{result.left_label}</td>
+                <td className={`${TD} text-[var(--ink-muted)]`}>{result.right_label}</td>
+                <td className={TD}>
                   <StatusChip status={result.status} />
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums">
+                <td className={`${TD} text-right tabular-nums`}>
                   {result.discrepancy_count === 0 ? (
                     <span className="text-[var(--ink-subtle)]">0 of {result.line_count}</span>
                   ) : (
                     <>
-                      <span className="font-medium text-[var(--critical)]">
+                      <span className="text-base font-semibold text-[var(--critical)]">
                         {result.discrepancy_count}
                       </span>
                       <span className="text-[var(--ink-subtle)]"> of {result.line_count}</span>
@@ -125,18 +130,21 @@ export default async function ReconciliationPage(
         </table>
       </Panel>
       {selectedResult ? (
-        <Panel className="mb-4 p-3">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h2 className="text-base font-semibold text-[var(--ink)]">
-              {selectedResult.recon_id} {selectedResult.title}
+        <Panel emphasis className="mb-4 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold tracking-tight text-[var(--ink)]">
+              {selectedResult.title}
             </h2>
+            <span className="font-mono text-[11px] text-[var(--ink-subtle)]">
+              {selectedResult.recon_id}
+            </span>
             <PurposeBadge purpose={selectedResult.purpose} />
             <StatusChip status={selectedResult.status} />
           </div>
-          <p className="mt-1 max-w-4xl text-sm text-[var(--ink-muted)]">
+          <p className="mt-2 max-w-4xl text-sm leading-relaxed text-[var(--ink-muted)]">
             {reconciliationGloss(selectedResult.recon_id)}
           </p>
-          <p className="mt-1 text-xs text-[var(--ink-subtle)]">
+          <p className="mt-2 text-xs text-[var(--ink-subtle)]">
             Left: {selectedResult.left_label} · Right: {selectedResult.right_label} · tolerance{" "}
             <span className="tabular-nums">{selectedResult.tolerance}</span> ·{" "}
             {selectedResult.line_count - selectedResult.discrepancy_count} of{" "}
@@ -173,6 +181,7 @@ export default async function ReconciliationPage(
             caption={`Lines of ${results.find((r) => r.id === selected)?.recon_id ?? ""}`}
             rows={lines.items}
             rowKey={(line) => line.id}
+            rowTone={(line) => (line.status === "discrepancy" ? ROW_TONE.blocking : undefined)}
             nextHref={
               lines.next_cursor
                 ? buildPath(`${base}/reconciliation`, {

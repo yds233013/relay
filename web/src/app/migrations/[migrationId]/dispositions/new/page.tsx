@@ -11,6 +11,7 @@ import { ApiError, apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
 import { proposeDisposition } from "../../workflow-actions";
+import { TD, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -69,21 +70,21 @@ export default async function NewDispositionPage(
         <input type="hidden" name="migrationId" value={migrationId} />
         <input type="hidden" name="returnTo" value={page} />
         <Section title={`Issues (${humanize(issue.rule_or_recon_id ?? issue.source)})`}>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto" tabIndex={0}>
             <table
               className="w-full border-collapse text-left text-sm"
               data-testid="disposition-issues"
             >
               <caption className="sr-only">Open issues with the same rule</caption>
               <thead>
-                <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                  <th scope="col" className="px-2 py-1.5">
+                <tr className="border-b border-[var(--border)] text-xs uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                  <th scope="col" className={TD}>
                     Include
                   </th>
-                  <th scope="col" className="px-2 py-1.5">
+                  <th scope="col" className={TD}>
                     Issue
                   </th>
-                  <th scope="col" className="px-2 py-1.5">
+                  <th scope="col" className={TD}>
                     Severity
                   </th>
                   <th scope="col" className="px-2 py-1.5 text-right">
@@ -93,8 +94,8 @@ export default async function NewDispositionPage(
               </thead>
               <tbody>
                 {candidates.map((item) => (
-                  <tr key={item.id} className="border-b border-[var(--border)]/60">
-                    <td className="px-2 py-1.5">
+                  <tr key={item.id} className={TR}>
+                    <td className={TD}>
                       <input
                         type="checkbox"
                         name="issueId"
@@ -103,10 +104,10 @@ export default async function NewDispositionPage(
                         aria-label={`Include ${item.key}`}
                       />
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       {item.key}: {item.title}
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className={TD}>
                       <StatusChip status={item.severity} />
                     </td>
                     <td className="px-2 py-1.5 text-right">
@@ -124,7 +125,7 @@ export default async function NewDispositionPage(
               <span className="text-xs font-medium text-[var(--ink-muted)]">Kind</span>
               <select
                 name="kind"
-                className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+                className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 py-1"
               >
                 {KINDS.map(([value, label]) => (
                   <option key={value} value={value}>
@@ -144,7 +145,7 @@ export default async function NewDispositionPage(
               <select
                 name="followUpOwner"
                 defaultValue=""
-                className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+                className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 py-1"
               >
                 <option value="">None</option>
                 {users.map((user) => (

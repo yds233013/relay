@@ -21,7 +21,7 @@ const DATASET_TYPES = [
 ] as const; // prettier-ignore
 
 const CONTROL =
-  "rounded border border-[var(--border-strong)] bg-white px-2 py-1 text-sm text-[var(--ink)]";
+  "rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 py-1 text-sm text-[var(--ink)]";
 
 function Select({
   name,
@@ -78,7 +78,7 @@ export default async function SetupPage(props: PageProps<"/migrations/[migration
                   className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--border)]/60 px-3 py-2 last:border-0"
                 >
                   <span className="font-medium text-[var(--ink)]">{s.name}</span>
-                  <span className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                  <span className="text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                     {humanize(s.kind)}
                   </span>
                 </li>
@@ -163,7 +163,7 @@ export default async function SetupPage(props: PageProps<"/migrations/[migration
                       >
                         {d.name}
                       </Link>
-                      <span className="ml-2 text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+                      <span className="ml-2 text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                         {humanize(d.dataset_type)}
                       </span>
                     </span>
@@ -200,7 +200,7 @@ export default async function SetupPage(props: PageProps<"/migrations/[migration
         title="Stage 3 · Run"
         description="A run reads the active import of every dataset through its approved mapping, then validates and reconciles the result."
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <Callout>
             Nothing here is destructive: a run recomputes results from the current inputs and leaves
             the imported rows untouched.

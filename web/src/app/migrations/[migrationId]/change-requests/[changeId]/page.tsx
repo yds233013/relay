@@ -12,6 +12,7 @@ import { StatusChip } from "@/components/status-chip";
 import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
+import { TABLE, TD, TH, THEAD_ROW, TR } from "@/components/table";
 
 import {
   reviewChangeRequest,
@@ -184,17 +185,17 @@ function Lifecycle({ steps }: { steps: readonly Step[] }) {
         const mark = STEP_MARK[step.state];
         return (
           <li key={step.name} aria-current={step.state === "current" ? "step" : undefined}>
-            <Panel tone={mark.tone} className="h-full p-3">
+            <Panel tone={mark.tone} className="h-full p-3.5">
               <p
-                className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide ${mark.ink}`}
+                className={`flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${mark.ink}`}
               >
                 <span aria-hidden="true">{mark.icon}</span>
                 {mark.label}
               </p>
-              <p className="mt-1 text-sm font-medium text-[var(--ink)]">
+              <p className="mt-1.5 text-sm font-semibold text-[var(--ink)]">
                 {index + 1}. {step.name}
               </p>
-              <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{step.detail}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--ink-muted)]">{step.detail}</p>
             </Panel>
           </li>
         );
@@ -209,54 +210,54 @@ function AccountMappingChanges({ detail }: { detail: Detail }) {
   const impact = (detail.impact ?? {}) as Json;
   const changes = (impact.changes ?? []) as Json[];
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-sm" data-testid="mapping-diff">
+    <div className="relative overflow-x-auto" tabIndex={0}>
+      <table className={`${TABLE} mb-1`} data-testid="mapping-diff">
         <caption className="mb-2 text-left text-sm text-[var(--ink)]">
           {str(impact.changed_count)} legacy accounts change
           {impact.changes_truncated ? " (first 500 shown)" : ""}.
         </caption>
         <thead>
-          <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-            <th scope="col" className="px-2 py-1.5 font-medium">
+          <tr className={THEAD_ROW}>
+            <th scope="col" className={TH}>
               Legacy account
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Before
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               After
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Compatibility of new target
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Rationale
             </th>
           </tr>
         </thead>
         <tbody>
           {changes.map((change) => (
-            <tr key={str(change.legacy)} className="border-b border-[var(--border)]/60 align-top">
-              <td className="px-2 py-1.5">
+            <tr key={str(change.legacy)} className={TR}>
+              <td className={TD}>
                 <span className="font-mono">{str(change.legacy)}</span> {str(change.legacy_name)}
                 <span className="block text-xs text-[var(--ink-muted)]">
                   {str(change.legacy_subtype)}
                 </span>
               </td>
-              <td className="px-2 py-1.5">
+              <td className={TD}>
                 <del className="font-mono">{str(change.before)}</del> {str(change.before_name)}
               </td>
-              <td className="px-2 py-1.5">
+              <td className={TD}>
                 <ins className="font-mono no-underline">{str(change.after)}</ins>{" "}
                 {str(change.after_name)}
                 <span className="block text-xs text-[var(--ink-muted)]">
                   {str(change.after_subtype)}
                 </span>
               </td>
-              <td className="px-2 py-1.5">
+              <td className={TD}>
                 <SignalChips signals={change.signals} />
               </td>
-              <td className="px-2 py-1.5">{str(change.rationale)}</td>
+              <td className={TD}>{str(change.rationale)}</td>
             </tr>
           ))}
         </tbody>
@@ -267,24 +268,24 @@ function AccountMappingChanges({ detail }: { detail: Detail }) {
 
 function BeforeAfter({ rows }: { rows: [string, unknown, unknown][] }) {
   return (
-    <table className="w-full border-collapse text-left text-sm" data-testid="before-after">
+    <table className={TABLE} data-testid="before-after">
       <caption className="sr-only">Before and after</caption>
       <thead>
-        <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-          <th scope="col" className="px-2 py-1.5 font-medium">
+        <tr className={THEAD_ROW}>
+          <th scope="col" className={TH}>
             Field
           </th>
-          <th scope="col" className="px-2 py-1.5 font-medium">
+          <th scope="col" className={TH}>
             Before
           </th>
-          <th scope="col" className="px-2 py-1.5 font-medium">
+          <th scope="col" className={TH}>
             After
           </th>
         </tr>
       </thead>
       <tbody>
         {rows.map(([label, before, after]) => (
-          <tr key={label} className="border-b border-[var(--border)]/60 align-top">
+          <tr key={label} className={TR}>
             <th scope="row" className="px-2 py-1.5 font-normal text-[var(--ink-muted)]">
               {label}
             </th>
@@ -428,7 +429,7 @@ export default async function ChangeRequestPage(
   const control = reviewControl(detail);
   const gloss = KIND_GLOSS[change.kind];
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title={`${change.key}: ${change.title}`}
         breadcrumbs={[
@@ -461,7 +462,7 @@ export default async function ChangeRequestPage(
       ) : null}
 
       {/* Who asked, and for what. Everything else on the page is evidence for this. */}
-      <Panel className="mb-6 p-3">
+      <Panel emphasis className="mb-6 p-4">
         <MetaList
           columns={4}
           items={[
@@ -497,7 +498,7 @@ export default async function ChangeRequestPage(
         title="Justification"
         description="The reason of record. It is written into the audit trail when the change is submitted, and cannot be edited afterwards."
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <p className="text-sm whitespace-pre-wrap">{change.justification || "—"}</p>
         </Panel>
       </Section>
@@ -506,7 +507,7 @@ export default async function ChangeRequestPage(
         description={gloss}
         actions={<ProvenanceBadge kind="derived" />}
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <Diff detail={detail} migrationId={migrationId} />
         </Panel>
       </Section>
@@ -552,7 +553,7 @@ export default async function ChangeRequestPage(
           </ul>
         ) : null}
         {detail.viewer.can_review ? (
-          <Panel className="p-3">
+          <Panel className="p-4">
             <p className="mb-2 max-w-xl text-sm text-[var(--ink-muted)]">
               Approving records your name against one requirement. When it is the last one
               outstanding, the change is applied in a single transaction and a fresh run is
@@ -578,7 +579,7 @@ export default async function ChangeRequestPage(
           </Panel>
         ) : (
           <div
-            className="max-w-3xl rounded border border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-2 text-sm"
+            className="max-w-3xl rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-2 text-sm"
             data-testid="review-unavailable"
           >
             <p className="font-medium text-[var(--ink)]">{control.title}</p>
@@ -589,7 +590,7 @@ export default async function ChangeRequestPage(
           </div>
         )}
         {detail.viewer.is_requester && change.status === "draft" ? (
-          <div className="mt-3 max-w-2xl rounded border border-[var(--accent)]/30 bg-[var(--accent-soft)] p-3">
+          <div className="mt-3 max-w-2xl rounded-[var(--radius-control)] border border-[var(--accent)]/30 bg-[var(--accent-soft)] p-3">
             <p className="text-sm font-medium text-[var(--ink)]">Submit this for approval</p>
             <p className="mt-1 text-sm text-[var(--ink-muted)]">
               A draft changes nothing. Write why this correction is right — it becomes the reason of
@@ -650,14 +651,25 @@ export default async function ChangeRequestPage(
         title="History"
         description="Every step above as it was written to the hash-chained audit log."
       >
-        <ol className="space-y-1 text-sm" data-testid="history">
-          {detail.history.map((event) => (
-            <li key={event.id}>
-              <LocalTime value={event.occurred_at} /> {humanize(event.action)}
-              {event.reason ? ` — ${event.reason}` : ""}
-            </li>
-          ))}
-        </ol>
+        <Panel>
+          <ol className="divide-y divide-[var(--border)] text-sm" data-testid="history">
+            {detail.history.map((event) => (
+              <li key={event.id} className="flex flex-col gap-1 px-4 py-2.5 sm:flex-row sm:gap-4">
+                <span className="shrink-0 text-xs tabular-nums text-[var(--ink-subtle)] sm:w-44">
+                  <LocalTime value={event.occurred_at} />
+                </span>
+                <span className="min-w-0">
+                  <span className="font-medium text-[var(--ink)]">{humanize(event.action)}</span>
+                  {event.reason ? (
+                    <span className="mt-0.5 block leading-relaxed text-[var(--ink-muted)]">
+                      {event.reason}
+                    </span>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </Panel>
       </Section>
     </div>
   );

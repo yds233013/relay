@@ -20,7 +20,7 @@ function DateField({ name, label }: { name: string; label: string }) {
         type="date"
         name={name}
         required
-        className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+        className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 py-1"
       />
     </label>
   );

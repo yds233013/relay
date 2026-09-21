@@ -51,7 +51,7 @@ export default async function SelectUserPage(props: PageProps<"/select-user">) {
               <input type="hidden" name="returnTo" value={returnTo} />
               <span className="min-w-0 text-sm">
                 <span className="font-medium text-[var(--ink)]">{user.display_name}</span>
-                <span className="block text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                <span className="block text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                   {humanize(user.role)}
                 </span>
                 <span className="block text-xs text-[var(--ink-muted)]">

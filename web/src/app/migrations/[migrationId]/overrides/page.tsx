@@ -11,6 +11,7 @@ import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
 import { proposeRevert } from "../governance-actions";
+import { TD, TH, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ function show(value: unknown): string {
 }
 
 const HEAD =
-  "border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]";
+  "border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-[0.06em] text-[var(--ink-subtle)]";
 
 export default async function OverridesPage(
   props: PageProps<"/migrations/[migrationId]/overrides">,
@@ -56,26 +57,26 @@ export default async function OverridesPage(
         description="One staged record corrected. The source line keeps its original text permanently; the override is applied on top of it each time the pipeline runs."
         actions={<ProvenanceBadge kind="canonical" />}
       >
-        <Panel className="overflow-x-auto">
+        <Panel className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full border-collapse text-left text-sm" data-testid="overrides">
             <caption className="mb-2 px-2 pt-2 text-left text-sm font-semibold text-[var(--ink)]">
               {overrides.length} record overrides
             </caption>
             <thead>
               <tr className={HEAD}>
-                <th scope="col" className="px-2 py-1.5 font-medium">
+                <th scope="col" className={TH}>
                   Record
                 </th>
-                <th scope="col" className="px-2 py-1.5 font-medium">
+                <th scope="col" className={TH}>
                   Correction applied
                 </th>
-                <th scope="col" className="px-2 py-1.5 font-medium">
+                <th scope="col" className={TH}>
                   Reason and authority
                 </th>
-                <th scope="col" className="px-2 py-1.5 font-medium">
+                <th scope="col" className={TH}>
                   Status
                 </th>
-                <th scope="col" className="px-2 py-1.5 font-medium">
+                <th scope="col" className={TH}>
                   Revert
                 </th>
               </tr>
@@ -90,8 +91,8 @@ export default async function OverridesPage(
                 </tr>
               ) : null}
               {overrides.map((o) => (
-                <tr key={o.id} className="border-b border-[var(--border)]/60 align-top">
-                  <td className="px-2 py-1.5">
+                <tr key={o.id} className={TR}>
+                  <td className={TD}>
                     <span className="font-mono text-xs">{o.natural_key}</span>
                     <span className="block text-xs text-[var(--ink-muted)]">
                       {humanize(o.target)} · applied <LocalTime value={o.created_at} />
@@ -102,7 +103,7 @@ export default async function OverridesPage(
                       ? `${o.field}: ${show(o.expected_current_value)} → ${show(o.new_value)}`
                       : "row repaired"}
                   </td>
-                  <td className="px-2 py-1.5">
+                  <td className={TD}>
                     {o.reason}{" "}
                     <span className="block text-xs text-[var(--ink-subtle)]">
                       authorised by{" "}
@@ -114,10 +115,10 @@ export default async function OverridesPage(
                       </Link>
                     </span>
                   </td>
-                  <td className="px-2 py-1.5">
+                  <td className={TD}>
                     <StatusChip status={o.status} />
                   </td>
-                  <td className="px-2 py-1.5">
+                  <td className={TD}>
                     {o.status === "active" ? (
                       <form action={proposeRevert} className="flex items-end gap-2">
                         <input type="hidden" name="migrationId" value={migrationId} />
@@ -233,23 +234,23 @@ function OverlayTable({
   rows: OverlayRow[];
 }) {
   return (
-    <Panel className="overflow-x-auto">
+    <Panel className="relative overflow-x-auto" tabIndex={0}>
       <table className="w-full border-collapse text-left text-sm" data-testid={testId}>
         <caption className="mb-2 px-2 pt-2 text-left text-sm font-semibold text-[var(--ink)]">
           {rows.length} {caption}
         </caption>
         <thead>
           <tr className={HEAD}>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Decision
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Reason and authority
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Status
             </th>
-            <th scope="col" className="px-2 py-1.5 font-medium">
+            <th scope="col" className={TH}>
               Revert
             </th>
           </tr>
@@ -264,14 +265,14 @@ function OverlayTable({
             </tr>
           ) : null}
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-[var(--border)]/60 align-top">
-              <td className="px-2 py-1.5">
+            <tr key={row.id} className={TR}>
+              <td className={TD}>
                 {row.description}
                 <span className="block text-xs text-[var(--ink-muted)]">
                   applied <LocalTime value={row.createdAt} />
                 </span>
               </td>
-              <td className="px-2 py-1.5">
+              <td className={TD}>
                 {row.reason}{" "}
                 <span className="block text-xs text-[var(--ink-subtle)]">
                   authorised by{" "}
@@ -283,10 +284,10 @@ function OverlayTable({
                   </Link>
                 </span>
               </td>
-              <td className="px-2 py-1.5">
+              <td className={TD}>
                 <StatusChip status={row.status} />
               </td>
-              <td className="px-2 py-1.5">
+              <td className={TD}>
                 {row.status === "active" ? (
                   <form action={proposeRevert} className="flex items-end gap-2">
                     <input type="hidden" name="migrationId" value={migrationId} />

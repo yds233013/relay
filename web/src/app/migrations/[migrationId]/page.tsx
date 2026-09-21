@@ -4,7 +4,7 @@ import { BusinessDate, Timestamp } from "@/components/dates";
 import { InvestigatePanel } from "@/components/investigate-panel";
 import { Money } from "@/components/money";
 import { StatusChip } from "@/components/status-chip";
-import { Callout, MetricCard, Panel, Section } from "@/components/ui";
+import { Callout, MetricTile, Panel, Section } from "@/components/ui";
 import { InvestigateAction } from "@/components/investigate-action";
 import { WorkItemCard } from "@/components/work-item";
 import { isPublicDemo } from "@/lib/demo";
@@ -96,14 +96,15 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
   const steps = lifecycle(data, failing);
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <h1 className="sr-only">
         {migration.company_name} — {migration.name}
       </h1>
 
-      {/* Can this customer go live? */}
+      {/* Can this customer go live? The one question the whole screen answers. */}
       <Panel
-        className={`mb-6 border-l-4 p-4 ${
+        emphasis
+        className={`mb-4 border-l-[3px] p-5 ${
           stale
             ? "border-l-[var(--warning)]"
             : ready
@@ -117,24 +118,32 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
           data-testid="readiness-banner"
         >
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
+            <p className="text-xs font-medium uppercase tracking-[0.08em] text-[var(--ink-subtle)]">
               {humanize(migration.status)} · books in {migration.functional_currency}
             </p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight text-[var(--ink)]">
+            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-[var(--ink)]">
               {migration.company_name}
             </p>
-            <p className="text-sm text-[var(--ink-muted)]">
+            <p className="mt-1 text-sm leading-relaxed text-[var(--ink-muted)]">
               {migration.name} · legacy history{" "}
               <BusinessDate value={migration.history_start_date} /> to cutover{" "}
               <BusinessDate value={migration.cutover_date} /> · target go-live{" "}
               <BusinessDate value={migration.go_live_date} />
             </p>
           </div>
-          <div className="text-right">
+          <div
+            className={`w-full shrink-0 rounded-[var(--radius-card)] px-4 py-3 sm:w-auto sm:min-w-[19rem] sm:text-right ${
+              stale
+                ? "bg-[var(--warning-soft)]"
+                : ready
+                  ? "bg-[var(--positive-soft)]"
+                  : "bg-[var(--critical-soft)]"
+            }`}
+          >
             {stale ? (
               <>
                 <StatusChip status="stale" label="RESULTS STALE" />
-                <p className="mt-2 max-w-xs text-sm text-[var(--ink-muted)]">
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-muted)] sm:max-w-xs">
                   The inputs changed after run #{data.run_sequence}. Re-run the checks to find out
                   where this stands.
                 </p>
@@ -142,14 +151,14 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
             ) : (
               <>
                 <p
-                  className={`text-2xl font-semibold tracking-tight ${
+                  className={`text-xl font-semibold uppercase tracking-tight ${
                     ready ? "text-[var(--positive)]" : "text-[var(--critical)]"
                   }`}
                 >
                   <span aria-hidden="true">{ready ? "✓ " : "✕ "}</span>
                   {ready ? "READY FOR GO-LIVE" : "NOT READY FOR GO-LIVE"}
                 </p>
-                <p className="mt-1 text-sm text-[var(--ink)]">
+                <p className="mt-1.5 text-sm text-[var(--ink)]">
                   {ready ? (
                     "Every readiness check passes on the current run."
                   ) : (
@@ -170,18 +179,18 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
             )}
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[var(--border)] pt-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-5 grid grid-cols-2 gap-2 border-t border-[var(--border)] pt-4 sm:grid-cols-3 lg:grid-cols-6">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`${base}/readiness#${category.id}`}
               title={category.question}
-              className={`rounded border px-2 py-1.5 no-underline ${
+              className={`rounded-[var(--radius-control)] border bg-[var(--surface)] px-2.5 py-2 no-underline transition-colors hover:bg-[var(--surface-sunken)] ${
                 category.status === "fail"
-                  ? "border-[var(--critical)]/40 bg-[var(--critical-soft)]"
+                  ? "border-[var(--critical)]/40"
                   : category.status === "waived"
-                    ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
-                    : "border-[var(--positive)]/40 bg-[var(--positive-soft)]"
+                    ? "border-[var(--accent)]/40"
+                    : "border-[var(--positive)]/40"
               }`}
             >
               <span className="flex items-center gap-1 text-xs font-medium text-[var(--ink)]">
@@ -199,7 +208,7 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
                 </span>
                 {category.title}
               </span>
-              <span className="mt-0.5 block text-[11px] text-[var(--ink-subtle)]">
+              <span className="mt-1 block text-[11px] text-[var(--ink-subtle)]">
                 {category.status === "fail"
                   ? `${category.failing.length} of ${category.members.length} failing`
                   : "clear"}
@@ -208,6 +217,38 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
           ))}
         </div>
       </Panel>
+
+      {/* How much money is affected? Directly under the verdict, because it is the same question. */}
+      <Section
+        title="Financial exposure"
+        description="Money the open findings put in question — counted once, even when several findings name it."
+      >
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricTile
+            label="Unresolved exposure"
+            value={<Money value={data.unresolved_exposure} currency={currency} />}
+            hint="Every open finding that carries an amount"
+            href={`${base}/issues?status=open&order=amount`}
+            tone="critical"
+            emphasis
+          />
+          <MetricTile
+            label="Open findings"
+            value={data.open_issue_count}
+            hint="Cleared only when a run stops reporting them"
+            href={`${base}/issues?status=open`}
+          />
+          {data.open_issue_amounts_by_nature.map((entry) => (
+            <MetricTile
+              key={entry.nature}
+              label={NATURE[entry.nature]?.label ?? humanize(entry.nature)}
+              value={<Money value={entry.amount} currency={currency} />}
+              hint={NATURE[entry.nature]?.hint}
+              href={`${base}/issues?status=open&nature=${entry.nature}&order=amount`}
+            />
+          ))}
+        </dl>
+      </Section>
 
       {/* What should I do next? */}
       <Section
@@ -262,53 +303,21 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
         )}
       </Section>
 
-      {/* How much money is affected? */}
-      <Section
-        title="Financial exposure"
-        description="Money the open findings put in question — counted once, even when several findings name it."
-      >
-        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            label="Unresolved exposure"
-            value={<Money value={data.unresolved_exposure} currency={currency} />}
-            hint="Every open finding that carries an amount"
-            href={`${base}/issues?status=open&order=amount`}
-            tone="critical"
-            emphasis
-          />
-          <MetricCard
-            label="Open findings"
-            value={data.open_issue_count}
-            hint="Cleared only when a run stops reporting them"
-            href={`${base}/issues?status=open`}
-          />
-          {data.open_issue_amounts_by_nature.map((entry) => (
-            <MetricCard
-              key={entry.nature}
-              label={NATURE[entry.nature]?.label ?? humanize(entry.nature)}
-              value={<Money value={entry.amount} currency={currency} />}
-              hint={NATURE[entry.nature]?.hint}
-              href={`${base}/issues?status=open&nature=${entry.nature}&order=amount`}
-            />
-          ))}
-        </dl>
-      </Section>
-
       {/* Where is this implementation? */}
       <Section
         title="Implementation progress"
         description="Each step is decided by the latest run, not by anyone ticking a box."
       >
-        <Panel className="p-3">
-          <ol className="flex flex-wrap items-stretch gap-1">
+        <Panel className="p-4">
+          <ol className="flex flex-wrap items-stretch gap-1.5">
             {steps.map((step, index) => (
               <li key={step.label} className="flex items-stretch">
                 <div
-                  className={`w-36 rounded border px-2 py-1.5 ${
+                  className={`w-36 rounded-[var(--radius-control)] border px-2.5 py-2 ${
                     step.state === "done"
-                      ? "border-[var(--positive)]/40 bg-[var(--positive-soft)]"
+                      ? "border-[var(--positive)]/35 bg-[var(--positive-soft)]"
                       : step.state === "current"
-                        ? "border-[var(--critical)]/40 bg-[var(--critical-soft)]"
+                        ? "border-[var(--critical)]/35 bg-[var(--critical-soft)]"
                         : "border-[var(--border)] bg-[var(--surface-sunken)]"
                   }`}
                 >
@@ -327,12 +336,12 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
                     </span>
                     {step.label}
                   </p>
-                  <p className="mt-0.5 text-[11px] leading-tight text-[var(--ink-muted)]">
+                  <p className="mt-1 text-[11px] leading-tight text-[var(--ink-muted)]">
                     {step.detail}
                   </p>
                 </div>
                 {index < steps.length - 1 ? (
-                  <span aria-hidden="true" className="self-center px-1 text-[var(--ink-subtle)]">
+                  <span aria-hidden="true" className="self-center px-1 text-[var(--border-strong)]">
                     →
                   </span>
                 ) : null}
@@ -351,12 +360,12 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
         }
       >
         <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <MetricCard
+          <MetricTile
             label="Records normalized"
             value={(automation.staged_records ?? 0).toLocaleString("en-US")}
             hint="Read from the imported source files"
           />
-          <MetricCard
+          <MetricTile
             label="Accounting controls run"
             value={automation.controls_evaluated ?? 0}
             hint={
@@ -366,13 +375,13 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
             }
             href={`${base}/validation`}
           />
-          <MetricCard
+          <MetricTile
             label="Reconciliations performed"
             value={automation.reconciliations_performed ?? 0}
             hint={`${automation.reconciliations_with_differences ?? 0} with differences`}
             href={`${base}/reconciliation`}
           />
-          <MetricCard
+          <MetricTile
             label="Findings raised"
             value={automation.findings ?? 0}
             hint={`Grouped into ${work.length} decision${work.length === 1 ? "" : "s"}`}
@@ -381,7 +390,7 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
         </dl>
       </Section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
         <Section title="Assigned to you">
           {data.my_issues.length === 0 && data.my_approvals.length === 0 ? (
             <Callout>
@@ -392,7 +401,7 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
           ) : (
             <Panel className="divide-y divide-[var(--border)]">
               {data.my_issues.map((issue) => (
-                <p key={issue.id} className="px-3 py-2 text-sm">
+                <p key={issue.id} className="px-4 py-2.5 text-sm">
                   <Link href={`${base}/issues/${issue.id}`} className="font-medium">
                     {issue.key}
                   </Link>{" "}
@@ -400,7 +409,7 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
                 </p>
               ))}
               {data.my_approvals.map((change) => (
-                <p key={change.id} className="px-3 py-2 text-sm">
+                <p key={change.id} className="px-4 py-2.5 text-sm">
                   <Link href={`${base}/change-requests/${change.id}`} className="font-medium">
                     {change.key}
                   </Link>{" "}
@@ -418,12 +427,12 @@ export default async function OverviewPage(props: PageProps<"/migrations/[migrat
         >
           <Panel className="divide-y divide-[var(--border)]">
             {data.recent_activity.slice(0, 8).map((event) => (
-              <p key={event.id} className="flex items-baseline gap-3 px-3 py-1.5 text-sm">
-                <span className="w-40 shrink-0 text-xs text-[var(--ink-subtle)]">
+              <p key={event.id} className="flex items-baseline gap-3 px-4 py-2 text-sm">
+                <span className="w-40 shrink-0 text-xs tabular-nums text-[var(--ink-subtle)]">
                   <Timestamp value={event.occurred_at} />
                 </span>
                 <span className="text-[var(--ink)]">{humanize(event.action)}</span>
-                <span className="text-xs text-[var(--ink-subtle)]">{event.actor_type}</span>
+                <span className="ml-auto text-xs text-[var(--ink-subtle)]">{event.actor_type}</span>
               </p>
             ))}
           </Panel>

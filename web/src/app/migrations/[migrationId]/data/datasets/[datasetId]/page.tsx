@@ -13,6 +13,7 @@ import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
 import { requestRun, uploadImport } from "../../../workflow-actions";
+import { TH, THEAD_ROW } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export default async function DatasetPage(
         title="Upload a new export"
         description="A new file becomes a new import. When it has been read, it replaces the active import and the previous one is kept as superseded. Uploading a file that was already imported changes nothing."
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           {isPublicDemo() ? (
             <DemoUnavailable what="Uploading a corrected export replaces the active import, keeps the previous one as evidence, and re-runs every check." />
           ) : (
@@ -114,15 +115,15 @@ export default async function DatasetPage(
             hint="Upload this dataset's export above to create the first import."
           />
         ) : (
-          <Panel className="overflow-x-auto">
+          <Panel className="relative overflow-x-auto" tabIndex={0}>
             <table className="w-full border-collapse text-left text-sm" data-testid="imports">
               <caption className="sr-only">Imports of this dataset</caption>
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                  <th scope="col" className="px-3 py-2 font-medium">
+                <tr className={THEAD_ROW}>
+                  <th scope="col" className={TH}>
                     Import
                   </th>
-                  <th scope="col" className="px-3 py-2 font-medium">
+                  <th scope="col" className={TH}>
                     Status
                   </th>
                   <th scope="col" className="px-3 py-2 text-right font-medium">
@@ -131,7 +132,7 @@ export default async function DatasetPage(
                   <th scope="col" className="px-3 py-2 text-right font-medium">
                     Quarantined
                   </th>
-                  <th scope="col" className="px-3 py-2 font-medium">
+                  <th scope="col" className={TH}>
                     Uploaded
                   </th>
                 </tr>
@@ -156,7 +157,7 @@ export default async function DatasetPage(
                           {item.original_filename}
                         </Link>
                         {active ? (
-                          <span className="ml-2 rounded border border-[var(--accent)]/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
+                          <span className="ml-2 rounded-[var(--radius-control)] border border-[var(--accent)]/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--accent-ink)]">
                             active
                           </span>
                         ) : null}
@@ -192,7 +193,7 @@ export default async function DatasetPage(
         title="Pipeline"
         description="Re-run the whole migration with this dataset's active import and approved mapping."
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <Callout>
             A run recomputes results from the current inputs of every dataset, not only this one.
           </Callout>

@@ -4,9 +4,10 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { Timestamp } from "@/components/dates";
 import { PageHeader, Section } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
-import { Callout, EmptyState, MetaList, MetricCard, Panel } from "@/components/ui";
+import { Callout, EmptyState, MetaList, MetricTile, Panel } from "@/components/ui";
 import { apiGet, buildPath, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
+import { THEAD_ROW, TR } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -129,11 +130,11 @@ function KeyValueTable({
     return <EmptyState title={`No ${caption.toLowerCase()} recorded`} />;
   }
   return (
-    <Panel className="overflow-x-auto">
+    <Panel className="relative overflow-x-auto" tabIndex={0}>
       <table className="w-full border-collapse text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
+          <tr className={THEAD_ROW}>
             <th scope="col" className="px-3 py-1.5 font-medium">
               {label}
             </th>
@@ -144,7 +145,7 @@ function KeyValueTable({
         </thead>
         <tbody>
           {rows.map(([key, value]) => (
-            <tr key={key} className="border-b border-[var(--border)]/60 last:border-0">
+            <tr key={key} className={TR}>
               <th scope="row" className="px-3 py-1.5 text-left font-normal text-[var(--ink-muted)]">
                 {humanize(key)}
               </th>
@@ -168,13 +169,13 @@ function StatusChanges({
   changes: readonly Schemas["StatusChangeOut"][];
 }) {
   return (
-    <Panel className="overflow-x-auto">
+    <Panel className="relative overflow-x-auto" tabIndex={0}>
       <table className="w-full border-collapse text-left text-sm">
-        <caption className="border-b border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">
+        <caption className="border-b border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
           {caption} <span className="tabular-nums">({changes.length})</span>
         </caption>
         <thead>
-          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
+          <tr className="border-b border-[var(--border)] text-xs uppercase tracking-[0.06em] text-[var(--ink-muted)]">
             <th scope="col" className="px-3 py-1.5 font-medium">
               {label}
             </th>
@@ -195,7 +196,7 @@ function StatusChanges({
             </tr>
           ) : (
             changes.map((change) => (
-              <tr key={change.key} className="border-b border-[var(--border)]/60 last:border-0">
+              <tr key={change.key} className={TR}>
                 <th scope="row" className="px-3 py-1.5 text-left font-medium">
                   {change.key}
                 </th>
@@ -236,7 +237,7 @@ function FindingList({
   return (
     <Panel>
       <p
-        className={`border-b border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${
+        className={`border-b border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.06em] ${
           findings.length === 0
             ? "text-[var(--ink-muted)]"
             : tone === "critical"
@@ -360,7 +361,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
                     compare: other.id,
                   })}
                   aria-current={other.id === compareTo ? "true" : undefined}
-                  className={`rounded border px-2 py-0.5 text-sm no-underline ${
+                  className={`rounded-[var(--radius-control)] border px-2 py-0.5 text-sm no-underline ${
                     other.id === compareTo
                       ? "border-[var(--accent)] bg-[var(--accent-soft)] font-medium text-[var(--accent-ink)]"
                       : "border-[var(--border-strong)] bg-white text-[var(--ink)] hover:bg-[var(--surface-sunken)]"
@@ -383,27 +384,27 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
               What the re-check after the correction found, compared with what stood before it.
             </p>
             <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard
+              <MetricTile
                 label="Findings resolved"
                 value={whole(diff.findings_removed.length)}
                 hint="no longer raised"
                 tone={diff.findings_removed.length === 0 ? "neutral" : "positive"}
                 emphasis
               />
-              <MetricCard
+              <MetricTile
                 label="Findings added"
                 value={whole(diff.findings_added.length)}
                 hint="raised for the first time"
                 tone={diff.findings_added.length === 0 ? "neutral" : "critical"}
                 emphasis
               />
-              <MetricCard
+              <MetricTile
                 label="Gates changed"
                 value={whole(diff.gate_changes.length)}
                 hint="readiness gates that moved"
                 emphasis
               />
-              <MetricCard
+              <MetricTile
                 label="Reconciliations changed"
                 value={whole(diff.reconciliation_changes.length)}
                 hint="controls that moved"
@@ -433,7 +434,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
                           {diff.changed_fingerprint_components.map((component) => (
                             <span
                               key={component}
-                              className="rounded border border-[var(--border-strong)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-xs"
+                              className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-xs"
                             >
                               {humanize(component)}
                             </span>
@@ -476,7 +477,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
 
           <details>
             <summary className="cursor-pointer text-xs text-[var(--ink-subtle)]">Raw diff</summary>
-            <pre className="mt-2 overflow-x-auto rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2 text-xs">
+            <pre className="mt-2 overflow-x-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-sunken)] p-2 text-xs">
               {JSON.stringify(diff, null, 2)}
             </pre>
           </details>
@@ -590,7 +591,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
               <summary className="cursor-pointer text-xs text-[var(--ink-subtle)]">
                 Raw error
               </summary>
-              <pre className="mt-1 overflow-x-auto rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2 text-xs">
+              <pre className="mt-1 overflow-x-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-sunken)] p-2 text-xs">
                 {JSON.stringify(run.error, null, 2)}
               </pre>
             </details>
@@ -618,7 +619,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
             {headline.length > 0 ? (
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {headline.map((entry) => (
-                  <MetricCard
+                  <MetricTile
                     key={entry.key}
                     label={entry.label}
                     value={whole(entry.value)}
@@ -631,7 +632,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
 
             {bySeverity.length > 0 ? (
               <Panel className="mt-3 p-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                   Findings by severity
                 </p>
                 <ul className="mt-2 flex flex-wrap gap-2">
@@ -649,7 +650,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
 
             {issueCounts.length > 0 ? (
               <Panel className="mt-3 p-3">
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                <p className="mb-2 text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                   What it did to the issue log
                 </p>
                 <MetaList
@@ -677,7 +678,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
           <summary className="cursor-pointer text-xs text-[var(--ink-subtle)]">
             Raw counts and timings
           </summary>
-          <pre className="mt-2 overflow-x-auto rounded border border-[var(--border)] bg-[var(--surface-sunken)] p-2 text-xs">
+          <pre className="mt-2 overflow-x-auto rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-sunken)] p-2 text-xs">
             {JSON.stringify({ counts: run.counts, stage_timings_ms: run.stage_timings }, null, 2)}
           </pre>
         </details>
@@ -734,7 +735,7 @@ export default async function RunPage(props: PageProps<"/migrations/[migrationId
         title="Audit identifiers"
         description="The input fingerprint identifies the exact inputs; the result fingerprint identifies what the engine produced from them. Identical inputs must produce an identical result fingerprint — that is how a run can be re-verified rather than trusted."
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <MetaList
             columns={2}
             items={[

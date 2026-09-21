@@ -58,7 +58,7 @@ export default async function ApprovalsPage(
   const label = STATUSES.find(([value]) => value === status)?.[1] ?? "All";
   const waiting = changes.filter((c) => c.status === "submitted").length;
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title="Approvals"
         description="Every change to a migration's inputs is proposed here first. Nothing takes effect until the required people, none of them the requester, have approved it."
@@ -72,12 +72,12 @@ export default async function ApprovalsPage(
       </div>
 
       {/* The queue is filtered by default, so the filter says so in words, not only in a control. */}
-      <Panel className="mb-4 p-3">
+      <Panel className="mb-4 p-4">
         <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <h2 className="text-sm font-semibold text-[var(--ink)]">
             Showing: {label.toLowerCase()}
           </h2>
-          <span className="rounded border border-[var(--border-strong)] bg-white px-1.5 py-0.5 text-xs font-medium tabular-nums text-[var(--ink)]">
+          <span className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-1.5 py-0.5 text-xs font-medium tabular-nums text-[var(--ink)]">
             {changes.length} change requests
           </span>
           {status !== "" ? (

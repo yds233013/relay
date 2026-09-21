@@ -45,7 +45,7 @@ export function GateStrip({ gates, base }: { gates: readonly Schemas["GateOut"][
               href={`${base}/readiness#${gate.gate_id}`}
               title={`${gate.gate_id} ${gate.title} — ${state.word}: ${gate.observed}`}
               aria-label={`${gate.gate_id} ${gate.title}, ${state.word}`}
-              className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium no-underline ${state.className}`}
+              className={`inline-flex items-center gap-1 rounded-[var(--radius-control)] border px-1.5 py-0.5 text-xs font-medium no-underline ${state.className}`}
             >
               <span aria-hidden="true">{state.glyph}</span>
               {gate.gate_id}

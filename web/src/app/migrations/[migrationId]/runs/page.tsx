@@ -4,9 +4,10 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { Timestamp } from "@/components/dates";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
-import { ButtonLink, Callout, EmptyState, MetricCard, Panel, Section } from "@/components/ui";
+import { ButtonLink, Callout, EmptyState, MetricTile, Panel, Section } from "@/components/ui";
 import { apiGet, buildPath, type Schemas } from "@/lib/api/client";
 import { humanize } from "@/lib/format";
+import { TH, THEAD_ROW } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function RunsPage(props: PageProps<"/migrations/[migrationI
     : [];
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <AutoRefresh active={live} />
       <PageHeader
         title="Verification runs"
@@ -116,7 +117,7 @@ export default async function RunsPage(props: PageProps<"/migrations/[migrationI
             {currentCounts.length > 0 ? (
               <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {currentCounts.map((item) => (
-                  <MetricCard
+                  <MetricTile
                     key={item.label}
                     label={item.label}
                     value={whole(item.value)}
@@ -144,15 +145,15 @@ export default async function RunsPage(props: PageProps<"/migrations/[migrationI
           />
         ) : (
           <>
-            <Panel className="overflow-x-auto">
+            <Panel className="relative overflow-x-auto" tabIndex={0}>
               <table className="w-full border-collapse text-left text-sm">
                 <caption className="sr-only">{runs.length} verification runs, newest first</caption>
                 <thead>
-                  <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                    <th scope="col" className="px-3 py-2 font-medium">
+                  <tr className={THEAD_ROW}>
+                    <th scope="col" className={TH}>
                       Run
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Result
                     </th>
                     <th scope="col" className="px-3 py-2 text-right font-medium">
@@ -161,13 +162,13 @@ export default async function RunsPage(props: PageProps<"/migrations/[migrationI
                     <th scope="col" className="px-3 py-2 text-right font-medium">
                       Records normalized
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Triggered by
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Requested
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Compare
                     </th>
                   </tr>

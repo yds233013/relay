@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatAmount, humanize, param } from "./format";
+import { formatAmount, humanize, param, splitTitle } from "./format";
 
 describe("formatAmount", () => {
   it.each([
@@ -31,5 +31,39 @@ describe("helpers", () => {
   it("takes the first repeated search parameter", () => {
     expect(param(["a", "b"])).toBe("a");
     expect(param(undefined)).toBeUndefined();
+  });
+});
+
+describe("splitTitle", () => {
+  it("lifts the sentence out of a title whose tail is exactly its subjects", () => {
+    expect(
+      splitTitle("Trial balance control vs GL detail: recon:R1:account=6200", [
+        "recon:R1:account=6200",
+      ]),
+    ).toEqual({
+      headline: "Trial balance control vs GL detail",
+      subject: "recon:R1:account=6200",
+    });
+  });
+
+  it("joins several subjects in the order the payload gives them", () => {
+    expect(
+      splitTitle("Possible duplicate parties: party:a, party:b", ["party:a", "party:b"]),
+    ).toEqual({ headline: "Possible duplicate parties", subject: "party:a, party:b" });
+  });
+
+  it("leaves a title whole rather than cutting it somewhere arbitrary", () => {
+    expect(splitTitle("A manual issue", [])).toEqual({
+      headline: "A manual issue",
+      subject: null,
+    });
+    expect(splitTitle("A title that does not end in its subjects", ["party:a"])).toEqual({
+      headline: "A title that does not end in its subjects",
+      subject: null,
+    });
+    expect(splitTitle(": party:a", ["party:a"])).toEqual({
+      headline: ": party:a",
+      subject: null,
+    });
   });
 });

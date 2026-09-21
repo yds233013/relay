@@ -18,6 +18,7 @@ import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
 import { proposeEntityDecision } from "../../workflow-actions";
+import { TH, THEAD_ROW } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ export default async function CandidatePage(
     new Set(detail.parties.map((party) => show(party.data[field]))).size > 1;
   const differing = FIELDS.filter((field) => differs(field));
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title={`${humanize(candidate.party_type)} ${candidate.left_code} and ${candidate.right_code}`}
         breadcrumbs={[
@@ -97,16 +98,16 @@ export default async function CandidatePage(
         description="Identical values are muted; the fields marked differ are the ones to judge."
         actions={<ProvenanceBadge kind="canonical" />}
       >
-        <Panel className="overflow-x-auto">
+        <Panel className="relative overflow-x-auto" tabIndex={0}>
           <table className="w-full border-collapse text-left text-sm" data-testid="parties">
             <caption className="sr-only">The two parties side by side</caption>
             <thead>
-              <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-subtle)]">
-                <th scope="col" className="px-3 py-2 font-medium">
+              <tr className={THEAD_ROW}>
+                <th scope="col" className={TH}>
                   Field
                 </th>
                 {detail.parties.map((party) => (
-                  <th key={party.code} scope="col" className="px-3 py-2 font-medium">
+                  <th key={party.code} scope="col" className={TH}>
                     {party.code}
                   </th>
                 ))}
@@ -128,7 +129,7 @@ export default async function CandidatePage(
                     >
                       {humanize(field)}
                       {different ? (
-                        <span className="ml-2 rounded border border-[var(--warning)]/40 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--warning)]">
+                        <span className="ml-2 rounded-[var(--radius-control)] border border-[var(--warning)]/40 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--warning)]">
                           differs
                         </span>
                       ) : null}
@@ -164,8 +165,8 @@ export default async function CandidatePage(
         </Panel>
       </Section>
       <Section title="Features">
-        <details className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)]">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+        <details className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-raised)]">
+          <summary className="cursor-pointer px-3 py-2 text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
             Raw match features
           </summary>
           <pre className="overflow-x-auto border-t border-[var(--border)] bg-[var(--surface-sunken)] p-3 text-xs text-[var(--ink-muted)]">
@@ -230,7 +231,7 @@ export default async function CandidatePage(
                   <input key={i.id} type="hidden" name="evidenceIssueId" value={i.id} />
                 ))}
                 <fieldset className="flex flex-col gap-1.5 text-sm">
-                  <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]">
+                  <legend className="mb-1 text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
                     These parties are
                   </legend>
                   <label className="flex items-center gap-2">
@@ -247,7 +248,7 @@ export default async function CandidatePage(
                   </span>
                   <select
                     name="survivor"
-                    className="rounded border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--ink)] sm:max-w-xs"
+                    className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] px-2 py-1 text-sm text-[var(--ink)] sm:max-w-xs"
                   >
                     {codes.map((code) => (
                       <option key={code} value={code}>

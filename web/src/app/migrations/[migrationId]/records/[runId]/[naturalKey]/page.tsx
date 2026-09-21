@@ -21,6 +21,7 @@ import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize, param } from "@/lib/format";
 
 import { proposeFieldOverride } from "../../../governance-actions";
+import { TR } from "@/components/table";
 
 /** Canonical fields the engine can override, by natural key prefix. */
 const OVERRIDABLE: Record<string, readonly string[]> = { je: ["entry_date", "posting_period"] };
@@ -200,7 +201,7 @@ export default async function RecordInspector(
   }
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title="Record inspector"
         breadcrumbs={[{ label: "Overview", href: base }, { label: "Record" }]}
@@ -248,7 +249,7 @@ export default async function RecordInspector(
                 >
                   <SourceLocation migrationId={migrationId} lineage={lineage} />
                 </p>
-                <div className="overflow-x-auto" tabIndex={0}>
+                <div className="relative overflow-x-auto" tabIndex={0}>
                   <table
                     className="w-full border-collapse text-left text-sm"
                     data-testid="source-row"
@@ -260,13 +261,10 @@ export default async function RecordInspector(
                       {(record.source_header ?? Object.keys(record.source_row.values))
                         .map((column) => [column, record.source_row?.values[column] ?? ""] as const)
                         .map(([column, value]) => (
-                          <tr
-                            key={column}
-                            className="border-b border-[var(--border)]/60 last:border-0"
-                          >
+                          <tr key={column} className={TR}>
                             <th
                               scope="row"
-                              className="w-48 px-3 py-1 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]"
+                              className="w-48 px-3 py-1 text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]"
                             >
                               {column}
                             </th>
@@ -301,7 +299,7 @@ export default async function RecordInspector(
               into typed fields. This is an interpretation, not evidence — when it looks wrong, the
               mapping or an approved override changes, never the row itself.
             </p>
-            <div className="mt-2 overflow-x-auto" tabIndex={0}>
+            <div className="relative mt-2 overflow-x-auto" tabIndex={0}>
               <table className="w-full border-collapse text-left text-sm">
                 <caption className="sr-only">
                   Normalized fields Relay derived from the source row
@@ -311,7 +309,7 @@ export default async function RecordInspector(
                     <tr key={field} className="border-b border-[var(--accent)]/20 last:border-0">
                       <th
                         scope="row"
-                        className="w-48 px-3 py-1 text-xs font-medium uppercase tracking-wide text-[var(--ink-subtle)]"
+                        className="w-48 px-3 py-1 text-xs font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]"
                       >
                         {humanize(field)}
                       </th>
@@ -340,7 +338,7 @@ export default async function RecordInspector(
           title="Propose a correction"
           description="Proposing changes nothing on its own: it opens a change request for someone else to approve. Only then does a run apply the new value."
         >
-          <Panel className="p-3">
+          <Panel className="p-4">
             <Callout tone="warning" title="The source row is never edited">
               The source row never changes. An approved override applies the new value on top of it,
               and every run checks that the value it replaces is still the one shown here.
@@ -365,7 +363,7 @@ export default async function RecordInspector(
                   <span className="text-xs font-medium text-[var(--ink-muted)]">Field</span>
                   <select
                     name="field"
-                    className="rounded border border-[var(--border-strong)] bg-white px-2 py-1"
+                    className="rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-white px-2 py-1"
                   >
                     {overridable.map((field) => (
                       <option key={field} value={field}>

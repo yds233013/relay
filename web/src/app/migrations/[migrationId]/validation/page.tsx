@@ -35,7 +35,7 @@ export default async function ValidationPage(
   ]);
   const errored = rules.filter((r) => r.status === "errored");
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-[1280px]">
       <PageHeader
         title="Accounting checks"
         description="Every rule the engine ran, and the findings it produced."
@@ -60,7 +60,7 @@ export default async function ValidationPage(
             </Callout>
           </div>
         ) : null}
-        <Panel className="p-3">
+        <Panel className="p-4">
           <DataTable<Schemas["RuleRunOut"]>
             caption={`${rules.length} rules`}
             rows={rules}
@@ -85,7 +85,7 @@ export default async function ValidationPage(
                   <>
                     <StatusChip status={r.status} label={r.status.replace("_", " ")} />
                     {r.error ? (
-                      <p className="mt-1 max-w-md rounded border border-[var(--critical)]/30 bg-[var(--critical-soft)] px-2 py-1 text-xs text-[var(--critical)]">
+                      <p className="mt-1 max-w-md rounded-[var(--radius-control)] border border-[var(--critical)]/30 bg-[var(--critical-soft)] px-2 py-1 text-xs text-[var(--critical)]">
                         {r.error}
                       </p>
                     ) : null}
@@ -120,7 +120,7 @@ export default async function ValidationPage(
             : "Every finding of this run. Each links to the issue that tracks it across runs."
         }
       >
-        <Panel className="p-3">
+        <Panel className="p-4">
           <DataTable<Schemas["ExceptionOut"]>
             caption={`${exceptions.items.length} findings on this page`}
             rows={exceptions.items}

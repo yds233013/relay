@@ -9,13 +9,14 @@ import {
   ButtonLink,
   Callout,
   EmptyState,
-  MetricCard,
+  MetricTile,
   Panel,
   Section,
 } from "@/components/ui";
 import { isPublicDemo } from "@/lib/demo";
 import { apiGet, type Schemas } from "@/lib/api/client";
 import { humanize } from "@/lib/format";
+import { TABLE, TABLE_SCROLL, TD, TH, TH_RIGHT, THEAD_ROW, TR, ROW_TONE } from "@/components/table";
 
 export const dynamic = "force-dynamic";
 
@@ -76,12 +77,23 @@ function GatesCell({ migration }: { migration: Summary }) {
     return <span className="text-[var(--ink-subtle)]">—</span>;
   }
   if (migration.failing_gate_count === 0) {
-    return <span className="text-[var(--ink-subtle)]">0 of {migration.gate_count ?? "—"}</span>;
+    return (
+      <>
+        <span className="text-base font-semibold text-[var(--ink-muted)]">0</span>
+        <span className="block text-xs text-[var(--ink-subtle)]">
+          of {migration.gate_count ?? "—"} checks
+        </span>
+      </>
+    );
   }
   return (
     <>
-      <span className="font-medium text-[var(--critical)]">{migration.failing_gate_count}</span>
-      <span className="text-[var(--ink-subtle)]"> of {migration.gate_count ?? "—"}</span>
+      <span className="text-base font-semibold text-[var(--critical)]">
+        {migration.failing_gate_count}
+      </span>
+      <span className="block text-xs text-[var(--ink-subtle)]">
+        of {migration.gate_count ?? "—"} need resolution
+      </span>
     </>
   );
 }
@@ -103,7 +115,7 @@ export default async function PortfolioPage() {
   ].filter((phrase) => phrase !== null);
 
   return (
-    <main className="mx-auto max-w-6xl p-5">
+    <main className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6">
       <PageHeader
         title="Implementation command center"
         description="Every ERP implementation Relay is running, tracked from legacy data to verified go-live. Readiness is the verdict of each implementation's latest run; stale means the inputs changed after that run and nothing has been re-evaluated since."
@@ -128,24 +140,25 @@ export default async function PortfolioPage() {
       ) : (
         <>
           <dl className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
+            <MetricTile
               label="Implementations"
               value={migrations.length}
               hint="Tracked end to end, from first import to sign-off"
             />
-            <MetricCard
+            <MetricTile
               label="Ready for go-live"
               value={ready}
               hint="Every readiness gate passing on the current inputs"
               tone={ready > 0 ? "positive" : "neutral"}
             />
-            <MetricCard
+            <MetricTile
               label="Not ready"
               value={blocked}
               hint="At least one readiness gate is failing"
               tone={blocked > 0 ? "critical" : "neutral"}
+              emphasis={blocked > 0}
             />
-            <MetricCard
+            <MetricTile
               label="Results stale"
               value={stale}
               hint="Inputs changed since the last run, or no run yet"
@@ -170,29 +183,29 @@ export default async function PortfolioPage() {
                 : `Unresolved exposure is the amount at risk on each implementation's latest run, counted once per amount. Every implementation here keeps its books in ${singleCurrency}; Relay still reports exposure per implementation rather than one portfolio total.`
             }
           >
-            <Panel className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm">
+            <Panel className={TABLE_SCROLL} tabIndex={0}>
+              <table className={TABLE}>
                 <caption className="sr-only">
                   Implementations, with readiness, failing gates, unresolved exposure and go-live
                 </caption>
                 <thead>
-                  <tr className="border-b border-[var(--border)] bg-[var(--surface-sunken)] text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                    <th scope="col" className="px-3 py-2 font-medium">
+                  <tr className={THEAD_ROW}>
+                    <th scope="col" className={TH}>
                       Implementation
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Readiness
                     </th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">
-                      Failing gates
+                    <th scope="col" className={TH_RIGHT}>
+                      Checks to resolve
                     </th>
-                    <th scope="col" className="px-3 py-2 text-right font-medium">
+                    <th scope="col" className={TH_RIGHT}>
                       Unresolved exposure
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       Go-live
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
+                    <th scope="col" className={TH}>
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -201,34 +214,39 @@ export default async function PortfolioPage() {
                   {migrations.map((m) => (
                     <tr
                       key={m.id}
-                      className="border-b border-[var(--border)]/60 align-top last:border-0 hover:bg-[var(--surface-sunken)]"
+                      className={`${TR} ${m.overall === "not_ready" ? ROW_TONE.blocking : ""}`}
                     >
-                      <th scope="row" className="px-3 py-3 text-left font-normal">
-                        <Link href={`/migrations/${m.id}`} className="font-medium">
+                      <th scope="row" className={`${TD} text-left font-normal`}>
+                        <Link
+                          href={`/migrations/${m.id}`}
+                          className="text-[15px] font-semibold tracking-tight"
+                        >
                           {m.company_name}
                         </Link>
-                        <span className="block text-xs text-[var(--ink-subtle)]">{m.name}</span>
+                        <span className="mt-0.5 block text-sm text-[var(--ink-muted)]">
+                          {m.name}
+                        </span>
                         <span className="mt-1 block text-xs text-[var(--ink-subtle)]">
                           {humanize(m.status)} · books in {m.functional_currency} · cutover{" "}
                           <BusinessDate value={m.cutover_date} />
                         </span>
                       </th>
-                      <td className="px-3 py-3">
+                      <td className={TD}>
                         <ReadinessCell migration={m} />
                       </td>
-                      <td className="px-3 py-3 text-right tabular-nums">
+                      <td className={`${TD} text-right tabular-nums`}>
                         <GatesCell migration={m} />
                       </td>
-                      <td className="px-3 py-3 text-right tabular-nums">
+                      <td className={`${TD} text-right text-base font-semibold tabular-nums`}>
                         <Money value={m.unresolved_exposure} currency={m.functional_currency} />
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-[var(--ink-muted)]">
+                      <td className={`${TD} whitespace-nowrap text-[var(--ink-muted)]`}>
                         <BusinessDate value={m.go_live_date} />
                         <span className="mt-1 block">
                           <GoLiveCountdown days={m.days_to_go_live} />
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-right">
+                      <td className={`${TD} text-right`}>
                         <Link
                           href={`/migrations/${m.id}`}
                           aria-label={`Open implementation: ${m.company_name}`}
