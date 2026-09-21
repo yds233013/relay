@@ -1,0 +1,53 @@
+# Relay public edge.
+#
+# The only process on the VM that listens on a public port. Everything else — the web tier, the
+# API, the worker and PostgreSQL — lives on the private compose network and is unreachable from
+# the internet (docs/public-deployment.md §3).
+#
+# Stock Caddy only. No plugin, no custom build: every directive below is in the official
+# `caddy:2-alpine` image, and `make public-config` proves it by running `caddy validate` against
+# this file. That rules out rate limiting, which Caddy does not implement in the standard
+# distribution — see docs/public-deployment.md §5 for what protects the demo instead.
+{
+	# Let's Encrypt uses this only to warn about expiring certificates. Required by ACME.
+	email {$RELAY_ACME_EMAIL}
+	# The admin API stays on loopback inside the container (Caddy's default). It is what the
+	# container health check asks, and nothing outside the container can reach it.
+	admin 127.0.0.1:2019
+}
+
+{$RELAY_PUBLIC_HOST} {
+	# Automatic HTTPS: Caddy obtains and renews a certificate for this name over ACME HTTP-01 on
+	# port 80, and serves the site on 443. It also installs the 80 -> 443 redirect itself, which
+	# is why there is no redirect block here. A request arriving with any other Host matches no
+	# site and is answered 404; on 443 an unknown SNI has no certificate and the handshake fails.
+	# That is the host validation.
+
+	encode zstd gzip
+
+	header {
+		# TLS terminates here, so this is the only place HSTS can be set. No `preload`: that is a
+		# one-way commitment on the whole domain and wrong for a portfolio subdomain.
+		Strict-Transport-Security "max-age={$RELAY_HSTS_MAX_AGE:31536000}; includeSubDomains"
+		# X-Content-Type-Options, Referrer-Policy, X-Frame-Options and the nonce-based CSP are set
+		# per response by the application (web/next.config.ts and web/src/proxy.ts). They are
+		# deliberately not repeated here: two sources for one header is how they drift apart.
+		-Server
+	}
+
+	# The public demo accepts no uploads — relay.api.demo_policy refuses every mutation but
+	# starting an investigation, and that is a small form post. A bounded body is therefore free
+	# abuse protection and cannot break a legitimate request.
+	request_body {
+		max_size {$RELAY_MAX_BODY:1MB}
+	}
+
+	# Caddy already sets X-Forwarded-For, X-Forwarded-Proto and X-Forwarded-Host on its own;
+	# `caddy validate` warns if you set them again, so nothing is repeated here.
+	reverse_proxy web:3000
+
+	log {
+		output stdout
+		format json
+	}
+}

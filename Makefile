@@ -232,6 +232,7 @@ pipeline-perf: db-up ## Measure imports, runs, readiness and reads on a syntheti
 # ------------------------------------------------------------------------------------ build & verify
 
 .PHONY: build build-web compose-config prod-config demo-config demo-up demo-down compose-build check test-all clean
+.PHONY: public-config public-build public-init public-up public-down public-logs public-ps public-verify public-demo-reset public-backup
 build: build-web compose-build ## Production web build and Docker images
 
 build-web: ## Next.js production build
@@ -288,6 +289,71 @@ demo-up: ## Build and start the PUBLIC DEMO stack locally from a fresh database,
 
 demo-down: ## Stop the public-demo stack and delete its database and blob volumes
 	$(DEMO_COMPOSE) down -v
+
+# The public single-node deployment: the demo stack plus a Caddy edge, in its own compose project
+# so it can never collide with the local demo or the development stack. `env -u` for the same
+# reason as prod-config: a variable exported in the operator's shell must not beat the env file.
+PUBLIC_COMPOSE := env -u RELAY_DB_PASSWORD -u RELAY_DB_HOST_PORT -u RELAY_API_HOST_PORT -u RELAY_WEB_HOST_PORT \
+	docker compose -p relay-public --env-file .env.public \
+	-f docker-compose.yml -f docker-compose.demo.yml -f docker-compose.public.yml
+
+define require-public-env
+	@test -f .env.public || { \
+		echo "missing .env.public - copy .env.public.example and fill it in (docs/public-deployment.md)"; \
+		exit 1; }
+endef
+
+public-config: ## Render and validate the public deployment stack and the Caddyfile; starts nothing
+	$(require-public-env)
+	$(PUBLIC_COMPOSE) config --quiet
+	docker run --rm --env-file .env.public -v "$(CURDIR)/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+		caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+	@echo "public-config: the deployment stack and the Caddyfile are valid"
+
+public-build: ## Build the images the public deployment runs
+	$(require-public-env)
+	$(PUBLIC_COMPOSE) build
+
+public-init: ## FIRST RUN on a fresh server: build, migrate, seed Brightwater, enable demo AI, start
+	$(require-public-env)
+	$(PUBLIC_COMPOSE) build
+	$(PUBLIC_COMPOSE) up -d --wait db
+	$(PUBLIC_COMPOSE) run --rm migrate
+	$(PUBLIC_COMPOSE) run --rm --no-deps -v "$(CURDIR)/fixtures:/fixtures:ro" api \
+		relay-demo seed --fixtures /fixtures/demo/brightwater \
+		--mapping-set /fixtures/demo/brightwater_config/column_mapping_set_v1.json
+	$(PUBLIC_COMPOSE) run --rm --no-deps api relay-demo public-demo
+	$(PUBLIC_COMPOSE) up -d --wait
+	$(MAKE) public-verify
+	@echo
+	@echo "Relay is live at https://$$(grep -E '^RELAY_PUBLIC_HOST=' .env.public | cut -d= -f2)/migrations"
+
+public-up: ## Start or update the public deployment (migrations run first; data is kept)
+	$(require-public-env)
+	$(PUBLIC_COMPOSE) up -d --wait db
+	$(PUBLIC_COMPOSE) run --rm migrate
+	$(PUBLIC_COMPOSE) up -d --wait
+
+public-down: ## Stop the public deployment. Volumes are KEPT: database, blobs and certificates survive
+	$(PUBLIC_COMPOSE) down
+
+public-logs: ## Follow the public deployment's logs
+	$(PUBLIC_COMPOSE) logs -f
+
+public-ps: ## Show the public deployment's containers and, importantly, what they publish
+	$(PUBLIC_COMPOSE) ps
+
+public-verify: ## Check the live public deployment is serving the canonical Brightwater state
+	$(require-public-env)
+	@deploy/verify-demo-state.sh
+
+public-demo-reset: ## Reset visitor state to canonical. Prompts first; keeps images and certificates
+	$(require-public-env)
+	@deploy/public-demo-reset.sh
+
+public-backup: ## Write a database dump and a blob archive to ./backups (docs/public-deployment.md)
+	$(require-public-env)
+	@deploy/public-backup.sh
 
 compose-build: ## Build Docker images
 	docker compose build

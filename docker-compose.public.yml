@@ -1,0 +1,71 @@
+# Relay PUBLIC DEPLOYMENT overlay: the single-node topology that faces the internet.
+#
+# It is the third file in the stack, not a replacement for the second:
+#
+#   docker compose -p relay-public --env-file .env.public \
+#     -f docker-compose.yml -f docker-compose.demo.yml -f docker-compose.public.yml up -d
+#
+# `make public-*` wraps that. Read docs/public-deployment.md before using it.
+#
+# docker-compose.demo.yml already decides *what Relay is* in public: RELAY_ENV=demo, the read-only
+# visitor, the deny-by-default mutation policy, RELAY_AI_PROVIDER=demo with no key. Nothing of that
+# is repeated here — duplicating it would create a second place for those guarantees to drift.
+#
+# This file decides only *how it is exposed*:
+#   - Caddy is added, and is the only service with a published port (80 and 443)
+#   - the web tier stops being published to the host; Caddy reaches it over the compose network
+#   - Caddy's certificates and config get their own volumes so a restart does not re-issue
+#
+# After this overlay the host publishes exactly two ports. The API, the worker and PostgreSQL have
+# no published port at all, and neither does the web tier.
+
+services:
+  web:
+    # Not published. Before this overlay the demo bound it to 127.0.0.1:3000 for a proxy on the
+    # host; here the proxy is a container on the same private network, so the host needs no hole.
+    ports: !reset null
+
+  caddy:
+    image: caddy:2-alpine@sha256:de23def33b17fb5d1290b0f6c2add1d70780e52341896c00a4c8a2a2fe9d355e
+    # The only ports on the machine. 80 is not optional: ACME HTTP-01 renews the certificate
+    # through it, and Caddy serves the 80 -> 443 redirect from it.
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      RELAY_PUBLIC_HOST: ${RELAY_PUBLIC_HOST:?set RELAY_PUBLIC_HOST in .env.public}
+      RELAY_ACME_EMAIL: ${RELAY_ACME_EMAIL:?set RELAY_ACME_EMAIL in .env.public}
+      RELAY_HSTS_MAX_AGE: ${RELAY_HSTS_MAX_AGE:-31536000}
+      RELAY_MAX_BODY: ${RELAY_MAX_BODY:-1MB}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      # Caddy's admin API listens on loopback inside the container only.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:2019/config/"]
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: ${RELAY_CADDY_CPU_LIMIT:-1}
+          memory: ${RELAY_CADDY_MEMORY_LIMIT:-256m}
+
+volumes:
+  # /data holds the ACME account key and the issued certificates. Losing it is not fatal — Caddy
+  # re-issues on next start — but it burns Let's Encrypt rate limit, so it is a real volume.
+  caddy-data:
+  # /config holds Caddy's autosaved JSON. Small, and cheap to keep alongside.
+  caddy-config:
