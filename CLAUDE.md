@@ -24,6 +24,7 @@ Canonical documents (read the relevant one before working in an area):
 | Test layers and commands | `docs/testing.md` |
 | Deployment overlay, backups, why production serves no users | `docs/deployment.md` |
 | Public demo mode: anonymous access, the demo policy, zero-cost AI | `docs/public-demo.md` |
+| Putting the public demo on the internet: single-node topology, Caddy edge, runbook | `docs/public-deployment.md` |
 | Security & correctness requirement IDs | `docs/security-and-correctness.md` |
 | Milestones and acceptance criteria | `docs/implementation-plan.md` |
 | What has actually been built | `docs/progress.md` (created in M0) |
@@ -102,6 +103,13 @@ Toolchain: uv, Node.js 24 + npm (not pnpm), Docker Compose v2. Run from the repo
 | `make compose-config` | Validate `docker-compose.yml` |
 | `make demo-config` | Render and validate the public-demo overlay against `.env.demo`; starts nothing |
 | `make demo-up` / `make demo-down` | Build and start the PUBLIC DEMO stack locally in its own compose project (`relay-demo`, own volumes) from a fresh database — migrate, seed, `relay-demo public-demo`, serve / stop it and delete its volumes |
+| `make public-config` | Render the public deployment stack (base + demo + `docker-compose.public.yml`) against `.env.public` and validate `deploy/Caddyfile` with stock Caddy; starts nothing |
+| `make public-init` | **First run on a server**: build, migrate, seed Brightwater, enable governed demo AI, start, and verify the canonical state |
+| `make public-up` / `make public-down` | Start or update the public deployment (migrations first, data kept) / stop it, keeping the database, blob and certificate volumes |
+| `make public-ps` / `make public-logs` | Container status (and what each publishes) / follow logs |
+| `make public-verify` | Check the live public deployment is serving the canonical Brightwater state (`deploy/verify-demo-state.sh`) |
+| `make public-demo-reset` | Reset visitor state to canonical without rebuilding images or touching Caddy's certificates (`deploy/public-demo-reset.sh`; `--yes` for automation) |
+| `make public-backup` | Database dump then blob archive into `./backups` (`deploy/public-backup.sh`) |
 | `make prod-config` | Render the deployment overlay (`docker-compose.prod.yml`) against `.env.production` and validate it; starts nothing. Needs `.env.production` (from `.env.production.example`); see `docs/deployment.md` |
 | `make db-up` / `make db-stop` | Start (and wait for healthy) / stop Compose PostgreSQL |
 | `make db-migrate` | `alembic upgrade head` against the local database |

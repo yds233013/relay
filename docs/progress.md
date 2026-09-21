@@ -929,6 +929,66 @@ the running public demo at 1440×900.
 
 ---
 
+## Public deployment preparation (configuration and documentation only)
+
+Everything needed to put the public demo on the internet as an HTTPS URL, and nothing that changes
+what Relay does. The diff touches `deploy/`, `docker-compose.public.yml`, `.env.public.example`,
+the Makefile and `docs/`; no file under `backend/`, `web/`, `fixtures/` or `evaluation/` moved, and
+`make check` returns the same numbers it did before.
+
+**The topology** is one VM running Docker Compose: Caddy is the only service with a published port
+(80 and 443), and the web tier, the API, the worker and PostgreSQL sit on the private compose
+network with none. The rendered configuration has exactly one `ports:` block, on `caddy` — checked,
+not asserted. One machine is the right shape because Relay's blob store is a POSIX directory the
+API and the worker must both see; splitting them means writing an object-storage adapter, which is
+real work for a demo serving one fictional company.
+
+**The edge** is stock `caddy:2-alpine` with no plugin: automatic HTTPS and renewal over ACME
+HTTP-01, the 80 → 443 redirect Caddy installs itself, host validation, HSTS, a 1 MB body cap, and
+compression. `make public-config` runs `caddy validate` against the official image, which is what
+makes "stock only" a check rather than a claim — it caught two `header_up` directives Caddy already
+sets, and they were removed. The other security headers are deliberately *not* set at the edge:
+`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` and the nonce CSP come from the
+application, and two sources for one header is how they drift apart.
+
+**Rate limiting is not in stock Caddy**, and a custom `xcaddy` build for a portfolio demo would
+have to be rebuilt and re-verified on every Caddy release. What protects the demo instead is
+already in the application and was re-confirmed here: the deny-by-default policy refuses every
+mutation but one before any body is read; that one — starting an investigation — returns the
+existing investigation for the same issue and run rather than queueing another, so the whole
+internet can create at most one per finding, under a global cap of 20 per hour. What would have to
+be configured externally, and when, is written down rather than guessed at.
+
+**Two operational scripts** replace the old "delete the volumes and rebuild" reflex.
+`deploy/public-demo-reset.sh` drops and recreates the database, empties the blob volume and
+re-seeds through the same services a fresh install uses — 77 s measured, 64 s of which the site
+answers 502, with the images never rebuilt and Caddy never stopped, so no certificate is re-issued
+and no Let's Encrypt rate limit is spent. `deploy/public-backup.sh` writes a database dump and then
+a blob archive, in that order and only that order: blobs are content-addressed and the database
+holds the references, so dumping first leaves harmless orphans while the reverse leaves dangling
+references. `deploy/verify-demo-state.sh` is the canonical-state check both of them end with.
+
+**Verified locally against the real topology**, with Caddy signing its own certificate because a
+laptop has no public DNS (the production Caddyfile is otherwise byte-identical and was validated
+separately): HTTP → HTTPS 308; HTTPS 200 through the edge with each security header present exactly
+once; an unknown Host answered with an empty 200 and never proxied; an unknown SNI failing the
+handshake; no `/api/` path reachable through the edge at all; 22 of 22 demo capabilities behaving
+as designed when probed *from inside the private network*, which is the case that matters because
+the API being unpublished must not be the only boundary; a full investigation started through the
+edge finishing with 0 tokens on the `demo` provider; the canonical accounting state unchanged by
+it; database, blobs and certificates all surviving a restart; and the reset returning to zero
+investigations and the canonical numbers.
+
+Measured for sizing: 308 MiB idle for the whole stack, 614 MiB peak during a reset, ~1.45 GB of
+images and ~120 MB of volumes. The recommendation is 2 vCPU / 4 GB / 40 GB — the extra memory is
+for `next build`, which is the only step that wants it.
+
+Not done, deliberately: nothing is deployed, no cloud resource exists, no remote is configured, no
+LICENSE is chosen, and the commit author email is unchanged. Those are decisions for the person
+whose repository it is.
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.

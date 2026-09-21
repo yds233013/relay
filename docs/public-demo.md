@@ -7,6 +7,9 @@ anything else, and how to run it. Everything below was exercised against the dem
 Files: [`docker-compose.demo.yml`](../docker-compose.demo.yml),
 [`.env.demo.example`](../.env.demo.example), `relay.api.demo_policy`, `relay-demo public-demo`.
 
+Putting this on the internet — the single-node topology, the Caddy edge, DNS, backups and the
+fresh-server runbook — is [public-deployment.md](public-deployment.md).
+
 ---
 
 ## 1. The three modes

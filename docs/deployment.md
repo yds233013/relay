@@ -4,6 +4,10 @@ How to run Relay on a single host with the deployment overlay, what it does not 
 back it up. Everything stated here was executed against the overlay on 2026-09-20; the commands are
 the ones that were run, not sketches.
 
+The deployment that is actually being put on the internet is the **public demo**, not this one:
+its topology, edge and runbook are in [public-deployment.md](public-deployment.md). This document
+covers the `production` overlay, which deliberately serves nobody until real authentication exists.
+
 Files: [`docker-compose.prod.yml`](../docker-compose.prod.yml),
 [`.env.production.example`](../.env.production.example).
 
