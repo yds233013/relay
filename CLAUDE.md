@@ -25,7 +25,8 @@ Canonical documents (read the relevant one before working in an area):
 | Deployment overlay, backups, why production serves no users | `docs/deployment.md` |
 | Public demo mode: anonymous access, the demo policy, zero-cost AI | `docs/public-demo.md` |
 | Putting the public demo on the internet: single-node topology, Caddy edge, runbook | `docs/public-deployment.md` |
-| The same public demo on Railway: services, the shared-blob constraint, variables | `docs/railway-deployment.md` |
+| The live public demo on Railway: services, the shared-blob constraint, variables, verification | `docs/railway-deployment.md` |
+| Showing the project: three-minute script, one-page brief, outreach copy | `docs/demo-script.md`, `docs/project-brief.md`, `docs/outreach-blurb.md` |
 | Security & correctness requirement IDs | `docs/security-and-correctness.md` |
 | Milestones and acceptance criteria | `docs/implementation-plan.md` |
 | What has actually been built | `docs/progress.md` (created in M0) |
@@ -64,6 +65,9 @@ this customer go live?", and readiness restated as six operator questions with G
 underneath. **The work queue composes engine output — it must never branch on scenario knowledge**;
 the mapping decision exists because a reconciliation attributed a difference to one legacy account
 whose mapping the compatibility check doubts, not because a demo has such an account.
+
+The public demo is **live** at https://web-production-9032d5.up.railway.app (Railway; see
+`docs/railway-deployment.md`). The project is finished: changes from here are fixes, not features.
 
 `docs/progress.md` is the recovery log: read it first in a new session.
 

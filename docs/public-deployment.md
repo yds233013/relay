@@ -1,5 +1,10 @@
 # Deploying Relay as a public web application
 
+> **Alternative deployment.** The live demo runs on Railway —
+> [railway-deployment.md](railway-deployment.md). This document describes the equivalent single-VM
+> deployment behind Caddy. It was fully verified locally and remains a valid way to host Relay, but
+> it is not what serves https://web-production-9032d5.up.railway.app.
+
 How the public demo becomes an HTTPS URL somebody can open: the single-node topology, the edge,
 the runbook for a fresh server, and the two operational procedures that matter afterwards — reset
 and backup.

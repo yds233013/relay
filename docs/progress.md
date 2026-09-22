@@ -1019,6 +1019,31 @@ scripted investigation through the web tier with 0 tokens.
 
 ---
 
+## Shipped: the public demo on Railway
+
+Live at **https://web-production-9032d5.up.railway.app**, deployed on 2026-09-22 from commit
+`245e046` into a Railway project with three services: `web` (the only public one), `backend` (API
+and worker beside one volume) and `Postgres` (private). `RELAY_ENV=demo`, `RELAY_AI_PROVIDER=demo`,
+no Anthropic key. No product code changed to ship it.
+
+Verified against the live site rather than taken from Railway's status page: eleven screens in a
+real browser with no console errors; the canonical state (12 gates / 9 failing / 217,212.85 USD /
+run #17 / 20 decisions / 18 applied change requests); every API path 404 through the public URL,
+internal hostnames unresolvable and no public TCP proxy; 22/22 demo-policy probes from inside the
+private network; a scripted investigation of the 38,400.00 mapping decision with 2/2 evidence
+claims verified and 0 tokens; and a Postgres restart plus `backend` and `web` redeploys that
+preserved state, the investigation and all 16 blobs without reseeding. Measured usage is about
+0.42 GB of memory, roughly $4–5 a month. Details: [railway-deployment.md](railway-deployment.md).
+
+The README was rewritten once around the live URL with current test counts, and the demo
+materials were added: [demo-script.md](demo-script.md), [project-brief.md](project-brief.md),
+[outreach-blurb.md](outreach-blurb.md). The live walkthrough in the demo script was rehearsed
+step by step against the deployment.
+
+Relay is finished.
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.

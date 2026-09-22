@@ -1,10 +1,14 @@
 # Deploying the public demo on Railway
 
-The same public demo as [public-deployment.md](public-deployment.md), on Railway instead of a VM:
-no server to administer, a Railway-provided HTTPS URL on day one, and a custom domain later if
-wanted. Nothing about what Relay *is* in public changes — `RELAY_ENV=demo`,
-`RELAY_AI_PROVIDER=demo`, no Anthropic key, one fictional company, every mutation refused except
-starting an investigation. Only the shape of the hosting changes.
+**This is what is running.** The public demo is live at
+**https://web-production-9032d5.up.railway.app**, deployed on 2026-09-22 from commit `245e046` into
+a Railway project named `relay`. The single-VM deployment in
+[public-deployment.md](public-deployment.md) is an alternative, not what serves the demo.
+
+The same public demo as the VM version, without a server to administer: a Railway-provided HTTPS
+URL, and a custom domain later if wanted. Nothing about what Relay *is* in public changes —
+`RELAY_ENV=demo`, `RELAY_AI_PROVIDER=demo`, no Anthropic key, one fictional company, every mutation
+refused except starting an investigation. Only the shape of the hosting changes.
 
 Files: [`deploy/railway/backend.Dockerfile`](../deploy/railway/backend.Dockerfile),
 [`deploy/railway/backend-start.sh`](../deploy/railway/backend-start.sh). The web tier builds from the
@@ -105,7 +109,7 @@ if one were.
 | CSP, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` | from the app | from the app — unchanged |
 | 1 MB edge body cap | Caddy | none at the edge; the demo policy still refuses every mutation but one before reading a body |
 | API and worker | two containers, one volume | one container, one volume |
-| Reset | `make public-demo-reset` | delete the backend volume and the Postgres data, redeploy; the start script seeds an empty database |
+| Reset | `make public-demo-reset` | not needed in practice — visitor state is bounded, because an investigation is reused for the same finding and run, so the whole internet can create at most one per finding. A full reset would mean emptying both volumes and redeploying, so the start script seeds an empty database; that path has **not** been exercised on Railway |
 
 ## 6. Verified locally
 
@@ -126,3 +130,38 @@ container on a private network, with the blob volume root-owned as Railway mount
 - SIGTERM: both processes stopped in ~1 s
 - the web container's environment holds only `RELAY_API_URL` and `RELAY_PUBLIC_DEMO` — no
   database URL, no key
+
+## 7. The live deployment
+
+| | |
+|---|---|
+| URL | https://web-production-9032d5.up.railway.app |
+| Project | `relay`, environment `production`, in the owner's Railway Hobby workspace |
+| Services | `web` (public domain, port 3000), `backend` (no domain), `Postgres` (no domain, no TCP proxy) |
+| Volumes | `backend-volume` at `/data/blobs`; `postgres-volume` at `/var/lib/postgresql/data` |
+| Build settings | `backend`: `deploy/railway/backend.Dockerfile`, health check `/health` (600 s); `web`: root directory `web`, health check `/status` |
+| Restart policy | on failure, up to 10 retries, both services |
+| Deployed from | `railway up` of a clean `git archive` of commit `245e046` — no working-tree file, `.env` or build cache was uploaded |
+
+**Verified against the live deployment on 2026-09-22**, from the internet and from inside the
+private network over `railway ssh`:
+
+- HTTPS 200; plain HTTP answered `301` to HTTPS by Railway's edge; CSP, `X-Frame-Options`,
+  `X-Content-Type-Options` and `Referrer-Policy` present; no HSTS (as documented above)
+- eleven screens rendered in a real browser with no console errors and no 5xx responses
+- canonical state: 12 gates / 9 failing / 217,212.85 USD / run #17 current / 20 decisions / 18
+  applied change requests / leading item 38,400.00
+- `/api/v1/*`, `/health`, docs and OpenAPI all 404 through the public URL; `*.railway.internal`
+  does not resolve from the internet; no public TCP proxy on `backend` or `Postgres`
+- 22 of 22 demo-policy probes correct from inside the network, with a forged `X-Relay-User` header
+- the running API process: `RELAY_ENV=demo`, `RELAY_AI_PROVIDER=demo`, no `ANTHROPIC*` variable;
+  the worker and the API at uid 10001
+- a scripted investigation of the 38,400.00 mapping decision through the public site: 8 bounded
+  tool calls, 2 of 2 evidence claims verified, 0 tokens, labelled "Scripted demonstration — not a
+  model", no approve or accept control offered
+- Postgres restarted and `backend` and `web` redeployed: the start script found the database
+  "already seeded and prepared" and did not reseed; state, the investigation and all 16 blobs
+  (identical content digest) survived; HTTPS back to 200
+- measured usage: about 0.42 GB of memory across the three services and near-zero idle CPU —
+  roughly $4–5 a month at Railway's published rates
+
