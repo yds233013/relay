@@ -25,6 +25,7 @@ Canonical documents (read the relevant one before working in an area):
 | Deployment overlay, backups, why production serves no users | `docs/deployment.md` |
 | Public demo mode: anonymous access, the demo policy, zero-cost AI | `docs/public-demo.md` |
 | Putting the public demo on the internet: single-node topology, Caddy edge, runbook | `docs/public-deployment.md` |
+| The same public demo on Railway: services, the shared-blob constraint, variables | `docs/railway-deployment.md` |
 | Security & correctness requirement IDs | `docs/security-and-correctness.md` |
 | Milestones and acceptance criteria | `docs/implementation-plan.md` |
 | What has actually been built | `docs/progress.md` (created in M0) |

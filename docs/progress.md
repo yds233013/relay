@@ -989,6 +989,36 @@ whose repository it is.
 
 ---
 
+## Railway deployment package (deployment files only)
+
+DigitalOcean was abandoned before any account existed. The public demo is instead prepared for
+Railway, where the web service gets an HTTPS URL on day one and there is no server to administer
+([railway-deployment.md](railway-deployment.md)). No file under `backend/`, `web/`, `fixtures/` or
+`evaluation/` changed.
+
+The constraint that shaped it: Relay's blob store is a POSIX directory the API writes and the worker
+reads, and neither Railway volumes nor Render disks can be shared between services. Rather than
+write an object-storage adapter, `deploy/railway/backend.Dockerfile` runs the API and the worker as
+two processes in one service beside one volume; `deploy/railway/backend-start.sh` exits when either
+stops so both restart together. Caddy is not deployed — Railway's edge terminates TLS and routes
+only configured domains — and the one thing lost with it, HSTS, is recorded in the doc rather than
+papered over.
+
+Testing the Railway shape locally found a latent defect in demo tooling, not in Relay's runtime:
+`relay-demo public-demo` is documented as idempotent, but its AI-consent step always files a
+policy change, which Relay correctly refuses once consent exists. `make public-init` and the reset
+only ever run it after a fresh seed, so they never hit it; a container that restarts would have.
+The start script therefore decides from the database whether seeding and preparation are needed
+(empty, seeded-but-unprepared, or ready) and never runs either twice. The docstring and the
+tooling are unchanged — fixing demo tooling was not needed to deploy.
+
+Verified locally before anything was created on Railway: first boot, redeploy without reseeding,
+recovery from an interrupted first boot, SIGTERM, every process at uid 10001 on a root-mounted
+volume, the canonical state, 22/22 demo-policy probes from inside the private network, and a
+scripted investigation through the web tier with 0 tokens.
+
+---
+
 ## Retrospective
 
 Written at the end of M9, covering the whole build.

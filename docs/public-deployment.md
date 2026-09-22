@@ -18,6 +18,9 @@ Files: [`docker-compose.public.yml`](../docker-compose.public.yml),
 Read [public-demo.md](public-demo.md) first: it explains what the demo *is* and why a visitor
 cannot damage it. This document is only about getting that onto the internet.
 
+To run the same demo on Railway instead of a VM — no server to administer, a provider HTTPS URL
+on day one — see [railway-deployment.md](railway-deployment.md).
+
 ---
 
 ## 1. What is being deployed
