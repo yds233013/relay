@@ -59,3 +59,8 @@ backend/.data/
 # the whole database, so an untracked directory of them next to a git repo is an accident waiting
 # for a `git add -A`.
 /backups/
+
+# Local agent/assistant instruction files
+CLAUDE.md
+AGENTS.md
+.claude/
